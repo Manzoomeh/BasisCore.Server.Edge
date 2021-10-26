@@ -1,7 +1,7 @@
-from .IPredicate import IPredicate
+from .predicate_base import PredicateBase
 
 
-class EqualPredicate (IPredicate):
+class EqualPredicate (PredicateBase):
     def __init__(self, value) -> None:
         self._value = value
 

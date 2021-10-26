@@ -1,7 +1,7 @@
-from .IPredicate import IPredicate
+from .predicate_base import PredicateBase
 
 
-class InListPredicate(IPredicate):
+class InListPredicate(PredicateBase):
     def __init__(self, args: list) -> None:
         self._list = args
 

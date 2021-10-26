@@ -1,11 +1,11 @@
 from typing import Callable, TypedDict
 from context import RequestContext
-from predicate.IPredicate import IPredicate
+from predicate import PredicateBase
 
 
 class PredicateDic(TypedDict):
     property: str
-    predicate: IPredicate
+    predicate: PredicateBase
 
 
 class CallbackResult:
@@ -16,15 +16,18 @@ class CallbackResult:
 
 
 class CallbackInfo:
-    def __init__(self, predicates: PredicateDic,  callback: Callable[[RequestContext], CallbackResult]) -> None:
+    def __init__(self, predicates: PredicateDic,  callback: Callable[[RequestContext], CallbackResult]) -> CallbackResult:
         self.__callback = callback
         self.__predicates = predicates
 
-    # def tryExecute(self, context: RequestContext) -> CallbackResult:
-    #     isMatch = True
-    #     for p in self.__predicates:
-    #         value = element.attributes[p]
-    #         isMatch = self.__predicates[p].isMatch(value)
-    #         if(isMatch == False):
-    #             break
-    #     return self.__callback(element, request) if(isMatch == True) else None
+    def tryExecute(self, context: RequestContext) -> CallbackResult:
+        isMatch = True
+        for propertyName in self.__predicates:
+            value = self.getValue(propertyName, context)
+            isMatch = self.__predicates[propertyName].isMatch(value, context)
+            if(isMatch == False):
+                break
+        return self.__callback(context) if(isMatch == True) else None
+
+    def getValue(self, propertyName, context: RequestContext):
+        return None

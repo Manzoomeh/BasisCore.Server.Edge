@@ -1,5 +1,5 @@
 from html.parser import HTMLParser
-from .HtmlTag import HtmlTag
+from .html_tag import HtmlTag
 
 
 class BasisCoreHtmlParser(HTMLParser):

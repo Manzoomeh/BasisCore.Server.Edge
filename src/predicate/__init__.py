@@ -1,2 +1,2 @@
-from src.predicate.helper import equal, inList
-from src.predicate.IPredicate import IPredicate
+from .helper import equal, inList
+from .predicate_base import PredicateBase

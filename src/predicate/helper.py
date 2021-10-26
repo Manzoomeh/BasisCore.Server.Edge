@@ -1,11 +1,11 @@
-from src.predicate.IPredicate import IPredicate
-from src.predicate.InListPredicate import InListPredicate
-from src.predicate.EqualPredicate import EqualPredicate
+from .predicate_base import PredicateBase
+from .equal_predicate import EqualPredicate
+from .in_list_predicate import InListPredicate
 
 
-def inList(*args) -> IPredicate:
+def inList(*args) -> PredicateBase:
     return InListPredicate([*args])
 
 
-def equal(value) -> IPredicate:
+def equal(value) -> PredicateBase:
     return EqualPredicate(value)

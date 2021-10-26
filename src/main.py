@@ -1,6 +1,6 @@
 import sys
 from os import path
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+sys.path.append(path.dirname(path.abspath(__file__)))
 
 
 def f():
@@ -44,6 +44,7 @@ def f():
 
     c = DbSourceRequestContext(p)
 
+    print(type(c).__name__, isinstance(c, DbSourceRequestContext))
     print(c.command)
 
     @sourceAction(source=equal("accounting"), mid=inList("1", "43"))
