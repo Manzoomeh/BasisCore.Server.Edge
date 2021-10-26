@@ -1,0 +1,14 @@
+from context import Context
+from .predicate import Predicate
+
+
+class Url(Predicate):
+    """Create url cheking predicate and also extract custom fragment from url"""
+
+    def __init__(self, expression, *items) -> None:
+        super().__init__(expression)
+        self.__items = [*items]
+
+    def check(self, context: Context) -> bool:
+        value = eval(self.exprossion, {}, {"context": context})
+        return value in self.__items

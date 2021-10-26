@@ -1,11 +1,13 @@
-from .predicate_base import PredicateBase
-from .equal_predicate import EqualPredicate
-from .in_list_predicate import InListPredicate
+from .predicate import Predicate
+from .equal import Equal
+from .in_list import InList
 
 
-def inList(*args) -> PredicateBase:
-    return InListPredicate([*args])
+def in_list(expression: str, *items) -> Predicate:
+    """Create list cheking predicate"""
+    return InList(expression,  *items)
 
 
-def equal(value) -> PredicateBase:
-    return EqualPredicate(value)
+def equal(expression: str, value) -> Predicate:
+    """Create equality cheking predicate"""
+    return Equal(expression, value)

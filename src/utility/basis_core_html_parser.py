@@ -1,15 +1,18 @@
+"""import html parser"""
 from html.parser import HTMLParser
 from .html_tag import HtmlTag
 
 
 class BasisCoreHtmlParser(HTMLParser):
+    """custom parser for row html"""
+
     def __init__(self,) -> None:
         super().__init__()
         self.element = None
         self.stack = []
 
     def handle_starttag(self, tag, attrs):
-        if(self.element != None):
+        if(self.element is not None):
             self.stack.append(self.element)
 
         self.element = HtmlTag(tag)
@@ -21,7 +24,7 @@ class BasisCoreHtmlParser(HTMLParser):
         if(len(self.stack) != 0):
             tmp = self.element
             self.element = self.stack.pop()
-            self.element.childList.append(tmp)
+            self.element.child_list.append(tmp)
         #print("Encountered an end tag :", tag)
 
     def handle_data(self, data):
