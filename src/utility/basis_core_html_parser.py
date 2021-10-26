@@ -1,5 +1,6 @@
 """import html parser"""
 from html.parser import HTMLParser
+from .DictEx import DictEx
 from .html_tag import HtmlTag
 
 
@@ -30,3 +31,17 @@ class BasisCoreHtmlParser(HTMLParser):
     def handle_data(self, data):
         #print("Encountered some data  :", data)
         pass
+
+    def get_dict_ex(self) -> DictEx:
+        def convert_tag_to_dict(tag: HtmlTag) -> dict:
+            dic = dict(tag.attributes)
+            for child in tag.child_list:
+                if child.name in dic:
+                    dic_list = dic.get(child.name)
+                else:
+                    dic_list = dic[child.name] = list()
+                child_dict = convert_tag_to_dict(child)
+                dic_list.append(child_dict)
+            return dic
+        new_dic = convert_tag_to_dict(self.element)
+        return DictEx(new_dic)

@@ -16,18 +16,7 @@ def sourceAction(*predicates):
         def wrapper(*args, **kwargs):
             result = function(*args, **kwargs)
             return result
-        get_lookup(type(SourceCallbackInfo).name).append(
+        get_lookup(SourceContext.__name__).append(
             SourceCallbackInfo([*predicates], wrapper))
-
         return wrapper
     return decorator
-
-
-# def sourceCommandDispatcher(request: SourceContext):
-#     result=None
-#     for handlerName in SOURCE_COMMAND_ROUTER:
-#         result=SOURCE_COMMAND_ROUTER[handlerName].tryExecute(
-#             request)
-#         if(result is not None):
-#             break
-#     return result

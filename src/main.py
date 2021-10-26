@@ -1,6 +1,6 @@
 from predicate import equal, in_list
-from context import SourceContext, Context
-from bc_decorator import sourceAction
+from context import SourceContext
+from bc_decorator import sourceAction, contextDispatcher
 
 
 p = {
@@ -37,27 +37,22 @@ p = {
     }
 }
 
-
+print('*'*20)
 c = SourceContext(p)
-print(c.request.form.command)
-print(c.command)
-
-#p = Equal("context.request.form.dmnid", "201")
-p = in_list("context.request.form.dmnid", "201", "202")
-print(p.check(c))
 
 
-# print(type(c).__name__, isinstance(c, SourceContext))
-# print(c.command)
-
-
-@sourceAction(equal("context.request.command.source", "basiscore"))
-def process1(request: any):
-    print("process1 ",  request)
+@sourceAction(
+    equal("context.command.source", "basiscore"),
+    in_list("context.command.mid", "10", "20"))
+def process1(context: SourceContext):
+    print("process1 ",  context)
     return "process1 "
 
 
-# @sourceAction(source=equal("accounting"), mid=inList("1", "43"))
-# def process2(request: any):
-#     print("process2 ",  request)
-#     return "process2 "
+@sourceAction(equal("context.command.source", "basiscore"))
+def process2(context: SourceContext):
+    print("process2 ",  context.process_async)
+    return "process2 "
+
+
+contextDispatcher(c)
