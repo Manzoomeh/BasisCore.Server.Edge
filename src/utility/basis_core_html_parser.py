@@ -13,7 +13,7 @@ class BasisCoreHtmlParser(HTMLParser):
         self.stack = []
 
     def handle_starttag(self, tag, attrs):
-        if(self.element is not None):
+        if self.element is not None:
             self.stack.append(self.element)
 
         self.element = HtmlTag(tag)
@@ -22,7 +22,7 @@ class BasisCoreHtmlParser(HTMLParser):
         #print("Encountered a start tag:", tag, self.element.attributes)
 
     def handle_endtag(self, tag):
-        if(len(self.stack) != 0):
+        if len(self.stack) != 0:
             tmp = self.element
             self.element = self.stack.pop()
             self.element.child_list.append(tmp)
@@ -33,15 +33,15 @@ class BasisCoreHtmlParser(HTMLParser):
         pass
 
     def get_dict_ex(self) -> DictEx:
-        def convert_tag_to_dict(tag: HtmlTag) -> dict:
+        def _convert_tag_to_dict(tag: HtmlTag) -> dict:
             dic = dict(tag.attributes)
             for child in tag.child_list:
                 if child.name in dic:
                     dic_list = dic.get(child.name)
                 else:
                     dic_list = dic[child.name] = list()
-                child_dict = convert_tag_to_dict(child)
+                child_dict = _convert_tag_to_dict(child)
                 dic_list.append(child_dict)
             return dic
-        new_dic = convert_tag_to_dict(self.element)
+        new_dic = _convert_tag_to_dict(self.element)
         return DictEx(new_dic)

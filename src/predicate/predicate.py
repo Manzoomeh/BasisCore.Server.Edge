@@ -12,4 +12,3 @@ class Predicate(ABC):
     @abstractmethod
     def check(self, context: Context) -> bool:
         """Applay cheking for predicate"""
-        pass

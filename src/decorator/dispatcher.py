@@ -1,11 +1,11 @@
-from .callback_info import CallbackInfo
 from context import Context
+from .callback_info import CallbackInfo
 
 
 CONTEXT_DISPATCHER_LOOKUP: dict[str, list[CallbackInfo]] = dict()
 
 
-def get_lookup(key: str) -> list[CallbackInfo]:
+def get_context_lookup(key: str) -> list[CallbackInfo]:
     ret_val: None
     if key in CONTEXT_DISPATCHER_LOOKUP:
         ret_val = CONTEXT_DISPATCHER_LOOKUP[key]
@@ -15,11 +15,11 @@ def get_lookup(key: str) -> list[CallbackInfo]:
     return ret_val
 
 
-def contextDispatcher(context: Context):
+def context_dispatcher(context: Context):
     result = None
     name = type(context).__name__
-    l = get_lookup(name)
-    for item in l:
+    items = get_context_lookup(name)
+    for item in items:
         result = item.tryExecute(context)
         if(result is not None):
             break

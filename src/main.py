@@ -1,6 +1,6 @@
 from predicate import equal, in_list
 from context import SourceContext
-from bc_decorator import sourceAction, contextDispatcher
+from decorator import source_action, context_dispatcher
 
 
 p = {
@@ -41,7 +41,7 @@ print('*'*20)
 c = SourceContext(p)
 
 
-@sourceAction(
+@source_action(
     equal("context.command.source", "basiscore"),
     in_list("context.command.mid", "10", "20"))
 def process1(context: SourceContext):
@@ -49,10 +49,10 @@ def process1(context: SourceContext):
     return "process1 "
 
 
-@sourceAction(equal("context.command.source", "basiscore"))
+@source_action(equal("context.command.source", "basiscore"))
 def process2(context: SourceContext):
     print("process2 ",  context.process_async)
     return "process2 "
 
 
-contextDispatcher(c)
+context_dispatcher(c)
