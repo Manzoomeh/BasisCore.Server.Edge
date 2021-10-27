@@ -1,6 +1,6 @@
 from predicate import equal, in_list
-from context import SourceContext
-from decorator import source_action, context_dispatcher
+from context import SourceContext, SourceMemberContext
+from decorator import source_action, dispatch_context, source_member_action
 
 
 p = {
@@ -46,13 +46,23 @@ c = SourceContext(p)
     in_list("context.command.mid", "10", "20"))
 def process1(context: SourceContext):
     print("process1 ",  context)
-    return "process1 "
+    data = [
+        {"id": 1, "name": "Data1"},
+        {"id": 2, "name": "Data2"},
+        {"id": 3, "name": "Data3"},
+        {"id": 4, "name": "Data4"}
+    ]
+    context.data = data
 
 
 @source_action(equal("context.command.source", "basiscore"))
 def process2(context: SourceContext):
     print("process2 ",  context.process_async)
-    return "process2 "
 
 
-context_dispatcher(c)
+@source_member_action(equal("context.command.source", "basiscore"))
+def member_process1(context: SourceMemberContext):
+    print("member_process1 ",  context.member)
+
+
+dispatch_context(c)

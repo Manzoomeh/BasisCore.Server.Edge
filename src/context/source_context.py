@@ -1,9 +1,9 @@
 from utility import BasisCoreHtmlParser
 from utility.DictEx import DictEx
-from .context import Context
+from .request_context import RequestContext
 
 
-class SourceContext(Context):
+class SourceContext(RequestContext):
     """Context for dbSource request"""
 
     def __init__(self, request) -> None:
@@ -13,6 +13,7 @@ class SourceContext(Context):
         parser.feed(html)
         self.__command = parser.get_dict_ex()
         self.process_async = True
+        self.data = None
 
     @property
     def command(self) -> DictEx:

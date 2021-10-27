@@ -15,12 +15,12 @@ def get_context_lookup(key: str) -> list[CallbackInfo]:
     return ret_val
 
 
-def context_dispatcher(context: Context):
+def dispatch_context(context: Context):
     result = None
     name = type(context).__name__
     items = get_context_lookup(name)
     for item in items:
-        result = item.tryExecute(context)
+        result = item.try_execute(context)
         if(result is not None):
             break
     return result
