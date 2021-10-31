@@ -5,7 +5,7 @@ from typing import Callable
 from .endpoint import EndPoint
 
 
-class Server:
+class SocketListener:
     def __init__(self, endpoint: EndPoint, callBack: Callable[[bytes], bytes]):
         self.__endPoint = endpoint
         self.__callback = callBack
@@ -16,13 +16,13 @@ class Server:
             with conn:
                 responce = None
                 try:
-                    request = Server.__read_from_socket(conn)
+                    request = SocketListener.__read_from_socket(conn)
                     if request:
                         responce = self.__callback(request)
                 except Exception as e:
                     print(repr(e))
-                    responce = Server.__convert_to_responce(e)
-                Server.__write_to_socket(conn, responce)
+                    responce = SocketListener.__convert_to_responce(e)
+                SocketListener.__write_to_socket(conn, responce)
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((self.__endPoint.url, self.__endPoint.port))

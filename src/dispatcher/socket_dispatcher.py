@@ -1,15 +1,17 @@
 import json
+import asyncio
+from listener import EndPoint, SocketListener
 from context import SourceContext
-from socket_server import EndPoint, Server
-from decorator import dispatch_context
+from .dispatcher import Dispatcher
 
 
-class BasisCoreServer(Server):
+class SocketDispatcher(Dispatcher):
     def __init__(self, ip: str, port: int):
-        super().__init__(EndPoint(ip, port), BasisCoreServer.on_message_receive)
+        super().__init__()
+        self.__listener = SocketListener(
+            EndPoint(ip, port), self.on_message_receive)
 
-    @staticmethod
-    def on_message_receive(request_bytes: list):
+    def on_message_receive(self, request_bytes: list) -> bytes:
         request_str = request_bytes.decode("utf-8")
         request_object = json.loads(request_str)
         req = request_object["cms"]["request"]
@@ -19,7 +21,7 @@ class BasisCoreServer(Server):
 
         context = SourceContext(request_object["cms"])
         # print(context)
-        result = dispatch_context(context)
+        result = self.dispatch_context(context)
         # print(result)
 
         request_object["cms"]["content"] = json.dumps(result)
@@ -31,3 +33,12 @@ class BasisCoreServer(Server):
         request_object["cms"]["http"] = {"Access-Control-Allow-Headers": " *"}
 
         return json.dumps(request_object).encode("utf-8")
+
+    def listening(self):
+        try:
+            asyncio.run(self.__listener.process_async())
+        except KeyboardInterrupt:
+            print('Bye!')
+
+    def start_listening(self):
+        return self.__listener.process_async()

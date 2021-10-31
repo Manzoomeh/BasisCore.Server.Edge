@@ -1,14 +1,15 @@
-import asyncio
-from socket_server import BasisCoreServer
+from dispatcher import SocketDispatcher
 from predicate import equal, in_list
 from context import SourceContext, SourceMemberContext
-from decorator import source_action, source_member_action
 
 
-@source_action(
+app = SocketDispatcher('127.0.0.1', 1025)
+
+
+@app.source_action(
     equal("context.command.source", "basiscore"),
     in_list("context.command.mid", "10", "20"))
-def process_demo_source(context: SourceContext):
+def process_basiscore_source(context: SourceContext):
     print("process1 ",  context)
     data = [
         {"id": 1, "name": "Data1"},
@@ -19,7 +20,7 @@ def process_demo_source(context: SourceContext):
     context.data = data
 
 
-@source_action(
+@app.source_action(
     equal("context.command.source", "demo"),
     in_list("context.command.mid", "10", "20"))
 def process_demo_source(context: SourceContext):
@@ -35,7 +36,7 @@ def process_demo_source(context: SourceContext):
     context.data = data
 
 
-@source_member_action(
+@app.source_member_action(
     equal("context.member.name", "list")
 )
 def process_list_member(context: SourceMemberContext):
@@ -43,7 +44,7 @@ def process_list_member(context: SourceMemberContext):
     print("process_list_member")
 
 
-@source_member_action(
+@app.source_member_action(
     equal("context.member.name", "paging")
 )
 def process_page_member(context: SourceMemberContext):
@@ -56,7 +57,7 @@ def process_page_member(context: SourceMemberContext):
     print("process_page_member")
 
 
-@source_member_action(
+@app.source_member_action(
     equal("context.member.name", "count")
 )
 def process_count_member(context: SourceMemberContext):
@@ -67,15 +68,10 @@ def process_count_member(context: SourceMemberContext):
     print("process_count_member")
 
 
-@source_member_action()
+@app.source_member_action()
 def all_member_process(context: SourceMemberContext):
     context.result = None
     print("all_member_process", )
 
 
-async def main():
-    server = BasisCoreServer('127.0.0.1', 1025)
-    await server.process_async()
-
-
-asyncio.run(main())
+app.listening()
