@@ -1,24 +1,27 @@
+"""Base class for dispaching request"""
 from typing import Callable, Any
-import predicate
-from .callback_info import CallbackInfo
-from predicate import Predicate, InList, Equal
-from context import SourceContext, SourceMemberContext, Context
 from datetime import timedelta, datetime
 from functools import wraps
+from predicate import Predicate, InList, Equal
+from context import SourceContext, SourceMemberContext, Context
+from .callback_info import CallbackInfo
 
 
 class Dispatcher:
+    """Base class for dispaching request"""
+
     def __init__(self):
         self.__look_up: dict[str, list[CallbackInfo]] = dict()
         self.__cache_list: dict[str, list[Callable]] = dict()
 
     def source_action(self, *predicates: (Predicate)):
+        """Decorator for determine source action"""
         def _decorator(source_action: Callable[[SourceContext], list]):
             @wraps(source_action)
             def _wrapper(context: SourceContext):
                 data = source_action(context)
                 result_set = list()
-                if(data is not None):
+                if data is not None:
                     for member in context.command.member:
                         member_context = SourceMemberContext(
                             context, data, member)
@@ -40,6 +43,7 @@ class Dispatcher:
         return _decorator
 
     def source_member_action(self, *predicates: (Predicate)):
+        """Decorator for determine source member action methode"""
         def _decorator(function: Callable[[SourceMemberContext], list]):
 
             @wraps(function)
@@ -52,6 +56,7 @@ class Dispatcher:
         return _decorator
 
     def _get_context_lookup(self, key: str) -> list[CallbackInfo]:
+        """Get key related action list object"""
         ret_val: None
         if key in self.__look_up:
             ret_val = self.__look_up[key]
@@ -67,7 +72,7 @@ class Dispatcher:
         items = self._get_context_lookup(name)
         for item in items:
             result = item.try_execute(context)
-            if(result is not None):
+            if result is not None:
                 break
         return result
 
@@ -81,26 +86,33 @@ class Dispatcher:
         """Create equality cheking predicate"""
         return Equal(expression, value)
 
-    def cache(self, seconds: int, key: str = None):
+    def cache(self, seconds: int = 0, key: str = None):
         """Cache result of function for seconds of time or until signal by key for clear"""
         def decorator(function):
-            function.lifetime = timedelta(seconds=seconds)
-            function.expiration = datetime.utcnow() + function.lifetime
             function.cache = None
+            if seconds > 0:
+                function.lifetime = timedelta(seconds=seconds)
+                function.expiration = datetime.utcnow() + function.lifetime
             if key is not None:
                 if key not in self.__cache_list:
                     self.__cache_list[key] = list()
                 self.__cache_list[key].append(function)
 
             @wraps(function)
-            def wrapper(*args, **kwargs):
+            def wrapper_with_time(*args, **kwargs):
                 if function.cache is not None and datetime.utcnow() >= function.expiration:
                     function.cache = None
                     function.expiration = datetime.utcnow() + function.lifetime
                 if function.cache is None:
                     function.cache = function(*args, **kwargs)
                 return function.cache
-            return wrapper
+
+            @wraps(function)
+            def wrapper_without_time(*args, **kwargs):
+                if function.cache is None:
+                    function.cache = function(*args, **kwargs)
+                return function.cache
+            return wrapper_with_time if seconds > 0 else wrapper_without_time
         return decorator
 
     def reset_cache(self, key: str):

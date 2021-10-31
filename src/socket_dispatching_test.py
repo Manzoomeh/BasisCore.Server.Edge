@@ -46,7 +46,7 @@ def process_list_member(context: SourceMemberContext):
 @app.source_member_action(
     app.equal("context.member.name", "paging")
 )
-@app.cache(30)
+@app.cache(10)
 def process_page_member(context: SourceMemberContext):
     data = {
         "total": len(context.data),
