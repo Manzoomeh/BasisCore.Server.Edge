@@ -1,8 +1,77 @@
-from predicate import equal, in_list
 from context import SourceContext, SourceMemberContext
 from dispatcher import Dispatcher
 
 app = Dispatcher()
+
+
+@app.source_action(
+    app.equal("context.command.source", "basiscore"),
+    app.in_list("context.command.mid", "10", "20"))
+def process_basiscore_source(context: SourceContext):
+    print("process_basiscore_source",  context)
+    data = [
+        {"id": 1, "name": "Data1"},
+        {"id": 2, "name": "Data2"},
+        {"id": 3, "name": "Data3"},
+        {"id": 4, "name": "Data4"}
+    ]
+    return data
+
+
+@app.source_action(
+    app.equal("context.command.source", "demo"),
+    app.in_list("context.command.mid", "10", "20"))
+def process_demo_source(context: SourceContext):
+    print("process1 ",  context)
+    data = [
+        {"id": 1, "name": "Data1"},
+        {"id": 2, "name": "Data2"},
+        {"id": 3, "name": "Data3"},
+        {"id": 4, "name": "Data4"}
+    ]
+    return data
+
+
+@app.source_member_action(
+    app.equal("context.command.source", "basiscore"),
+    app.equal("context.member.name", "list")
+)
+def process_list_member(context: SourceMemberContext):
+    print("process_list_member")
+    return context.data
+
+
+@app.source_member_action(
+    app.equal("context.command.source", "basiscore"),
+    app.equal("context.member.name", "paging")
+)
+def process_page_member(context: SourceMemberContext):
+    data = {
+        "total": len(context.data),
+        "from": 0,
+        "to": len(context.data)-1,
+    }
+    print("process_page_member")
+    return data
+
+
+@app.source_member_action(
+    app.equal("context.command.source", "basiscore"),
+    app.equal("context.member.name", "count")
+)
+def process_count_member(context: SourceMemberContext):
+    data = {
+        "count": len(context.data)
+    }
+    print("process_count_member")
+    return data
+
+
+@app.source_member_action()
+def all_member_process(_: SourceMemberContext):
+    print("all_member_process", )
+    return None
+
 
 p = {
     "cms": {
@@ -40,78 +109,6 @@ p = {
     }
 }
 
-print('*'*20)
-c = SourceContext(p["cms"])
-
-
-@app.source_action(
-    equal("context.command.source", "basiscore"),
-    in_list("context.command.mid", "10", "20"))
-def process_basiscore_source(context: SourceContext):
-    print("process_basiscore_source",  context)
-    data = [
-        {"id": 1, "name": "Data1"},
-        {"id": 2, "name": "Data2"},
-        {"id": 3, "name": "Data3"},
-        {"id": 4, "name": "Data4"}
-    ]
-    context.data = data
-
-
-@app.source_action(
-    equal("context.command.source", "demo"),
-    in_list("context.command.mid", "10", "20"))
-def process_demo_source(context: SourceContext):
-    print("process1 ",  context)
-    data = [
-        {"id": 1, "name": "Data1"},
-        {"id": 2, "name": "Data2"},
-        {"id": 3, "name": "Data3"},
-        {"id": 4, "name": "Data4"}
-    ]
-    context.data = data
-
-
-@app.source_member_action(
-    equal("context.command.source", "basiscore"),
-    equal("context.member.name", "list")
-)
-def process_list_member(context: SourceMemberContext):
-    context.result = context.source_context.data
-    print("process_list_member")
-
-
-@app.source_member_action(
-    equal("context.command.source", "basiscore"),
-    equal("context.member.name", "paging")
-)
-def process_page_member(context: SourceMemberContext):
-    data = {
-        "total": len(context.source_context.data),
-        "from": 0,
-        "to": len(context.source_context.data)-1,
-    }
-    context.result = data
-    print("process_page_member")
-
-
-@app.source_member_action(
-    equal("context.command.source", "basiscore"),
-    equal("context.member.name", "count")
-)
-def process_count_member(context: SourceMemberContext):
-    data = {
-        "count": len(context.source_context.data)
-    }
-    context.result = data
-    print("process_count_member")
-
-
-@app.source_member_action()
-def all_member_process(context: SourceMemberContext):
-    context.result = None
-    print("all_member_process", )
-
-
-result = app.dispatch_context(c)
+context = SourceContext(p["cms"])
+result = app.dispatch(context)
 print(result)

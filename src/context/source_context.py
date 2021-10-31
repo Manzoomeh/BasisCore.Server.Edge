@@ -13,7 +13,6 @@ class SourceContext(RequestContext):
         parser.feed(html)
         self.__command = parser.get_dict_ex()
         self.process_async = True
-        self.data = None
 
     @property
     def command(self) -> DictEx:

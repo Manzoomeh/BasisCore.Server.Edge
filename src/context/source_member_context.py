@@ -7,10 +7,11 @@ from .source_context import SourceContext
 class SourceMemberContext(Context):
     """Context for dbSource member request"""
 
-    def __init__(self, sourceContext: SourceContext, member: dict) -> None:
+    def __init__(self, sourceContext: SourceContext, data: list, member: dict) -> None:
         super().__init__()
         self.__source_context = sourceContext
         self.__member = member
+        self.__data = data
         self.result: list = None
         self.table_name: str = "{0}.{1}".format(
             sourceContext.command.name, member.name)
@@ -23,13 +24,13 @@ class SourceMemberContext(Context):
         return self.__member
 
     @property
-    def source_context(self) -> SourceContext:
-        return self.__source_context
+    def data(self) -> list:
+        return self.__data
 
     @property
     def request(self) -> DictEx:
-        return self.source_context.request
+        return self.__source_context.request
 
     @property
     def command(self) -> DictEx:
-        return self.source_context.command
+        return self.__source_context.command

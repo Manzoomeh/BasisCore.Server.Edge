@@ -1,5 +1,4 @@
 from dispatcher import SocketDispatcher
-from predicate import equal, in_list
 from context import SourceContext, SourceMemberContext
 
 
@@ -7,8 +6,8 @@ app = SocketDispatcher('127.0.0.1', 1025)
 
 
 @app.source_action(
-    equal("context.command.source", "basiscore"),
-    in_list("context.command.mid", "10", "20"))
+    app.equal("context.command.source", "basiscore"),
+    app.in_list("context.command.mid", "10", "20"))
 def process_basiscore_source(context: SourceContext):
     print("process1 ",  context)
     data = [
@@ -17,12 +16,12 @@ def process_basiscore_source(context: SourceContext):
         {"id": 3, "name": "Data3"},
         {"id": 4, "name": "Data4"}
     ]
-    context.data = data
+    return data
 
 
 @app.source_action(
-    equal("context.command.source", "demo"),
-    in_list("context.command.mid", "10", "20"))
+    app.equal("context.command.source", "demo"),
+    app.in_list("context.command.mid", "10", "20"))
 def process_demo_source(context: SourceContext):
     print("process1 ",  context)
     data = [
@@ -33,45 +32,46 @@ def process_demo_source(context: SourceContext):
         {"id": 70, "name": "Data 70", "age": 37},
         {"id": 40, "name": "Data 40", "age": 45}
     ]
-    context.data = data
+    return data
 
 
 @app.source_member_action(
-    equal("context.member.name", "list")
+    app.equal("context.member.name", "list")
 )
 def process_list_member(context: SourceMemberContext):
-    context.result = context.source_context.data
     print("process_list_member")
+    return context.data
 
 
 @app.source_member_action(
-    equal("context.member.name", "paging")
+    app.equal("context.member.name", "paging")
 )
+@app.cache(30)
 def process_page_member(context: SourceMemberContext):
     data = {
-        "total": len(context.source_context.data),
+        "total": len(context.data),
         "from": 0,
-        "to": len(context.source_context.data)-1,
+        "to": len(context.data)-1,
     }
-    context.result = data
     print("process_page_member")
+    return data
 
 
 @app.source_member_action(
-    equal("context.member.name", "count")
+    app.equal("context.member.name", "count")
 )
 def process_count_member(context: SourceMemberContext):
     data = {
-        "count": len(context.source_context.data)
+        "count": len(context.data)
     }
-    context.result = data
     print("process_count_member")
+    return data
 
 
 @app.source_member_action()
-def all_member_process(context: SourceMemberContext):
-    context.result = None
+def all_member_process(_: SourceMemberContext):
     print("all_member_process", )
+    return None
 
 
 app.listening()

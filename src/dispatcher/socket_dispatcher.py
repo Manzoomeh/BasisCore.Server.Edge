@@ -9,9 +9,9 @@ class SocketDispatcher(Dispatcher):
     def __init__(self, ip: str, port: int):
         super().__init__()
         self.__listener = SocketListener(
-            EndPoint(ip, port), self.on_message_receive)
+            EndPoint(ip, port), self.__on_message_receive)
 
-    def on_message_receive(self, request_bytes: list) -> bytes:
+    def __on_message_receive(self, request_bytes: list) -> bytes:
         request_str = request_bytes.decode("utf-8")
         request_object = json.loads(request_str)
         req = request_object["cms"]["request"]
@@ -20,9 +20,7 @@ class SocketDispatcher(Dispatcher):
         print(log)
 
         context = SourceContext(request_object["cms"])
-        # print(context)
-        result = self.dispatch_context(context)
-        # print(result)
+        result = self.dispatch(context)
 
         request_object["cms"]["content"] = json.dumps(result)
         request_object["cms"]["webserver"] = {
