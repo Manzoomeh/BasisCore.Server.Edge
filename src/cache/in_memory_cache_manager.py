@@ -43,9 +43,11 @@ class InMemoryCacheManager(SignalBaseCacheManager):
             return wrapper_with_time if seconds > 0 else wrapper_without_time
         return decorator
 
-    def reset_cache(self, key: str):
+    def reset_cache(self, keys: list[str]):
         """Remove key related cache"""
 
-        if key in self.__cache_list:
-            for function in self.__cache_list[key]:
-                function.cache = None
+        print(f"reset cache for {keys}")
+        for key in keys:
+            if key in self.__cache_list:
+                for function in self.__cache_list[key]:
+                    function.cache = None

@@ -9,7 +9,7 @@ channel.queue_declare(queue='hello')
 
 d = dict()
 d["type"] = "clear-cache"
-d["key"] = "rrr"
+d["key"] = ["rrr"]
 
 j = json.dumps(d)
 print(j)

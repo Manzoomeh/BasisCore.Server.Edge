@@ -4,9 +4,10 @@
   "cache1": null,
   "cache": {
     "type": "memory",
-    "signal": {
-      "type": "rabit",
-      "queue-name": "demo"
+    "signaler": {
+      "type": "rabbit",
+      "host": "localhost",
+      "queue": "demo"
     }
   }
 }

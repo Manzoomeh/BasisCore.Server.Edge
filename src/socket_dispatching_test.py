@@ -43,6 +43,7 @@ def process_demo_source(context: SourceContext):
 @app.source_member_action(
     app.equal("context.member.name", "list")
 )
+@app.cache(key="member-list")
 def process_list_member(context: SourceMemberContext):
     print("process_list_member")
     return context.data
