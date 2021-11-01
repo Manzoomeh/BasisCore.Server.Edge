@@ -15,13 +15,27 @@ app = SocketDispatcher(options)
     app.in_list("context.command.mid", "10", "20"))
 def process_basiscore_source(context: SourceContext):
     print("process1 ",  context)
-    data = [
-        {"id": 1, "name": "Data1"},
-        {"id": 2, "name": "Data2"},
-        {"id": 3, "name": "Data3"},
-        {"id": 4, "name": "Data4"}
-    ]
-    return data
+    # data = [
+    #     {"id": 1, "name": "Data1"},
+    #     {"id": 2, "name": "Data2"},
+    #     {"id": 3, "name": "Data3"},
+    #     {"id": 4, "name": "Data4"}
+    # ]
+    db = context.open_sql_connection("sql_demo")
+    with db:
+        cursor = db.connection.cursor()
+        cursor.execute("""
+    SELECT TOP (20) [Id]
+        ,[InsCode]
+        ,[ISIN]
+        ,[CISIN]
+        ,[Name]
+        ,[Symbol]
+    FROM [MarketData].[dbo].[Shares]""")
+
+        result = [dict(zip([column[0] for column in cursor.description], row))
+                  for row in cursor.fetchall()]
+    return result
 
 
 @app.source_action(
@@ -29,14 +43,29 @@ def process_basiscore_source(context: SourceContext):
     app.in_list("context.command.mid", "10", "20"))
 def process_demo_source(context: SourceContext):
     print("process1 ",  context)
-    data = [
-        {"id": 44, "name": "Data 44", "age": 22},
-        {"id": 66, "name": "Data 66", "age": 50},
-        {"id": 76, "name": "Data 76", "age": 30},
-        {"id": 89, "name": "Data 89", "age": 52},
-        {"id": 70, "name": "Data 70", "age": 37},
-        {"id": 40, "name": "Data 40", "age": 45}
-    ]
+    db = context.open_sqllite_connection("sqlite_demo")
+    with db:
+        cursor = db.connection.cursor()
+        cursor.execute("""
+    SELECT  [Id]
+        ,[InsCode]
+        ,[ISIN]
+        ,[CISIN]
+        ,[Name]
+        ,[Symbol]
+    FROM [Shares]""")
+
+        data = [dict(zip([column[0] for column in cursor.description], row))
+                for row in cursor.fetchall()]
+
+    # data = [
+    #     {"id": 44, "name": "Data 44", "age": 22},
+    #     {"id": 66, "name": "Data 66", "age": 50},
+    #     {"id": 76, "name": "Data 76", "age": 30},
+    #     {"id": 89, "name": "Data 89", "age": 52},
+    #     {"id": 70, "name": "Data 70", "age": 37},
+    #     {"id": 40, "name": "Data 40", "age": 45}
+    # ]
     return data
 
 

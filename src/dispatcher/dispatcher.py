@@ -27,7 +27,7 @@ class Dispatcher:
                 if data is not None:
                     for member in context.command.member:
                         member_context = SourceMemberContext(
-                            context, data, member)
+                            context, data, member, self._options)
                         dispath_result = self.dispatch(member_context)
                         result = {
                             "options": {

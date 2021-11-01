@@ -4,8 +4,8 @@ from context import SourceContext, SourceMemberContext
 from dispatcher import Dispatcher
 
 
-with open(Path(__file__).with_name("host.json")) as f:
-    options = json.load(f)
+with open(Path(__file__).with_name("host.json")) as options_file:
+    options = json.load(options_file)
 
 app = Dispatcher(options)
 
@@ -15,6 +15,29 @@ app = Dispatcher(options)
     app.in_list("context.command.mid", "10", "20"))
 def process_basiscore_source(context: SourceContext):
     print("process_basiscore_source",  context)
+
+    sql_connection = context.open_sql_connection("sql_demo")
+    sqlite_connection = context.open_sqllite_connection("sqlite_demo")
+    with sqlite_connection, sqlite_connection:
+        with sql_connection.connection.cursor() as cursor:
+            rows = cursor.execute("""
+        SELECT TOP (10) [Id]
+            ,[InsCode]
+            ,[ISIN]
+            ,[CISIN]
+            ,[Name]
+            ,[Symbol]
+        FROM [MarketData].[dbo].[Shares]""").fetchall()
+
+        cursor = sqlite_connection.connection.cursor()
+        cursor.execute(
+            '''CREATE TABLE Shares (Id ,InsCode ,ISIN ,CISIN ,Name ,Symbol )''')
+        sqlite_connection.connection.commit()
+        for p in rows:
+            cursor.execute(
+                "insert into Shares values (?, ?,?,?,?,?)", p)
+
+        sqlite_connection.connection.commit()
     data = [
         {"id": 1, "name": "Data1"},
         {"id": 2, "name": "Data2"},
@@ -115,6 +138,6 @@ p = {
     }
 }
 
-context = SourceContext(p["cms"])
-result = app.dispatch(context)
+source_context = SourceContext(p["cms"], options)
+result = app.dispatch(source_context)
 print(result)

@@ -19,7 +19,7 @@ class SocketDispatcher(Dispatcher):
             req["request-id"], req["methode"], req["full-url"])
         print(log)
 
-        context = SourceContext(request_object["cms"])
+        context = SourceContext(request_object["cms"], self._options)
         result = self.dispatch(context)
 
         request_object["cms"]["content"] = json.dumps(result)

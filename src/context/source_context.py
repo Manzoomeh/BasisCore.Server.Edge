@@ -6,8 +6,8 @@ from .request_context import RequestContext
 class SourceContext(RequestContext):
     """Context for dbSource request"""
 
-    def __init__(self, request) -> None:
-        super().__init__(request)
+    def __init__(self, request, options: dict) -> None:
+        super().__init__(request, options)
         parser = BasisCoreHtmlParser()
         html = self.request.form.command
         parser.feed(html)
