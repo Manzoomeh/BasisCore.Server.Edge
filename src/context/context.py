@@ -1,4 +1,4 @@
-from .db_manager import DbManager, SqlDb, SQLiteDb
+from .db_manager import DbManager, SqlDb, SQLiteDb, MongoDb
 
 
 class Context:
@@ -13,3 +13,6 @@ class Context:
 
     def open_sqllite_connection(self, key: str) -> SQLiteDb:
         return self.__db_manager.open_sqllite_connection(key)
+
+    def open_mongo_connection(self, key: str) -> MongoDb:
+        return self.__db_manager.open_mongo_connection(key)

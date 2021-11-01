@@ -16,28 +16,34 @@ app = Dispatcher(options)
 def process_basiscore_source(context: SourceContext):
     print("process_basiscore_source",  context)
 
-    sql_connection = context.open_sql_connection("sql_demo")
-    sqlite_connection = context.open_sqllite_connection("sqlite_demo")
-    with sqlite_connection, sqlite_connection:
-        with sql_connection.connection.cursor() as cursor:
-            rows = cursor.execute("""
-        SELECT TOP (10) [Id]
-            ,[InsCode]
-            ,[ISIN]
-            ,[CISIN]
-            ,[Name]
-            ,[Symbol]
-        FROM [MarketData].[dbo].[Shares]""").fetchall()
+    # sql_connection = context.open_sql_connection("sql_demo")
+    # sqlite_connection = context.open_sqllite_connection("sqlite_demo")
+    # with sqlite_connection, sqlite_connection:
+    #     with sql_connection.connection.cursor() as cursor:
+    #         rows = cursor.execute("""
+    #     SELECT TOP (10) [Id]
+    #         ,[InsCode]
+    #         ,[ISIN]
+    #         ,[CISIN]
+    #         ,[Name]
+    #         ,[Symbol]
+    #     FROM [MarketData].[dbo].[Shares]""").fetchall()
 
-        cursor = sqlite_connection.connection.cursor()
-        cursor.execute(
-            '''CREATE TABLE Shares (Id ,InsCode ,ISIN ,CISIN ,Name ,Symbol )''')
-        sqlite_connection.connection.commit()
-        for p in rows:
-            cursor.execute(
-                "insert into Shares values (?, ?,?,?,?,?)", p)
+    #     cursor = sqlite_connection.connection.cursor()
+    #     cursor.execute(
+    #         '''CREATE TABLE Shares (Id ,InsCode ,ISIN ,CISIN ,Name ,Symbol )''')
+    #     sqlite_connection.connection.commit()
+    #     for p in rows:
+    #         cursor.execute(
+    #             "insert into Shares values (?, ?,?,?,?,?)", p)
 
-        sqlite_connection.connection.commit()
+    #     sqlite_connection.connection.commit()
+
+    # mongo
+    # db = context.open_mongo_connection("mongo_demo")
+    # with db:
+    #     print([{"id": i, "data": d}
+    #           for i, d in enumerate(db.client.list_database_names())])
     data = [
         {"id": 1, "name": "Data1"},
         {"id": 2, "name": "Data2"},
