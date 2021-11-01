@@ -1,8 +1,13 @@
+import json
+from pathlib import Path
 from dispatcher import SocketDispatcher
 from context import SourceContext, SourceMemberContext
 
 
-app = SocketDispatcher('127.0.0.1', 1025)
+with open(Path(__file__).with_name("host.json"), encoding='UTF-8') as options_file:
+    options = json.load(options_file)
+
+app = SocketDispatcher(options)
 
 
 @app.source_action(

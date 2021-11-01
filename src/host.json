@@ -1,0 +1,12 @@
+{
+  "ip": "127.0.0.1",
+  "port": 1025,
+  "cache1": null,
+  "cache": {
+    "type": "memory",
+    "signal": {
+      "type": "rabit",
+      "queue-name": "demo"
+    }
+  }
+}

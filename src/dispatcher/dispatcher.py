@@ -1,7 +1,7 @@
 """Base class for dispaching request"""
 from typing import Callable, Any
-from datetime import timedelta, datetime
 from functools import wraps
+from cache import create_chaching
 from predicate import Predicate, InList, Equal
 from context import SourceContext, SourceMemberContext, Context
 from .callback_info import CallbackInfo
@@ -10,12 +10,15 @@ from .callback_info import CallbackInfo
 class Dispatcher:
     """Base class for dispaching request"""
 
-    def __init__(self):
+    def __init__(self, options: dict = None):
+        self._options = options
         self.__look_up: dict[str, list[CallbackInfo]] = dict()
-        self.__cache_list: dict[str, list[Callable]] = dict()
+        cache_options = self._options["cache"] if "cache" in self._options else None
+        self.__cache_manager = create_chaching(cache_options)
 
     def source_action(self, *predicates: (Predicate)):
         """Decorator for determine source action"""
+
         def _decorator(source_action: Callable[[SourceContext], list]):
             @wraps(source_action)
             def _wrapper(context: SourceContext):
@@ -44,6 +47,7 @@ class Dispatcher:
 
     def source_member_action(self, *predicates: (Predicate)):
         """Decorator for determine source member action methode"""
+
         def _decorator(function: Callable[[SourceMemberContext], list]):
 
             @wraps(function)
@@ -57,6 +61,7 @@ class Dispatcher:
 
     def _get_context_lookup(self, key: str) -> list[CallbackInfo]:
         """Get key related action list object"""
+
         ret_val: None
         if key in self.__look_up:
             ret_val = self.__look_up[key]
@@ -67,6 +72,7 @@ class Dispatcher:
 
     def dispatch(self, context: Context) -> Any:
         """Dispatch context and get result from related action methode"""
+
         result: Any = None
         name = type(context).__name__
         items = self._get_context_lookup(name)
@@ -79,44 +85,21 @@ class Dispatcher:
     @staticmethod
     def in_list(expression: str, *items) -> Predicate:
         """Create list cheking predicate"""
+
         return InList(expression,  *items)
 
     @staticmethod
     def equal(expression: str, value) -> Predicate:
         """Create equality cheking predicate"""
+
         return Equal(expression, value)
 
     def cache(self, seconds: int = 0, key: str = None):
         """Cache result of function for seconds of time or until signal by key for clear"""
-        def decorator(function):
-            function.cache = None
-            if seconds > 0:
-                function.lifetime = timedelta(seconds=seconds)
-                function.expiration = datetime.utcnow() + function.lifetime
-            if key is not None:
-                if key not in self.__cache_list:
-                    self.__cache_list[key] = list()
-                self.__cache_list[key].append(function)
 
-            @wraps(function)
-            def wrapper_with_time(*args, **kwargs):
-                if function.cache is not None and datetime.utcnow() >= function.expiration:
-                    function.cache = None
-                    function.expiration = datetime.utcnow() + function.lifetime
-                if function.cache is None:
-                    function.cache = function(*args, **kwargs)
-                return function.cache
-
-            @wraps(function)
-            def wrapper_without_time(*args, **kwargs):
-                if function.cache is None:
-                    function.cache = function(*args, **kwargs)
-                return function.cache
-            return wrapper_with_time if seconds > 0 else wrapper_without_time
-        return decorator
+        return self.__cache_manager.cache_decorator(seconds, key)
 
     def reset_cache(self, key: str):
         """Remove key related cache"""
-        if key in self.__cache_list:
-            for function in self.__cache_list[key]:
-                function.cache = None
+
+        self.__cache_manager.reset_cache(key)

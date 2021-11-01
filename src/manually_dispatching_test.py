@@ -1,10 +1,16 @@
+import json
+from pathlib import Path
 from context import SourceContext, SourceMemberContext
 from dispatcher import Dispatcher
 
-app = Dispatcher()
+
+with open(Path(__file__).with_name("host.json")) as f:
+    options = json.load(f)
+
+app = Dispatcher(options)
 
 
-@app.source_action(
+@ app.source_action(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
 def process_basiscore_source(context: SourceContext):
@@ -18,7 +24,7 @@ def process_basiscore_source(context: SourceContext):
     return data
 
 
-@app.source_action(
+@ app.source_action(
     app.equal("context.command.source", "demo"),
     app.in_list("context.command.mid", "10", "20"))
 def process_demo_source(context: SourceContext):
@@ -32,7 +38,7 @@ def process_demo_source(context: SourceContext):
     return data
 
 
-@app.source_member_action(
+@ app.source_member_action(
     app.equal("context.command.source", "basiscore"),
     app.equal("context.member.name", "list")
 )
@@ -41,7 +47,7 @@ def process_list_member(context: SourceMemberContext):
     return context.data
 
 
-@app.source_member_action(
+@ app.source_member_action(
     app.equal("context.command.source", "basiscore"),
     app.equal("context.member.name", "paging")
 )
@@ -55,7 +61,7 @@ def process_page_member(context: SourceMemberContext):
     return data
 
 
-@app.source_member_action(
+@ app.source_member_action(
     app.equal("context.command.source", "basiscore"),
     app.equal("context.member.name", "count")
 )
@@ -67,7 +73,7 @@ def process_count_member(context: SourceMemberContext):
     return data
 
 
-@app.source_member_action()
+@ app.source_member_action()
 def all_member_process(_: SourceMemberContext):
     print("all_member_process", )
     return None

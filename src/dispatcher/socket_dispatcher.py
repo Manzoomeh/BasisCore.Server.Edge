@@ -6,10 +6,10 @@ from .dispatcher import Dispatcher
 
 
 class SocketDispatcher(Dispatcher):
-    def __init__(self, ip: str, port: int):
-        super().__init__()
+    def __init__(self, options: dict):
+        super().__init__(options)
         self.__listener = SocketListener(
-            EndPoint(ip, port), self.__on_message_receive)
+            EndPoint(options["ip"], options["port"]), self.__on_message_receive)
 
     def __on_message_receive(self, request_bytes: list) -> bytes:
         request_str = request_bytes.decode("utf-8")
