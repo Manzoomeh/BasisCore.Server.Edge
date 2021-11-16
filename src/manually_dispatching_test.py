@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 from context import SourceContext, SourceMemberContext
 from dispatcher import Dispatcher
@@ -50,6 +51,15 @@ def process_basiscore_source(context: SourceContext):
         {"id": 3, "name": "Data3"},
         {"id": 4, "name": "Data4"}
     ]
+
+    def task(delay):
+        print("start for {0}".format(delay))
+        time.sleep(delay)
+        print("end for {0}".format(delay))
+
+    app.run_in_background(task, 1)
+    app.run_in_background(task, 3)
+    app.run_in_background(task, 2)
     return data
 
 

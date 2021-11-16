@@ -1,4 +1,5 @@
 """Base class for dispaching request"""
+import asyncio
 from typing import Callable, Any
 from functools import wraps
 from cache import create_chaching
@@ -81,6 +82,12 @@ class Dispatcher:
             if result is not None:
                 break
         return result
+
+    def run_in_background(self, callback: Callable, *args: any) -> Any:
+        """helper for run function in background thread"""
+
+        loop = asyncio.get_event_loop()
+        return loop.run_in_executor(None, callback, *args)
 
     @staticmethod
     def in_list(expression: str, *items) -> Predicate:
