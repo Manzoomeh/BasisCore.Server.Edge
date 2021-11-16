@@ -13,6 +13,6 @@
     "connections.sql.sql_demo": "DRIVER={ODBC Driver 17 for SQL Server};SERVER=.;DATABASE=MarketData;UID=sa;PWD=1234",
     "connections.sqlite.sqlite_demo": "d:/sqlite.db",
     "connections.mongo.mongo_demo": "mongodb://localhost:27017/",
-    "fake": 12
+    "connections.rest.rest_demo": "http://127.0.0.1:5002/countries"
   }
 }

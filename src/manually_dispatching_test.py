@@ -45,6 +45,13 @@ def process_basiscore_source(context: SourceContext):
     # with db:
     #     print([{"id": i, "data": d}
     #           for i, d in enumerate(db.client.list_database_names())])
+
+    # RESTful
+
+    # db = context.open_restful_connection("rest_demo")
+    # with db:
+    #     data = db.get()
+
     data = [
         {"id": 1, "name": "Data1"},
         {"id": 2, "name": "Data2"},

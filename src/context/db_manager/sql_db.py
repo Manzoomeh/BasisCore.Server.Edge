@@ -1,5 +1,3 @@
-import pyodbc
-
 from .odbc_db import OdbcDb
 
 

@@ -2,6 +2,7 @@ from .db import Db
 from .mongo_db import MongoDb
 from .sql_db import SqlDb
 from .sqlite_db import SQLiteDb
+from .restful_db import RESTful
 
 
 class DbManager:
@@ -30,6 +31,8 @@ class DbManager:
             ret_val = SQLiteDb(setting)
         elif db_type == "mongo":
             ret_val = MongoDb(setting)
+        elif db_type == "rest":
+            ret_val = RESTful(setting)
         else:
             print(
                 f"Data base of type '{db_type}' not supported in this vestion")
@@ -42,4 +45,7 @@ class DbManager:
         return self.open_connection(key)
 
     def open_mongo_connection(self, key: str) -> MongoDb:
+        return self.open_connection(key)
+
+    def open_restful_connection(self, key: str) -> RESTful:
         return self.open_connection(key)
