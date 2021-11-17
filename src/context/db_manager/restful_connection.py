@@ -4,7 +4,7 @@ import requests
 from .db import Db
 
 
-class RESTful(Db):
+class RESTfulConnection(Db):
     """RESTful implementation of Db wrapper"""
 
     def __init__(self, connection_string: str) -> None:

@@ -3,7 +3,7 @@ from .db import Db
 from .mongo_db import MongoDb
 from .sql_db import SqlDb
 from .sqlite_db import SQLiteDb
-from .restful_db import RESTful
+from .restful_connection import RESTfulConnection
 
 
 class DbManager:
@@ -33,7 +33,7 @@ class DbManager:
         elif db_type == "mongo":
             ret_val = MongoDb(setting)
         elif db_type == "rest":
-            ret_val = RESTful(setting)
+            ret_val = RESTfulConnection(setting)
         elif db_type == "rabbit":
             ret_val = RabbitConnection(setting)
         else:
@@ -50,7 +50,7 @@ class DbManager:
     def open_mongo_connection(self, key: str) -> MongoDb:
         return self.open_connection(key)
 
-    def open_restful_connection(self, key: str) -> RESTful:
+    def open_restful_connection(self, key: str) -> RESTfulConnection:
         return self.open_connection(key)
 
     def open_rabbit_connection(self, key: str) -> RabbitConnection:
