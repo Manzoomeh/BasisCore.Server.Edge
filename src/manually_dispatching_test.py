@@ -47,10 +47,17 @@ def process_basiscore_source(context: SourceContext):
     #           for i, d in enumerate(db.client.list_database_names())])
 
     # RESTful
-
     # db = context.open_restful_connection("rest_demo")
     # with db:
     #     data = db.get()
+
+    # Rabbit
+    # db = context.open_rabbit_connection("rabbit_test")
+    # with db:
+    #     msg = dict()
+    #     msg["type"] = "clear-cache"
+    #     msg["keys"] = ["member-list"]
+    #     db.publish(msg)
 
     data = [
         {"id": 1, "name": "Data1"},

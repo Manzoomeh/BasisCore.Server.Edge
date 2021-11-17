@@ -1,4 +1,4 @@
-from .db_manager import DbManager, SqlDb, SQLiteDb, MongoDb
+from .db_manager import DbManager, SqlDb, SQLiteDb, MongoDb, RabbitConnection, RESTful
 
 
 class Context:
@@ -17,5 +17,8 @@ class Context:
     def open_mongo_connection(self, key: str) -> MongoDb:
         return self.__db_manager.open_mongo_connection(key)
 
-    def open_restful_connection(self, key: str) -> MongoDb:
+    def open_restful_connection(self, key: str) -> RESTful:
         return self.__db_manager.open_restful_connection(key)
+
+    def open_rabbit_connection(self, key: str) -> RabbitConnection:
+        return self.__db_manager.open_rabbit_connection(key)

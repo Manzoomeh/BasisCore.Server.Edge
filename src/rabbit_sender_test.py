@@ -1,5 +1,5 @@
-import pika
 import json
+import pika
 
 connection = pika.BlockingConnection(
     pika.ConnectionParameters(host='localhost'))
@@ -7,14 +7,14 @@ channel = connection.channel()
 
 channel.queue_declare(queue='demo')
 
-msg_type = "clear-cache"
+MSG_TYPE = "clear-cache"
 keys = ["member-list"]
 msg = dict()
-msg["type"] = msg_type
+msg["type"] = MSG_TYPE
 msg["keys"] = keys
 
 msg_json = json.dumps(msg)
 print(msg_json)
 channel.basic_publish(exchange='', routing_key='demo', body=msg_json)
-print(f"Sent {msg_type} for [{keys}]")
+print(f"Sent {MSG_TYPE} for [{keys}]")
 connection.close()

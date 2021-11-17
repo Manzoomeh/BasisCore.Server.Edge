@@ -1,3 +1,4 @@
+from .rabbit_connection import RabbitConnection
 from .db import Db
 from .mongo_db import MongoDb
 from .sql_db import SqlDb
@@ -33,6 +34,8 @@ class DbManager:
             ret_val = MongoDb(setting)
         elif db_type == "rest":
             ret_val = RESTful(setting)
+        elif db_type == "rabbit":
+            ret_val = RabbitConnection(setting)
         else:
             print(
                 f"Data base of type '{db_type}' not supported in this vestion")
@@ -48,4 +51,7 @@ class DbManager:
         return self.open_connection(key)
 
     def open_restful_connection(self, key: str) -> RESTful:
+        return self.open_connection(key)
+
+    def open_rabbit_connection(self, key: str) -> RabbitConnection:
         return self.open_connection(key)
