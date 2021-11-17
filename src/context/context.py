@@ -1,5 +1,4 @@
-from context.db_manager.restful_connection import RESTfulConnection
-from .db_manager import DbManager, SqlDb, SQLiteDb, MongoDb, RabbitConnection, RESTful
+from .db_manager import DbManager, SqlDb, SQLiteDb, MongoDb, RabbitConnection, RESTfulConnection
 
 
 class Context:

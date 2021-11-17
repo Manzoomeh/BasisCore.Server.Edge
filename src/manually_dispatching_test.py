@@ -51,6 +51,11 @@ def process_basiscore_source(context: SourceContext):
     # with db:
     #     data = db.get()
 
+    db = context.open_restful_connection("check_rkey")
+    with db:
+        data = db.post(segment='/EC9CC11F-9936-4495-AAA5-58C3C18D8373')
+        print(data)
+
     # Rabbit
     # db = context.open_rabbit_connection("rabbit_test")
     # with db:
@@ -59,21 +64,21 @@ def process_basiscore_source(context: SourceContext):
     #     msg["keys"] = ["member-list"]
     #     db.publish(msg)
 
-    data = [
-        {"id": 1, "name": "Data1"},
-        {"id": 2, "name": "Data2"},
-        {"id": 3, "name": "Data3"},
-        {"id": 4, "name": "Data4"}
-    ]
+    # data = [
+    #     {"id": 1, "name": "Data1"},
+    #     {"id": 2, "name": "Data2"},
+    #     {"id": 3, "name": "Data3"},
+    #     {"id": 4, "name": "Data4"}
+    # ]
 
-    def task(delay):
-        print("start for {0}".format(delay))
-        time.sleep(delay)
-        print("end for {0}".format(delay))
+    # def task(delay):
+    #     print("start for {0}".format(delay))
+    #     time.sleep(delay)
+    #     print("end for {0}".format(delay))
 
-    app.run_in_background(task, 1)
-    app.run_in_background(task, 3)
-    app.run_in_background(task, 2)
+    # app.run_in_background(task, 1)
+    # app.run_in_background(task, 3)
+    # app.run_in_background(task, 2)
     return data
 
 

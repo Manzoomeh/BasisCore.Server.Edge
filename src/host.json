@@ -1,7 +1,7 @@
 {
   "ip": "127.0.0.1",
   "port": 1025,
-  "cache": {
+  "cache1": {
     "type": "memory",
     "signaler": {
       "type": "rabbit",
@@ -14,6 +14,7 @@
     "connections.sqlite.sqlite_demo": "d:/sqlite.db",
     "connections.mongo.mongo_demo": "mongodb://localhost:27017/",
     "connections.rest.rest_demo": "http://127.0.0.1:5002/countries",
+    "connections.rest.check_rkey": "https://trust-login.com/api2/checkrkey",
     "connections.rabbit.rabbit_test": {
       "host": "localhost",
       "queue": "demo"

@@ -19,6 +19,10 @@ def get_countries():
 
 
 @app.post("/countries")
+def post_countries():
+    return jsonify(countries[0])
+
+
 def add_country():
     if request.is_json:
         country = request.get_json()
