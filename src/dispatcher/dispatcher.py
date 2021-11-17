@@ -4,7 +4,8 @@ from typing import Callable, Any
 from functools import wraps
 from cache import create_chaching
 from predicate import Predicate, InList, Equal
-from context import SourceContext, SourceMemberContext, Context
+from context import SourceContext, SourceMemberContext, Context, RESTfulContext
+import predicate
 from .callback_info import CallbackInfo
 
 
@@ -16,6 +17,18 @@ class Dispatcher:
         self.__look_up: dict[str, list[CallbackInfo]] = dict()
         cache_options = self._options["cache"] if "cache" in self._options else None
         self.__cache_manager = create_chaching(cache_options)
+
+    def restful_action(self, * predicates: (predicate)):
+        """Decorator for determine RESTful action"""
+
+        def _decorator(restful_action: Callable[[RESTfulContext], list]):
+            @wraps(restful_action)
+            def _wrapper(context: RESTfulContext):
+                return restful_action(context)
+            self._get_context_lookup(RESTfulContext.__name__)\
+                .append(CallbackInfo([*predicates], _wrapper))
+            return _wrapper
+        return _decorator
 
     def source_action(self, *predicates: (Predicate)):
         """Decorator for determine source action"""

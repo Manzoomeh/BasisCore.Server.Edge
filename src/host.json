@@ -1,6 +1,11 @@
 {
   "ip": "127.0.0.1",
   "port": 1025,
+  "router": {
+    "dbsource": ["/dbsource/"],
+    "restfuls": ["/rest/"]
+  },
+
   "cache1": {
     "type": "memory",
     "signaler": {

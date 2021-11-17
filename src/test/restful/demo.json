@@ -1,0 +1,40 @@
+{
+  "cms": {
+    "request": {
+      ":method": "POST",
+      "methode": "post",
+      ":authority": "trust-login.com",
+      "host": "trust-login.com",
+      ":scheme": "https",
+      ":path": "/api2/checkrkey/EC9CC11F-9936-4495-AAA5-58C3C18D8373",
+      "rawurl": "api2/checkrkey/EC9CC11F-9936-4495-AAA5-58C3C18D8373",
+      "full-url": "trust-login.com/api2/checkrkey/EC9CC11F-9936-4495-AAA5-58C3C18D8373",
+      "url": "api2/checkrkey/EC9CC11F-9936-4495-AAA5-58C3C18D8373",
+      "content-length": "0",
+      "sec-ch-ua": "\\u0022 Not A;Brand\\u0022;v=\\u002299\\u0022, \\u0022Chromium\\u0022;v=\\u002296\\u0022, \\u0022Google Chrome\\u0022;v=\\u002296\\u0022",
+      "cache-control": "no-cache",
+      "sec-ch-ua-mobile": "?0",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36",
+      "sec-ch-ua-platform": "\\u0022Windows\\u0022",
+      "postman-token": "1ae39848-69cf-a22c-1e5f-aa87b21764f1",
+      "accept": "/",
+      "origin": "chrome-extension://fhbjgbiflinjbdggehcddcbncdddomop",
+      "sec-fetch-site": "none",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+      "accept-language": "en-US,en;q=0.9",
+      "accept-encoding": "br, gzip, deflate",
+      "request-id": "335465",
+      "hostip": "185.44.36.194",
+      "hostport": "443",
+      "clientip": "94.139.174.170"
+    },
+    "cms": {
+      "date": "11/17/2021",
+      "time": "15:53",
+      "date2": "20211117",
+      "time2": "155314",
+      "date3": "2021.11.17"
+    }
+  }
+}
