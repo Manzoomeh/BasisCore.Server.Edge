@@ -9,6 +9,7 @@ class Context(ABC):
         super().__init__()
         self._options = options
         self.__db_manager = DbManager(options)
+        self.url_segments = None
 
     def open_sql_connection(self, key: str) -> SqlDb:
         return self.__db_manager.open_sql_connection(key)

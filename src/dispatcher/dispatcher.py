@@ -4,7 +4,7 @@ from typing import Callable, Any
 from functools import wraps
 from cache import create_chaching
 from context.web_context import WebContext
-from predicate import Predicate, InList, Equal
+from predicate import Predicate, InList, Equal, Url
 from context import SourceContext, SourceMemberContext, Context, RESTfulContext
 import predicate
 from .callback_info import CallbackInfo
@@ -126,6 +126,12 @@ class Dispatcher:
         """Create equality cheking predicate"""
 
         return Equal(expression, value)
+
+    @staticmethod
+    def url(pattern: str) -> Predicate:
+        """Create url cheking predicate"""
+
+        return Url(pattern)
 
     def cache(self, seconds: int = 0, key: str = None):
         """Cache result of function for seconds of time or until signal by key for clear"""

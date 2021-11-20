@@ -11,8 +11,23 @@ with open(Path(__file__).with_name("host.json"), encoding='UTF-8') as options_fi
 app = SocketDispatcher(options)
 
 
+@app.web_action(
+    app.url("py/:type/qam/:id"),
+    app.in_list("context.url_segments.type", "book", "car"))
+def process_basiscore_web2(context: WebContext):
+    print("process_basiscore_restful1")
+    return "<h1>Hello world!</h1>id is :{0}<br/> type is:{1}</br/".format(context.url_segments.id, context.url_segments.type)
+
+
+@app.web_action(
+    app.url("py/:rkey"))
+def process_basiscore_web1(context: WebContext):
+    print("process_basiscore_restful1")
+    return "<h1>Hello world! / </h1> rkey is :" + context.url_segments.rkey
+
+
 @app.web_action()
-def process_basiscore_web(context: WebContext):
+def process_basiscore_web3(context: WebContext):
     print("process_basiscore_restful1")
     return "<h1>Hello world!</h1>"
 
