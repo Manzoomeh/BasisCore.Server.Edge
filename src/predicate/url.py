@@ -23,38 +23,47 @@ class Url (Predicate):
 
     @staticmethod
     def __generate_validator(url) -> FunctionType:
-        p = []
-        variables = []
-        where_part = []
-        parts = url.lower().split("/")
-        l = len(parts)-1
+        segment_list = []
+        return_dict_property_names = []
+        where_part_list = []
+        url = url.lower()
+        parts = url.split("/")
+        last_part_index = len(parts)-1
         for index, value in enumerate(parts):
             name = "_"
             if len(value) > 0 and value[0] == ':':
                 name = value[1:]
-                if(index == l):
-                    variables.append(
+                if(index == last_part_index):
+                    return_dict_property_names.append(
                         '"{0}" : "/".join(__{0})'.format(name))
                     name = '*'+"__{0}".format(name)
                 else:
-                    variables.append('"{0}" : __{0}'.format(name))
+                    return_dict_property_names.append(
+                        '"{0}" : __{0}'.format(name))
                     name = "__{0}".format(name)
             else:
-                where_part.append(
+                where_part_list.append(
                     "url_parts[{0}] == '{1}'".format(index, value))
-            p.append(name)
-        body = """
-def gfg(url):
-    url_parts = url.lower().split("/")
-    print(url_parts)
-    if {0}:
-        {1} = url_parts
-        return (True,{{ {2} }})
-    else:
+            segment_list.append(name)
+        if len(return_dict_property_names) > 0:
+            body = """
+def url_function(url):
+    try:
+        url_parts = url.lower().split("/")
+        if {0}:
+            {1} = url_parts
+            return (True,{{ {2} }})
+        else:
+            return (False,None)
+    except:
         return (False,None)""".format(
-            " and ".join(where_part),
-            ','.join(p),
-            ','.join(variables))
+                " and ".join(where_part_list),
+                ','.join(segment_list),
+                ','.join(return_dict_property_names))
+        else:
+            body = """
+def url_function(url):
+    return (url.lower() == '{0}' ,None)""".format(url)
         f_code = compile(body, "<str>", "exec")
-        f_func = FunctionType(f_code.co_consts[0], globals(), "gfg")
+        f_func = FunctionType(f_code.co_consts[0], globals(), "url_function")
         return f_func

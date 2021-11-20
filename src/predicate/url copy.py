@@ -16,57 +16,65 @@ from types import FunctionType
 
 
 def get_validate(url):
-    p = []
-    variables = []
-    where_part = []
-    parts = url.lower().split("/")
-    l = len(parts)-1
+    segment_list = []
+    return_dict_property_names = []
+    where_part_list = []
+    url = url.lower()
+    parts = url.split("/")
+    last_part_index = len(parts)-1
     for index, value in enumerate(parts):
         name = "_"
         if len(value) > 0 and value[0] == ':':
             name = value[1:]
-            if(index == l):
-                variables.append(
+            if(index == last_part_index):
+                return_dict_property_names.append(
                     '"{0}" : "/".join(__{0})'.format(name))
                 name = '*'+"__{0}".format(name)
             else:
-                variables.append('"{0}" : __{0}'.format(name))
+                return_dict_property_names.append('"{0}" : __{0}'.format(name))
                 name = "__{0}".format(name)
         else:
-            where_part.append("url_parts[{0}] == '{1}'".format(index, value))
-        p.append(name)
-    body = """
-def gfg(url):
-    url_parts = url.lower().split("/")
-    print(url_parts)
-    if {0}:
-        {1} = url_parts
-        return (True,{{ {2} }})
-    else:
+            where_part_list.append(
+                "url_parts[{0}] == '{1}'".format(index, value))
+        segment_list.append(name)
+    if len(return_dict_property_names) > 0:
+        body = """
+def url_function(url):
+    try:
+        url_parts = url.lower().split("/")
+        print(url_parts)
+        if {0}:
+            {1} = url_parts
+            return (True,{{ {2} }})
+        else:
+            return (False,None)
+    except:
         return (False,None)""".format(
-        " and ".join(where_part),
-        ','.join(p),
-        ','.join(variables))
-
+            " and ".join(where_part_list),
+            ','.join(segment_list),
+            ','.join(return_dict_property_names))
+    else:
+        body = """
+def url_function(url):
+    return (url.lower() == '{0}' ,None)""".format(url)
     print(body)
-    print(" and ".join(where_part))
+    print(" and ".join(where_part_list))
 
     f_code = compile(body, "<str>", "exec")
-    f_func = FunctionType(f_code.co_consts[0], globals(), "gfg")
+    f_func = FunctionType(f_code.co_consts[0], globals(), "url_function")
     return f_func
 
 
 # calliong the function
 # _url = ":app/Ali/:y/:u/:l/343/:t"
 # _check = "google.com/ali/product/type/app/343/5/0"
-_url = "py/:rkey/r/:t"
-_check = "py/1212"
 
+# _url = "py/:g/:rkey/r/:t"
+# _check = "py/ggg/1212/r/55"
+
+_url = "PY/tt"
+_check = "py/TT"
 
 f = get_validate(_url)
-try:
-    ok, data = f(_check)
-
-    print(ok, data)
-except Exception:
-    print("ho")
+ok, data = f(_check)
+print(ok, data)

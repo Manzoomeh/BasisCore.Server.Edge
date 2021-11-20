@@ -12,6 +12,13 @@ app = SocketDispatcher(options)
 
 
 @app.web_action(
+    app.url("py/app/d"))
+def process_basiscore_web3(context: WebContext):
+    print("process_basiscore_restful1")
+    return "<h1>Hello world!</h1>dddd"
+
+
+@app.web_action(
     app.url("py/:type/qam/:id"),
     app.in_list("context.url_segments.type", "book", "car"))
 def process_basiscore_web2(context: WebContext):
@@ -27,7 +34,7 @@ def process_basiscore_web1(context: WebContext):
 
 
 @app.web_action()
-def process_basiscore_web3(context: WebContext):
+def process_basiscore_web4(context: WebContext):
     print("process_basiscore_restful1")
     return "<h1>Hello world!</h1>"
 
