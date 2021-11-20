@@ -15,7 +15,6 @@ class Url (Predicate):
         try:
             is_ok, url_parts = self.__validator(context.request.request.url)
             if is_ok and url_parts:
-                print(url_parts)
                 context.url_segments = DictEx(url_parts)
             return is_ok
         except:
