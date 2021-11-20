@@ -10,5 +10,8 @@ class Equal (Predicate):
         self.__value = value
 
     def check(self, context: Context) -> bool:
-        value = eval(self.exprossion, {}, {"context": context})
-        return self.__value == value
+        try:
+            value = eval(self.exprossion, {}, {"context": context})
+            return self.__value == value
+        except:
+            return False

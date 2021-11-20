@@ -1,7 +1,8 @@
 import json
 from pathlib import Path
+from context.web_context import WebContext
 from dispatcher import SocketDispatcher
-from context import SourceContext, SourceMemberContext,RESTfulContext
+from context import SourceContext, SourceMemberContext, RESTfulContext
 
 
 with open(Path(__file__).with_name("host.json"), encoding='UTF-8') as options_file:
@@ -11,16 +12,44 @@ app = SocketDispatcher(options)
 
 
 @app.web_action()
-def process_basiscore_restful1(context: RESTfulContext):
+def process_basiscore_web(context: WebContext):
     print("process_basiscore_restful1")
     return "<h1>Hello world!</h1>"
 
-@app.restful_action()
+
+@app.restful_action(
+    app.in_list("context.body.id", 10))
 def process_basiscore_restful1(context: RESTfulContext):
-    print("process_basiscore_restful1")
     ret_val = dict()
     ret_val["client"] = context.body
-    ret_val["message"]="hello world!"
+    ret_val["message"] = "hello world!10"
+    return ret_val
+
+
+@app.restful_action(
+    app.in_list("context.body.id", 12),
+    app.equal("context.body.age", 13))
+def process_basiscore_restful2(context: RESTfulContext):
+    ret_val = dict()
+    ret_val["client"] = context.body
+    ret_val["message"] = "hello world!12-age"
+    return ret_val
+
+
+@app.restful_action(
+    app.in_list("context.body.id", 12))
+def process_basiscore_restful3(context: RESTfulContext):
+    ret_val = dict()
+    ret_val["client"] = context.body
+    ret_val["message"] = "hello world!12"
+    return ret_val
+
+
+@app.restful_action()
+def process_basiscore_restful4(context: RESTfulContext):
+    ret_val = dict()
+    ret_val["client"] = context.body
+    ret_val["message"] = "hello world!"
     return ret_val
 
 
@@ -95,7 +124,7 @@ def process_demo_source(context: SourceContext):
 @app.source_member_action(
     app.equal("context.member.name", "list")
 )
-@app.cache(key="member-list")
+# @app.cache(key="member-list")
 def process_list_member(context: SourceMemberContext):
     print("process_list_member")
     return context.data
@@ -104,7 +133,7 @@ def process_list_member(context: SourceMemberContext):
 @app.source_member_action(
     app.equal("context.member.name", "paging")
 )
-@app.cache(10)
+# @app.cache(10)
 def process_page_member(context: SourceMemberContext):
     data = {
         "total": len(context.data),

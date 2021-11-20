@@ -10,5 +10,8 @@ class InList(Predicate):
         self.__items = [*items]
 
     def check(self, context: Context) -> bool:
-        value = eval(self.exprossion, {}, {"context": context})
-        return value in self.__items
+        try:
+            value = eval(self.exprossion, {}, {"context": context})
+            return value in self.__items
+        except:
+            return False
