@@ -3,6 +3,7 @@ import asyncio
 from typing import Callable, Any
 from functools import wraps
 from cache import create_chaching
+from context.web_context import WebContext
 from predicate import Predicate, InList, Equal
 from context import SourceContext, SourceMemberContext, Context, RESTfulContext
 import predicate
@@ -26,6 +27,18 @@ class Dispatcher:
             def _wrapper(context: RESTfulContext):
                 return restful_action(context)
             self._get_context_lookup(RESTfulContext.__name__)\
+                .append(CallbackInfo([*predicates], _wrapper))
+            return _wrapper
+        return _decorator
+
+    def web_action(self, * predicates: (predicate)):
+        """Decorator for determine lagecy web request action"""
+
+        def _decorator(web_action: Callable[[WebContext], list]):
+            @wraps(web_action)
+            def _wrapper(context: WebContext):
+                return web_action(context)
+            self._get_context_lookup(WebContext.__name__)\
                 .append(CallbackInfo([*predicates], _wrapper))
             return _wrapper
         return _decorator

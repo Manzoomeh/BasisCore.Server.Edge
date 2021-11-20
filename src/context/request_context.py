@@ -1,3 +1,4 @@
+from typing import Any
 from utility import DictEx
 from .context import Context
 
@@ -12,3 +13,7 @@ class RequestContext(Context):
     @property
     def request(self) -> DictEx:
         return self.__request
+
+    def generate_responce(self, result: Any) -> dict:
+        self.request["cms"]["http"] = {"Access-Control-Allow-Headers": " *"}
+        return self.request

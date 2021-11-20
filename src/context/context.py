@@ -1,10 +1,12 @@
+from abc import ABC
 from .db_manager import DbManager, SqlDb, SQLiteDb, MongoDb, RabbitConnection, RESTfulConnection
 
 
-class Context:
+class Context(ABC):
     """Base class for dispatching"""
 
     def __init__(self, options: dict) -> None:
+        super().__init__()
         self._options = options
         self.__db_manager = DbManager(options)
 

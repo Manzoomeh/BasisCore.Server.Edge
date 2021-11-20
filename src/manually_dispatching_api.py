@@ -14,7 +14,6 @@ app = Dispatcher(options)
 @app.restful_action(app.in_list("context.body.id", 10))
 def process_basiscore_restful1(context: RESTfulContext):
     print("process_basiscore_restful1")
-
     return context.body
 
 

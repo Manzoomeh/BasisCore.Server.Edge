@@ -12,11 +12,11 @@
 import re
 
 
-url = 'https://trust-login.com/api2/checkrkey/EC9CC11F-9936-4495-AAA5-58C3C18D8373'
+url = 'https://trust-login.com/api23/checkrkey/EC9CC11F-9936-4495-AAA5-58C3C18D8373'
 
 d = dict()
 d["router"] = dict()
-d["router"]["c1"] = ("/dbsource/", "/api2/")
+d["router"]["c1"] = ("/", "/dbsource/", "/api2/")
 d["router"]["c2"] = ("/api2/",)
 
 
@@ -46,10 +46,10 @@ d1 = {
     "c2": c2
 }
 context_type = None
-for type, patterns in d["router"].items():
+for key, patterns in d["router"].items():
     for pattern in patterns:
         if re.search(pattern, url):
-            context_type = type
+            context_type = key
             break
     if context_type is not None:
         break

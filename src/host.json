@@ -1,9 +1,10 @@
 {
-  "ip": "127.0.0.1",
-  "port": 1025,
+  "ip": "192.168.96.76",
+  "port": 1560,
   "router": {
-    "dbsource": ["/dbsource/"],
-    "restfuls": ["/rest/"]
+    "dbsource": ["/dbsource"],
+    "restful": ["/rest"],
+    "web":["*"]
   },
 
   "cache1": {
