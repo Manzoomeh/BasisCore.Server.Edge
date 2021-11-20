@@ -48,8 +48,7 @@ def process_basiscore_restful3(context: RESTfulContext):
 @app.restful_action()
 def process_basiscore_restful4(context: RESTfulContext):
     ret_val = dict()
-    ret_val["client"] = context.body
-    ret_val["message"] = "hello world!"
+    ret_val["message"] = "hello world! - No match"
     return ret_val
 
 
