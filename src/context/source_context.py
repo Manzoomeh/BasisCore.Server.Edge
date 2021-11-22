@@ -11,7 +11,7 @@ class SourceContext(RequestContext):
     def __init__(self, request, options: dict) -> None:
         super().__init__(request, options)
         parser = BasisCoreHtmlParser()
-        html = self.request.form.command
+        html = self.cms.form.command
         parser.feed(html)
         self.__command = parser.get_dict_ex()
         self.process_async = True

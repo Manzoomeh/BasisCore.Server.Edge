@@ -7,8 +7,8 @@ from .request_context import RequestContext
 class RESTfulContext(RequestContext):
     def __init__(self, request, options: dict) -> None:
         super().__init__(request, options)
-        self.__body = DictEx(json.loads(self.request.request.body)
-                             ) if self.request.request.body else None
+        self.__body = DictEx(json.loads(self.cms.request.body)
+                             ) if self.cms.request.body else None
         self.process_async = True
 
     @property

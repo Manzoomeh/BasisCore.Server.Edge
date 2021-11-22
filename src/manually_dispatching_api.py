@@ -11,26 +11,26 @@ app = Dispatcher(options)
 
 
 @app.restful_action(
-    app.url("sdsds/f"),
+    app.equal("context.cms.request.methode", "post"),
     app.match("context.body.id", "10[45]"))
 def process_basiscore_restful0(context: RESTfulContext):
-    print("process_basiscore_restful0")
+    print("process_basiscore_restful0", context.cms.request.methode)
     return context.body
 
 
-@ app.restful_action(app.between("context.body.id", -1, 13))
+@app.restful_action(app.between("context.body.id", -1, 13))
 def process_basiscore_restful1(context: RESTfulContext):
     print("process_basiscore_restful1")
     return context.body
 
 
-@ app.restful_action(app.in_list("context.body.id", 14))
+@app.restful_action(app.in_list("context.body.id", 14))
 def process_basiscore_restful2(context: RESTfulContext):
     print("process_basiscore_restful2")
     return context.body
 
 
-@ app.restful_action()
+@app.restful_action()
 def process_basiscore_restful3(context: RESTfulContext):
     print("process_basiscore_restful3")
     return context.body

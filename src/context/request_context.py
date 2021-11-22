@@ -8,12 +8,12 @@ class RequestContext(Context):
 
     def __init__(self, request: dict, options: dict) -> None:
         super().__init__(options)
-        self.__request = DictEx(request)
+        self.__cms = DictEx(request)
 
     @property
-    def request(self) -> DictEx:
-        return self.__request
+    def cms(self) -> DictEx:
+        return self.__cms
 
     def generate_responce(self, result: Any) -> dict:
-        self.request["cms"]["http"] = {"Access-Control-Allow-Headers": " *"}
-        return self.request
+        self.cms["cms"]["http"] = {"Access-Control-Allow-Headers": " *"}
+        return self.cms

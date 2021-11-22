@@ -28,8 +28,8 @@ class SourceMemberContext(Context):
         return self.__data
 
     @property
-    def request(self) -> DictEx:
-        return self.__source_context.request
+    def cms(self) -> DictEx:
+        return self.__source_context.cms
 
     @property
     def command(self) -> DictEx:
