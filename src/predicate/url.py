@@ -1,13 +1,14 @@
 from types import FunctionType
+from typing import Any
 from context import Context
-from utility.DictEx import DictEx
+from utility import DictEx
 from .predicate import Predicate
 
 
 class Url (Predicate):
     """Create Url cheking predicate"""
 
-    def __init__(self, expression) -> None:
+    def __init__(self, expression: str) -> None:
         super().__init__(expression)
         self.__validator = Url.__generate_validator(expression)
 
@@ -21,7 +22,7 @@ class Url (Predicate):
             return False
 
     @staticmethod
-    def __generate_validator(url) -> FunctionType:
+    def __generate_validator(url: str) -> FunctionType:
         segment_list = []
         return_dict_property_names = []
         where_part_list = []

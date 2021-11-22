@@ -1,11 +1,10 @@
 import json
-import time
 from pathlib import Path
 from context import SourceContext, SourceMemberContext
 from dispatcher import Dispatcher
 
 
-with open(Path(__file__).with_name("host.json")) as options_file:
+with open(Path(__file__).with_name("host.json"), encoding='UTF-8') as options_file:
     options = json.load(options_file)
 
 app = Dispatcher(options)
@@ -51,10 +50,10 @@ def process_basiscore_source(context: SourceContext):
     # with db:
     #     data = db.get()
 
-    db = context.open_restful_connection("check_rkey")
-    with db:
-        data = db.post(segment='/EC9CC11F-9936-4495-AAA5-58C3C18D8373')
-        print(data)
+    # db = context.open_restful_connection("check_rkey")
+    # with db:
+    #     data = db.post(segment='/EC9CC11F-9936-4495-AAA5-58C3C18D8373')
+    #     print(data)
 
     # Rabbit
     # db = context.open_rabbit_connection("rabbit_test")
@@ -64,12 +63,12 @@ def process_basiscore_source(context: SourceContext):
     #     msg["keys"] = ["member-list"]
     #     db.publish(msg)
 
-    # data = [
-    #     {"id": 1, "name": "Data1"},
-    #     {"id": 2, "name": "Data2"},
-    #     {"id": 3, "name": "Data3"},
-    #     {"id": 4, "name": "Data4"}
-    # ]
+    data = [
+        {"id": 1, "name": "Data1"},
+        {"id": 2, "name": "Data2"},
+        {"id": 3, "name": "Data3"},
+        {"id": 4, "name": "Data4"}
+    ]
 
     # def task(delay):
     #     print("start for {0}".format(delay))
@@ -82,7 +81,7 @@ def process_basiscore_source(context: SourceContext):
     return data
 
 
-@ app.source_action(
+@app.source_action(
     app.equal("context.command.source", "demo"),
     app.in_list("context.command.mid", "10", "20"))
 def process_demo_source(context: SourceContext):
@@ -96,7 +95,7 @@ def process_demo_source(context: SourceContext):
     return data
 
 
-@ app.source_member_action(
+@app.source_member_action(
     app.equal("context.command.source", "basiscore"),
     app.equal("context.member.name", "list")
 )
@@ -105,7 +104,7 @@ def process_list_member(context: SourceMemberContext):
     return context.data
 
 
-@ app.source_member_action(
+@app.source_member_action(
     app.equal("context.command.source", "basiscore"),
     app.equal("context.member.name", "paging")
 )
@@ -119,7 +118,7 @@ def process_page_member(context: SourceMemberContext):
     return data
 
 
-@ app.source_member_action(
+@app.source_member_action(
     app.equal("context.command.source", "basiscore"),
     app.equal("context.member.name", "count")
 )
@@ -131,7 +130,7 @@ def process_count_member(context: SourceMemberContext):
     return data
 
 
-@ app.source_member_action()
+@app.source_member_action()
 def all_member_process(_: SourceMemberContext):
     print("all_member_process", )
     return None

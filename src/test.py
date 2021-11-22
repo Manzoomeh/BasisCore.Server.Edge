@@ -59,3 +59,5 @@ print(d1[context_type]())
 
 #x = re.search("\/api2e\/", l)
 # print(x)
+
+print(re.search("10[45]", str(105)) != None)

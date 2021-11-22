@@ -3,10 +3,8 @@ import asyncio
 from typing import Callable, Any
 from functools import wraps
 from cache import create_chaching
-from context.web_context import WebContext
-from predicate import Predicate, InList, Equal, Url
-from context import SourceContext, SourceMemberContext, Context, RESTfulContext
-import predicate
+from predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match
+from context import SourceContext, SourceMemberContext, WebContext, Context, RESTfulContext
 from .callback_info import CallbackInfo
 
 
@@ -19,7 +17,7 @@ class Dispatcher:
         cache_options = self._options["cache"] if "cache" in self._options else None
         self.__cache_manager = create_chaching(cache_options)
 
-    def restful_action(self, * predicates: (predicate)):
+    def restful_action(self, * predicates: (Predicate)):
         """Decorator for determine RESTful action"""
 
         def _decorator(restful_action: Callable[[RESTfulContext], list]):
@@ -31,7 +29,7 @@ class Dispatcher:
             return _wrapper
         return _decorator
 
-    def web_action(self, * predicates: (predicate)):
+    def web_action(self, * predicates: (Predicate)):
         """Decorator for determine lagecy web request action"""
 
         def _decorator(web_action: Callable[[WebContext], list]):
@@ -109,29 +107,11 @@ class Dispatcher:
                 break
         return result
 
-    def run_in_background(self, callback: Callable, *args: any) -> Any:
+    def run_in_background(self, callback: Callable, *args: Any) -> Any:
         """helper for run function in background thread"""
 
         loop = asyncio.get_event_loop()
         return loop.run_in_executor(None, callback, *args)
-
-    @staticmethod
-    def in_list(expression: str, *items) -> Predicate:
-        """Create list cheking predicate"""
-
-        return InList(expression,  *items)
-
-    @staticmethod
-    def equal(expression: str, value) -> Predicate:
-        """Create equality cheking predicate"""
-
-        return Equal(expression, value)
-
-    @staticmethod
-    def url(pattern: str) -> Predicate:
-        """Create url cheking predicate"""
-
-        return Url(pattern)
 
     def cache(self, seconds: int = 0, key: str = None):
         """Cache result of function for seconds of time or until signal by key for clear"""
@@ -142,3 +122,63 @@ class Dispatcher:
         """Remove key related cache"""
 
         self.__cache_manager.reset_cache(key)
+
+    @staticmethod
+    def in_list(expression: str, *items) -> Predicate:
+        """Create list cheking predicate"""
+
+        return InList(expression,  *items)
+
+    @staticmethod
+    def equal(expression: str, value: Any) -> Predicate:
+        """Create equality cheking predicate"""
+
+        return Equal(expression, value)
+
+    @staticmethod
+    def url(pattern: str) -> Predicate:
+        """Create url cheking predicate"""
+
+        return Url(pattern)
+
+    @staticmethod
+    def between(expression: str, min_value: int, max_value: int) -> Predicate:
+        """Create between cheking predicate"""
+
+        return Between(expression, min_value, max_value)
+
+    @staticmethod
+    def not_equal(expression: str, value: Any) -> Predicate:
+        """Create not equality cheking predicate"""
+
+        return NotEqual(expression, value)
+
+    @staticmethod
+    def greater_than(expression: str, value: int) -> Predicate:
+        """Create not greater than cheking predicate"""
+
+        return GreaterThan(expression, value)
+
+    @staticmethod
+    def less_than(expression: str, value: int) -> Predicate:
+        """Create not less than cheking predicate"""
+
+        return LessThan(expression, value)
+
+    @staticmethod
+    def less_than_equal(expression: str, value: int) -> Predicate:
+        """Create not less than and equal cheking predicate"""
+
+        return LessThanEqual(expression, value)
+
+    @staticmethod
+    def greater_than_equal(expression: str, value: int) -> Predicate:
+        """Create not less than and equal cheking predicate"""
+
+        return GreaterThanEqual(expression, value)
+
+    @staticmethod
+    def match(expression: str, value: str) -> Predicate:
+        """Create regex matching cheking predicate"""
+
+        return Match(expression, value)

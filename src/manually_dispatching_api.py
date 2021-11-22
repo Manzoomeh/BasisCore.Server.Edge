@@ -1,5 +1,4 @@
 import json
-import time
 from pathlib import Path
 from context import RESTfulContext
 from dispatcher import Dispatcher
@@ -11,15 +10,29 @@ with open(Path(__file__).with_name("host.json")) as options_file:
 app = Dispatcher(options)
 
 
-@app.restful_action(app.in_list("context.body.id", 10))
+@app.restful_action(
+    app.url("sdsds/f"),
+    app.match("context.body.id", "10[45]"))
+def process_basiscore_restful0(context: RESTfulContext):
+    print("process_basiscore_restful0")
+    return context.body
+
+
+@ app.restful_action(app.between("context.body.id", -1, 13))
 def process_basiscore_restful1(context: RESTfulContext):
     print("process_basiscore_restful1")
     return context.body
 
 
-@app.restful_action(app.in_list("context.body.id", 1))
+@ app.restful_action(app.in_list("context.body.id", 14))
 def process_basiscore_restful2(context: RESTfulContext):
     print("process_basiscore_restful2")
+    return context.body
+
+
+@ app.restful_action()
+def process_basiscore_restful3(context: RESTfulContext):
+    print("process_basiscore_restful3")
     return context.body
 
 
@@ -53,7 +66,7 @@ p = {
             "hostip": "185.44.36.194",
             "hostport": "443",
             "clientip": "94.139.174.170",
-            "body": "{\u0022type\u0022:\u0022corporate\u0022,\u0022id\u0022:1}"
+            "body": "{\u0022type\u0022:\u0022corporate\u0022,\u0022id\u0022:\u0022105\u0022}"
         },
         "cms": {
             "date": "11/17/2021",

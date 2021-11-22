@@ -2,3 +2,10 @@ from .equal import Equal
 from .in_list import InList
 from .predicate import Predicate
 from .url import Url
+from .between import Between
+from .not_equal import NotEqual
+from .greater_than import GreaterThan
+from .less_than import LessThan
+from .less_than_equal import LessThanEqual
+from .greater_than_equal import GreaterThanEqual
+from .match import Match

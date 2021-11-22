@@ -1,18 +1,18 @@
-from typing import Any
+import re
 from context import Context
 from .predicate import Predicate
 
 
-class InList(Predicate):
-    """Create list cheking predicate"""
+class Match (Predicate):
+    """Create regex matching cheking predicate"""
 
-    def __init__(self, expression: str, *items: Any) -> None:
+    def __init__(self, expression: str, value: str) -> None:
         super().__init__(expression)
-        self.__items = [*items]
+        self.__value = value
 
     def check(self, context: Context) -> bool:
         try:
             value = eval(self.exprossion, {}, {"context": context})
-            return value in self.__items
+            return re.search(self.__value, str(value)) != None
         except:
             return False
