@@ -64,7 +64,13 @@ class Dispatcher:
                             "data": dispath_result
                         }
                         result_set.append(result)
-                return result_set
+                ret_val = {
+                    "setting": {
+                        "keepalive": False,
+                    },
+                    "sources": result_set
+                }
+                return ret_val
             self._get_context_lookup(SourceContext.__name__)\
                 .append(CallbackInfo([*predicates], _wrapper))
             return _wrapper
