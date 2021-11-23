@@ -13,7 +13,7 @@ app = SocketDispatcher(options)
 
 @app.web_action(
     app.url("py/app/d"))
-def process_basiscore_web3(context: WebContext):
+def process_basiscore_web3(_: WebContext):
     print("process_basiscore_restful1")
     return "<h1>Hello world!</h1>dddd"
 
@@ -34,7 +34,7 @@ def process_basiscore_web1(context: WebContext):
 
 
 @app.web_action()
-def process_basiscore_web4(context: WebContext):
+def process_basiscore_web4(_: WebContext):
     print("process_basiscore_restful1")
     return "<h1>Hello world!</h1>"
 
@@ -68,7 +68,7 @@ def process_basiscore_restful3(context: RESTfulContext):
 
 
 @app.restful_action()
-def process_basiscore_restful4(context: RESTfulContext):
+def process_basiscore_restful4(_: RESTfulContext):
     ret_val = dict()
     ret_val["message"] = "hello world! - No match"
     return ret_val
@@ -79,6 +79,16 @@ def process_basiscore_restful4(context: RESTfulContext):
     app.in_list("context.command.mid", "10", "20"))
 def process_basiscore_source(context: SourceContext):
     print("process1 ",  context)
+    context.response = {
+        "cms": {
+            "cms": {
+                "http": {
+                    "Access-Control-Allow-Headers": " *",
+                    "x-extra-data": "12"
+                }
+            }
+        }
+    }
     data = [
         {"id": 1, "name": "Data1"},
         {"id": 2, "name": "Data2"},

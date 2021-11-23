@@ -23,11 +23,14 @@ class SocketDispatcher(Dispatcher):
         context = self.__context_factory(
             req["full-url"], request_object["cms"], self._options)
         result = self.dispatch(context)
-        settings = None
-        if type(result).__name__ == "tuple":
-            result, *settings = result
-        response_object = context.generate_responce(result, settings)
-        return json.dumps(response_object).encode("utf-8")
+
+        response = context.generate_responce(result)
+        if context.response is not None:
+            for key, value in context.response["cms"].items():
+                if key not in response:
+                    response[key] = dict()
+                response[key].update(value)
+        return json.dumps(response).encode("utf-8")
 
     def __context_factory(self, url, *args: (Any)) -> RequestContext:
         ret_val: RequestContext = None
