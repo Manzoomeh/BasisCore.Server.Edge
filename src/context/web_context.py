@@ -7,12 +7,14 @@ class WebContext(RequestContext):
         super().__init__(request, options)
         self.process_async = True
 
-    def generate_responce(self, result: Any) -> dict:
-        ret_val = super().generate_responce(result)
+    def generate_responce(self, result: Any, settings: Any) -> dict:
+        ret_val = self.cms
         ret_val["cms"]["content"] = result
         ret_val["cms"]["webserver"] = {
             "index": "5",
             "headercode": "200 Ok",
             "mime": "text/html"
         }
+        if settings is not None:
+            RequestContext.update_setting(ret_val, settings)
         return ret_val

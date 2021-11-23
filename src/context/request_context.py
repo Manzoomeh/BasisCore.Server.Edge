@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import Any
 from utility import DictEx
 from .context import Context
@@ -14,6 +15,11 @@ class RequestContext(Context):
     def cms(self) -> DictEx:
         return self.__cms
 
-    def generate_responce(self, result: Any) -> dict:
-        self.cms["cms"]["http"] = {"Access-Control-Allow-Headers": " *"}
+    @abstractmethod
+    def generate_responce(self, result: Any, settings: Any) -> dict:
         return self.cms
+
+    @staticmethod
+    def update_setting(response: dict, setting: dict):
+        for key, value in setting["cms"].items():
+            response[key].update(value)

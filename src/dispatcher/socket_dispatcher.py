@@ -23,7 +23,10 @@ class SocketDispatcher(Dispatcher):
         context = self.__context_factory(
             req["full-url"], request_object["cms"], self._options)
         result = self.dispatch(context)
-        response_object = context.generate_responce(result)
+        settings = None
+        if type(result).__name__ == "tuple":
+            result, *settings = result
+        response_object = context.generate_responce(result, settings)
         return json.dumps(response_object).encode("utf-8")
 
     def __context_factory(self, url, *args: (Any)) -> RequestContext:
