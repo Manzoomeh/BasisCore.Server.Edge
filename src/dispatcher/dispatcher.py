@@ -3,7 +3,7 @@ import asyncio
 from typing import Callable, Any
 from functools import wraps
 from cache import create_chaching
-from predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match
+from predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue
 from context import SourceContext, SourceMemberContext, WebContext, Context, RESTfulContext
 from .callback_info import CallbackInfo
 
@@ -188,3 +188,9 @@ class Dispatcher:
         """Create regex matching cheking predicate"""
 
         return Match(expression, value)
+
+    @staticmethod
+    def has_value(expression: str) -> Predicate:
+        """Create has value cheking predicate"""
+
+        return HasValue(expression)

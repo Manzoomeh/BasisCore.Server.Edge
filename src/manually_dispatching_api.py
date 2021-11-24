@@ -11,12 +11,13 @@ app = Dispatcher(options)
 
 
 @app.restful_action(
-    app.url("api2/authorization/:rkey/set-active"),
+    app.url("api2/authorization/:rkey/set-active/:r"),
+    app.has_value("context.url_segments.r"),
     app.equal("context.cms.request.methode", "post"),
     app.match("context.body.id", "10[45]"))
 def process_basiscore_restful0(context: RESTfulContext):
     print("process_basiscore_restful0",
-          context.cms.request.methode, context.url_segments.rkey)
+          context.cms.request.methode, context.url_segments.rkey, context.url_segments.r)
     return (context.body)
 
 
@@ -45,7 +46,7 @@ p = {
             "methode": "post",
             ":path": "/api2/authorization/82FD3FFD-7B27-40CA-A7BE-4465A9F2AEB2/set-active",
             "rawurl": "api2/authorization/82FD3FFD-7B27-40CA-A7BE-4465A9F2AEB2/set-active",
-            "url": "api2/authorization/82FD3FFD-7B27-40CA-A7BE-4465A9F2AEB2/set-active",
+            "url": "api2/authorization/82FD3FFD-7B27-40CA-A7BE-4465A9F2AEB2/set-active/4",
             ":authority": "trust-login.com",
             "full-url": "trust-login.com/api2/authorization/82FD3FFD-7B27-40CA-A7BE-4465A9F2AEB2/set-active",
             "host": "trust-login.com",

@@ -9,3 +9,4 @@ from .less_than import LessThan
 from .less_than_equal import LessThanEqual
 from .greater_than_equal import GreaterThanEqual
 from .match import Match
+from .has_value import HasValue
