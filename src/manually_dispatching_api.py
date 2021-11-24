@@ -11,11 +11,13 @@ app = Dispatcher(options)
 
 
 @app.restful_action(
+    app.url("api2/authorization/:rkey/set-active"),
     app.equal("context.cms.request.methode", "post"),
     app.match("context.body.id", "10[45]"))
 def process_basiscore_restful0(context: RESTfulContext):
-    print("process_basiscore_restful0", context.cms.request.methode)
-    return context.body
+    print("process_basiscore_restful0",
+          context.cms.request.methode, context.url_segments.rkey)
+    return (context.body)
 
 
 @app.restful_action(app.between("context.body.id", -1, 13))
@@ -80,6 +82,26 @@ p = {
 
 restful_context = RESTfulContext(p["cms"], options)
 result = app.dispatch(restful_context)
-print(result)
+print(type(result).__name__, result)
+# op = None
+# if type(result).__name__ == "tuple":
+#     result, *op = result
 
-# print(globals()["RESTfulContext"])
+# print(type(result).__name__, result, op)
+
+
+# p1 = {
+#     "cms": {
+#         "cms": {
+#             "date4": "hi",
+#         }
+#     }
+# }
+
+# for k, v in p1["cms"].items():
+#     p[k].update(v)
+#     print('r', k, v)
+
+# # p.update(p1)
+# print(p)
+# # print(globals()["RESTfulContext"])

@@ -1,5 +1,5 @@
 from types import FunctionType
-from typing import Any
+from typing import Any, Callable
 from context import Context
 from utility import DictEx
 from .predicate import Predicate
@@ -10,15 +10,16 @@ class Url (Predicate):
 
     def __init__(self, expression: str) -> None:
         super().__init__(expression)
-        self.__validator = Url.__generate_validator(expression)
+        self.__validator: FunctionType = Url.__generate_validator(expression)
 
     def check(self, context: Context) -> bool:
         try:
-            is_ok, url_parts = self.__validator(context.request.request.url)
+            is_ok, url_parts = self.__validator(context.cms.request.url)
             if is_ok and url_parts:
                 context.url_segments = DictEx(url_parts)
             return is_ok
-        except:
+        except Exception as ex:
+            print("Error in check url predicate", ex)
             return False
 
     @staticmethod
@@ -55,7 +56,7 @@ def url_function(url):
             return (True,{{ {2} }})
         else:
             return (False,None)
-    except:
+    except Exception as e:
         return (False,None)""".format(
                 " and ".join(where_part_list),
                 ','.join(segment_list),
