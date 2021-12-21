@@ -1,5 +1,4 @@
 from types import FunctionType
-from typing import Any, Callable
 from context import Context
 from utility import DictEx
 from .predicate import Predicate
@@ -34,39 +33,37 @@ class Url (Predicate):
             name = "_"
             if len(value) > 0 and value[0] == ':':
                 name = value[1:]
-                if(index == last_part_index):
+                if index == last_part_index and name[0] == '*':
+                    name = name[1:]
                     return_dict_property_names.append(
-                        '"{0}" : "/".join(__{0})'.format(name))
-                    name = '*'+"__{0}".format(name)
+                        f'"{name}" : "/".join(__{name})')
+                    name = f"*__{name}"
                 else:
                     return_dict_property_names.append(
-                        '"{0}" : __{0}'.format(name))
-                    name = "__{0}".format(name)
+                        f'"{name}" : __{name}')
+                    name = f"__{name}"
             else:
                 where_part_list.append(
-                    "url_parts[{0}].lower() == '{1}'".format(index, value))
+                    f"url_parts[{index}].lower() == '{value}'")
             segment_list.append(name)
             if len(where_part_list) == 0:
                 where_part_list.append("True")
         if len(return_dict_property_names) > 0:
-            body = """
+            body = f"""
 def url_function(url):
     try:
         url_parts = url.split("/")
-        if {0}:
-            {1} = url_parts
-            return (True,{{ {2} }})
+        if {" and ".join(where_part_list)}:
+            {','.join(segment_list)} = url_parts
+            return (True,{{ {','.join(return_dict_property_names)} }})
         else:
             return (False,None)
     except Exception as e:
-        return (False,None)""".format(
-                " and ".join(where_part_list),
-                ','.join(segment_list),
-                ','.join(return_dict_property_names))
+        return (False,None)"""
         else:
-            body = """
+            body = f"""
 def url_function(url):
-    return (url.lower() == '{0}' ,None)""".format(url)
+    return (url.lower() == '{url}' ,None)"""
         f_code = compile(body, "<str>", "exec")
         f_func = FunctionType(f_code.co_consts[0], globals(), "url_function")
         return f_func
