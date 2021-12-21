@@ -44,13 +44,15 @@ class Url (Predicate):
                     name = "__{0}".format(name)
             else:
                 where_part_list.append(
-                    "url_parts[{0}] == '{1}'".format(index, value))
+                    "url_parts[{0}].lower() == '{1}'".format(index, value))
             segment_list.append(name)
+            if len(where_part_list) == 0:
+                where_part_list.append("True")
         if len(return_dict_property_names) > 0:
             body = """
 def url_function(url):
     try:
-        url_parts = url.lower().split("/")
+        url_parts = url.split("/")
         if {0}:
             {1} = url_parts
             return (True,{{ {2} }})
