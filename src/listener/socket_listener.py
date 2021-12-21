@@ -27,7 +27,7 @@ class SocketListener:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((self.__endPoint.url, self.__endPoint.port))
             s.listen()
-            print('host service Is Up And Ready To Connect in {0}:{1}'.format(
+            print('Host service is up and ready to connect in {0}:{1}'.format(
                 self.__endPoint.url, self.__endPoint.port))
 
             loop = asyncio.get_event_loop()

@@ -16,6 +16,7 @@ class Dispatcher:
         self.__look_up: dict[str, list[CallbackInfo]] = dict()
         cache_options = self._options["cache"] if "cache" in self._options else None
         self.__cache_manager = create_chaching(cache_options)
+        print("Version : 1.0.1")
 
     def restful_action(self, * predicates: (Predicate)):
         """Decorator for determine RESTful action"""
