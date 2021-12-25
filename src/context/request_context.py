@@ -10,7 +10,11 @@ class RequestContext(Context):
     def __init__(self, request: dict, options: dict) -> None:
         super().__init__(options)
         self.__cms = DictEx(request)
-        self.response = None
+        self.response: dict = None
+
+    @property
+    def url(self) -> str:
+        return self.cms.request.url
 
     @property
     def cms(self) -> DictEx:

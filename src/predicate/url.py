@@ -13,7 +13,7 @@ class Url (Predicate):
 
     def check(self, context: Context) -> bool:
         try:
-            is_ok, url_parts = self.__validator(context.cms.request.url)
+            is_ok, url_parts = self.__validator(context.url)
             if is_ok and url_parts:
                 context.url_segments = DictEx(url_parts)
             return is_ok

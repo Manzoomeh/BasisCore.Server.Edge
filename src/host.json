@@ -1,17 +1,28 @@
 {
-  "ip": "192.168.96.76",
-  "port": 1560,
+  "ip": "127.0.0.1",
+  "port": 1025,
   "router": {
-    "dbsource": ["/dbsource"],
-    "restful": ["/rest"],
-    "web":["*"]
+    "dbsource": [
+      "/dbsource"
+    ],
+    "restful": [
+      "/rest"
+    ],
+    "web": [
+      "*"
+    ],
+    "rabbit": [
+      {
+        "url": "amqp://guest:guest@localhost:5672",
+        "queue": "hello"
+      }
+    ]
   },
-
-  "cache1": {
+  "cache": {
     "type": "memory",
     "signaler": {
       "type": "rabbit",
-      "host": "localhost",
+      "url": "amqp://guest:guest@localhost:5672",
       "queue": "demo"
     }
   },
@@ -22,7 +33,7 @@
     "connections.rest.rest_demo": "http://127.0.0.1:5002/countries",
     "connections.rest.check_rkey": "https://trust-login.com/api2/checkrkey",
     "connections.rabbit.rabbit_test": {
-      "host": "localhost",
+      "host": "amqp://guest:guest@localhost:5672",
       "queue": "demo"
     }
   }

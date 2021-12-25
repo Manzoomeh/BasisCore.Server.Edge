@@ -1,5 +1,4 @@
-from abc import ABC,  abstractproperty
-
+from abc import ABC, abstractproperty
 from utility import DictEx
 from .db_manager import DbManager, SqlDb, SQLiteDb, MongoDb, RabbitConnection, RESTfulConnection
 
@@ -7,7 +6,7 @@ from .db_manager import DbManager, SqlDb, SQLiteDb, MongoDb, RabbitConnection, R
 class Context(ABC):
     """Base class for dispatching"""
 
-    def __init__(self, options: dict) -> None:
+    def __init__(self, options: DictEx) -> None:
         super().__init__()
         self._options = options
         self.__db_manager = DbManager(options)
@@ -15,7 +14,7 @@ class Context(ABC):
 
     @abstractproperty
     @property
-    def cms(self) -> DictEx:
+    def url(self) -> str:
         pass
 
     def open_sql_connection(self, key: str) -> SqlDb:

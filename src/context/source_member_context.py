@@ -34,3 +34,7 @@ class SourceMemberContext(Context):
     @property
     def command(self) -> DictEx:
         return self.__source_context.command
+
+    @property
+    def url(self) -> str:
+        return self.__source_context.url

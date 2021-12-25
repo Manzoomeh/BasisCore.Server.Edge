@@ -1,3 +1,4 @@
+from utility import DictEx
 from .rabbit_connection import RabbitConnection
 from .db import Db
 from .mongo_db import MongoDb
@@ -8,14 +9,15 @@ from .restful_connection import RESTfulConnection
 
 class DbManager:
 
-    def __init__(self, options: dict) -> None:
+    def __init__(self, options: DictEx) -> None:
         self._options = options
         self._connections: dict(str, list) = dict()
-        settings = options["settings"] if "settings" in options else None
-        for k, setting in [(k.split(".", 2)[1:], v) for k, v in settings.items() if k.find("connections.") == 0]:
-            db_type = k[0].lower()
-            name = k[1].lower()
-            self._connections[name] = [db_type, setting]
+        settings = options.settings if "settings" in options else None
+        if settings:
+            for k, setting in [(k.split(".", 2)[1:], v) for k, v in settings.items() if k.find("connections.") == 0]:
+                db_type = k[0].lower()
+                name = k[1].lower()
+                self._connections[name] = [db_type, setting]
 
     def open_connection(self, key: str) -> Db:
         ret_val: Db = None

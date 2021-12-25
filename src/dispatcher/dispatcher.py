@@ -3,8 +3,10 @@ import asyncio
 from typing import Callable, Any
 from functools import wraps
 from cache import create_chaching
+from listener import RabbitBusListener
 from predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue
-from context import SourceContext, SourceMemberContext, WebContext, Context, RESTfulContext
+from context import SourceContext, SourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext
+from utility import DictEx
 from .callback_info import CallbackInfo
 
 
@@ -12,11 +14,22 @@ class Dispatcher:
     """Base class for dispaching request"""
 
     def __init__(self, options: dict = None):
-        self._options = options
+        self._options = DictEx(options)
         self.__look_up: dict[str, list[CallbackInfo]] = dict()
-        cache_options = self._options["cache"] if "cache" in self._options else None
+        cache_options = self._options.cache if "cache" in self._options else None
         self.__cache_manager = create_chaching(cache_options)
-        print("Version : 1.0.2")
+        self.__rabbit_dispatcher: list[RabbitBusListener] = list()
+        if "router" in self._options and "rabbit" in self._options.router:
+            for setting in self._options.router.rabbit:
+                self.__rabbit_dispatcher.append(
+                    RabbitBusListener(setting, self._options, self.dispatch))
+                print(setting)
+
+        print("Version : 1.1.0")
+
+    @property
+    def options(self) -> DictEx:
+        self._options
 
     def restful_action(self, * predicates: (Predicate)):
         """Decorator for determine RESTful action"""
@@ -31,7 +44,7 @@ class Dispatcher:
         return _decorator
 
     def web_action(self, * predicates: (Predicate)):
-        """Decorator for determine lagecy web request action"""
+        """Decorator for determine legacy web request action"""
 
         def _decorator(web_action: Callable[[WebContext], list]):
             @wraps(web_action)
@@ -91,6 +104,19 @@ class Dispatcher:
             return _wrapper
         return _decorator
 
+    def rabbit_action(self, * predicates: (Predicate)):
+        """Decorator for determine rabbit-mq message request action"""
+
+        def _decorator(web_action: Callable[[RabbitContext], list]):
+            @wraps(web_action)
+            def _wrapper(context: RabbitContext):
+                web_action(context)
+                return True
+            self._get_context_lookup(RabbitContext.__name__)\
+                .append(CallbackInfo([*predicates], _wrapper))
+            return _wrapper
+        return _decorator
+
     def _get_context_lookup(self, key: str) -> list[CallbackInfo]:
         """Get key related action list object"""
 
@@ -113,6 +139,10 @@ class Dispatcher:
             if result is not None:
                 break
         return result
+
+    def listening(self):
+        for dispacher in self.__rabbit_dispatcher:
+            dispacher.start_listening()
 
     def run_in_background(self, callback: Callable, *args: Any) -> Any:
         """helper for run function in background thread"""

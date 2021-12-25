@@ -21,7 +21,7 @@ class SocketDispatcher(Dispatcher):
             req["request-id"], req["methode"], req["full-url"])
         print(log)
         context = self.__context_factory(
-            req["full-url"], request_object["cms"], self._options)
+            req["full-url"], request_object["cms"], self.options)
         result = self.dispatch(context)
 
         response = context.generate_responce(result)
@@ -36,10 +36,11 @@ class SocketDispatcher(Dispatcher):
         ret_val: RequestContext = None
         context_type = None
         for key, patterns in self._options["router"].items():
-            for pattern in patterns:
-                if pattern == "*" or re.search(pattern, url):
-                    context_type = key
-                    break
+            if key != "rabbit":
+                for pattern in patterns:
+                    if pattern == "*" or re.search(pattern, url):
+                        context_type = key
+                        break
             if context_type is not None:
                 break
         if context_type == "dbsource":
@@ -56,6 +57,7 @@ class SocketDispatcher(Dispatcher):
         return ret_val
 
     def listening(self):
+        super().listening()
         try:
             asyncio.run(self.__listener.process_async())
         except KeyboardInterrupt:
