@@ -8,7 +8,7 @@ channel = connection.channel()
 channel.queue_declare(queue='hello')
 
 d = dict()
-d["type"] = "clear-cache1"
+d["type"] = "clear-cache"
 d["key"] = ["rrr"]
 
 j = json.dumps(d)

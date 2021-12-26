@@ -1,15 +1,17 @@
 import json
-from typing import Any
-from utility import BasisCoreHtmlParser
-from utility.DictEx import DictEx
+from typing import Any, TYPE_CHECKING
+from utility import BasisCoreHtmlParser, DictEx
 from .request_context import RequestContext
+
+if TYPE_CHECKING:
+    import dispatcher
 
 
 class SourceContext(RequestContext):
     """Context for dbSource request"""
 
-    def __init__(self, request, options: dict) -> None:
-        super().__init__(request, options)
+    def __init__(self, request: dict, dispatcher: 'dispatcher.IDispatcher') -> None:
+        super().__init__(request, dispatcher)
         parser = BasisCoreHtmlParser()
         html = self.cms.form.command
         parser.feed(html)

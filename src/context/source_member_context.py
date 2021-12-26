@@ -7,8 +7,8 @@ from .source_context import SourceContext
 class SourceMemberContext(Context):
     """Context for dbSource member request"""
 
-    def __init__(self, sourceContext: SourceContext, data: list, member: dict, options: dict) -> None:
-        super().__init__(options)
+    def __init__(self, sourceContext: SourceContext, data: list, member: dict) -> None:
+        super().__init__(sourceContext.dispatcher)
         self.__source_context = sourceContext
         self.__member = member
         self.__data = data

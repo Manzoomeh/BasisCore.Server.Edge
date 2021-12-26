@@ -1,7 +1,6 @@
 import json
 import re
 import asyncio
-from typing import Any
 from listener import EndPoint, SocketListener
 from context import SourceContext, RESTfulContext, WebContext, RequestContext
 from .dispatcher import Dispatcher
@@ -21,7 +20,7 @@ class SocketDispatcher(Dispatcher):
             req["request-id"], req["methode"], req["full-url"])
         print(log)
         context = self.__context_factory(
-            req["full-url"], request_object["cms"], self.options)
+            req["full-url"], request_object["cms"])
         result = self.dispatch(context)
 
         response = context.generate_responce(result)
@@ -32,7 +31,7 @@ class SocketDispatcher(Dispatcher):
                 response[key].update(value)
         return json.dumps(response).encode("utf-8")
 
-    def __context_factory(self, url, *args: (Any)) -> RequestContext:
+    def __context_factory(self, url, cms_request: dict) -> RequestContext:
         ret_val: RequestContext = None
         context_type = None
         for key, patterns in self._options["router"].items():
@@ -44,11 +43,11 @@ class SocketDispatcher(Dispatcher):
             if context_type is not None:
                 break
         if context_type == "dbsource":
-            ret_val = SourceContext(*args)
+            ret_val = SourceContext(cms_request, self)
         elif context_type == "restful":
-            ret_val = RESTfulContext(*args)
+            ret_val = RESTfulContext(cms_request, self)
         elif context_type == "web":
-            ret_val = WebContext(*args)
+            ret_val = WebContext(cms_request, self)
         elif context_type is None:
             raise Exception("No context found for '%s'" % url)
         else:

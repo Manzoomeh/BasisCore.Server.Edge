@@ -1,10 +1,12 @@
-from typing import Any
+from typing import Any, TYPE_CHECKING
+if TYPE_CHECKING:
+    import dispatcher
 from .request_context import RequestContext
 
 
 class WebContext(RequestContext):
-    def __init__(self, request, options: dict) -> None:
-        super().__init__(request, options)
+    def __init__(self, request: dict,  dispatcher: 'dispatcher.IDispatcher') -> None:
+        super().__init__(request, dispatcher)
         self.process_async = True
 
     def generate_responce(self, result: Any) -> dict:

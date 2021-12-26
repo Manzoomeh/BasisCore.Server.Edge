@@ -1,14 +1,16 @@
 import json
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from context import Context
+if TYPE_CHECKING:
+    import dispatcher
 from utility import DictEx
 
 
 class RabbitContext(Context):
     """Context for rabbit-mq request"""
 
-    def __init__(self, rabbit_message: DictEx, options: DictEx):
-        super().__init__(options)
+    def __init__(self, rabbit_message: DictEx,  dispatcher: 'dispatcher.IDispatcher'):
+        super().__init__(dispatcher)
         self.__rabbit_message: DictEx = rabbit_message
         self.__message = DictEx(json.loads(
             rabbit_message.message)) if rabbit_message.message else None

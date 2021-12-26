@@ -1,16 +1,22 @@
 from abc import ABC, abstractproperty
-from utility import DictEx
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    import dispatcher
 from .db_manager import DbManager, SqlDb, SQLiteDb, MongoDb, RabbitConnection, RESTfulConnection
 
 
 class Context(ABC):
     """Base class for dispatching"""
 
-    def __init__(self, options: DictEx) -> None:
+    def __init__(self, dispatcher: 'dispatcher.IDispatcher') -> None:
         super().__init__()
-        self._options = options
-        self.__db_manager = DbManager(options)
+        self._dispateher = dispatcher
+        self.__db_manager = DbManager(dispatcher.options)
         self.url_segments = None
+
+    @property
+    def dispatcher(self) -> 'dispatcher.IDispatcher':
+        return self._dispateher
 
     @abstractproperty
     @property

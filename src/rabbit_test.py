@@ -1,5 +1,5 @@
-from context import RabbitContext
-from dispatcher import SocketDispatcher
+import context
+import dispatcher
 
 
 options = {
@@ -16,17 +16,17 @@ options = {
 }
 
 
-app = SocketDispatcher(options)
+app = dispatcher.SocketDispatcher(options)
 
 
 @ app.rabbit_action(app.equal("context.message.type", "clear-cache1"))
-def process_rabbit_message1(context: RabbitContext):
+def process_rabbit_message1(context: context.RabbitContext):
     print("process_rabbit_message1", context.host,
           context.queue, context.message)
 
 
 @ app.rabbit_action()
-def process_rabbit_message2(context: RabbitContext):
+def process_rabbit_message2(context: context.RabbitContext):
     print("process_rabbit_message2", context.host,
           context.queue, context.message.type)
 

@@ -1,14 +1,17 @@
 from abc import abstractmethod
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from utility import DictEx
 from .context import Context
+
+if TYPE_CHECKING:
+    import dispatcher
 
 
 class RequestContext(Context):
     """Base class for dispatching request base context"""
 
-    def __init__(self, request: dict, options: dict) -> None:
-        super().__init__(options)
+    def __init__(self, request: dict,  dispatcher: 'dispatcher.IDispatcher') -> None:
+        super().__init__(dispatcher)
         self.__cms = DictEx(request)
         self.response: dict = None
 

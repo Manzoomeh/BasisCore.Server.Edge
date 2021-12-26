@@ -1,12 +1,14 @@
 import json
-from typing import Any
-from utility.DictEx import DictEx
+from typing import Any, TYPE_CHECKING
+if TYPE_CHECKING:
+    import dispatcher
+from utility import DictEx
 from .request_context import RequestContext
 
 
 class RESTfulContext(RequestContext):
-    def __init__(self, request, options: dict) -> None:
-        super().__init__(request, options)
+    def __init__(self, request: dict, dispatcher: 'dispatcher.IDispatcher') -> None:
+        super().__init__(request, dispatcher)
         if self.cms.form:
             self.__body = DictEx(self.cms.form)
         elif self.cms.request.body:

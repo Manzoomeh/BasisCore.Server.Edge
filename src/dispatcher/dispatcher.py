@@ -22,10 +22,8 @@ class Dispatcher:
         if "router" in self._options and "rabbit" in self._options.router:
             for setting in self._options.router.rabbit:
                 self.__rabbit_dispatcher.append(
-                    RabbitBusListener(setting, self._options, self.dispatch))
-                print(setting)
-
-        print("Version : 1.1.0")
+                    RabbitBusListener(setting, self))
+        print("Version : 1.2.0")
 
     @property
     def options(self) -> DictEx:
@@ -70,7 +68,7 @@ class Dispatcher:
                 if data is not None:
                     for member in context.command.member:
                         member_context = SourceMemberContext(
-                            context, data, member, self._options)
+                            context, data, member)
                         dispath_result = self.dispatch(member_context)
                         result = {
                             "options": {
@@ -158,11 +156,6 @@ class Dispatcher:
         """Cache result of function for seconds of time or until signal by key for clear"""
 
         return self.__cache_manager.cache_decorator(seconds, key)
-
-    def reset_cache(self, key: str):
-        """Remove key related cache"""
-
-        self.__cache_manager.reset_cache(key)
 
     @staticmethod
     def in_list(expression: str, *items) -> Predicate:
