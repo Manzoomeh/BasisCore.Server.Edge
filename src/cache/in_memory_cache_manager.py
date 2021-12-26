@@ -3,13 +3,14 @@ from datetime import timedelta
 from datetime import datetime
 from functools import wraps
 from typing import Callable
+from utility import DictEx
 from .signal_base_cache_manager import SignalBaseCacheManager
 
 
 class InMemoryCacheManager(SignalBaseCacheManager):
     """Implement in memory cache manager"""
 
-    def __init__(self, options: dict) -> None:
+    def __init__(self, options: DictEx) -> None:
         super().__init__(options)
         self.__cache_list: dict[str, list[Callable]] = dict()
 
@@ -43,7 +44,7 @@ class InMemoryCacheManager(SignalBaseCacheManager):
             return wrapper_with_time if seconds > 0 else wrapper_without_time
         return decorator
 
-    def reset_cache(self, keys: list[str]):
+    def reset_cache(self, keys: list[str]) -> None:
         """Remove key related cache"""
 
         print(f"reset cache for {keys}")
@@ -51,3 +52,18 @@ class InMemoryCacheManager(SignalBaseCacheManager):
             if key in self.__cache_list:
                 for function in self.__cache_list[key]:
                     function.cache = None
+
+    def get_cache(self, key: str) -> list:
+        """Get key related cached data"""
+
+        return [function.cache for function in self.__cache_list[key]]
+
+    def update_cache(self, key: str, data: any) -> bool:
+        """Update key related cached data"""
+
+        is_siccessfull = False
+        if key in self.__cache_list:
+            for function in self.__cache_list[key]:
+                function.cache = data
+                is_siccessfull = True
+        return is_siccessfull

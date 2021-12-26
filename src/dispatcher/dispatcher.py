@@ -2,7 +2,7 @@
 import asyncio
 from typing import Callable, Any
 from functools import wraps
-from cache import create_chaching
+from cache import create_chaching, CacheManager
 from listener import RabbitBusListener
 from predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue
 from context import SourceContext, SourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext
@@ -29,7 +29,11 @@ class Dispatcher:
 
     @property
     def options(self) -> DictEx:
-        self._options
+        return self._options
+
+    @property
+    def cache_manager(self) -> CacheManager:
+        return self.__cache_manager
 
     def restful_action(self, * predicates: (Predicate)):
         """Decorator for determine RESTful action"""

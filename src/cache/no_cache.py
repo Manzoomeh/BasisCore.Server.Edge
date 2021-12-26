@@ -11,3 +11,9 @@ class NoCacheManager(CacheManager):
 
     def reset_cache(self, key: str):
         pass
+
+    def get_cache(self, key: str) -> list:
+        pass
+
+    def update_cache(self, key: str, data: any) -> bool:
+        pass

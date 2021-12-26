@@ -13,3 +13,11 @@ class CacheManager(ABC):
     @abstractmethod
     def reset_cache(self, key: list[str]):
         """Remove key related cache"""
+
+    @abstractmethod
+    def get_cache(self, key: str) -> list:
+        """Get key related cached data"""
+
+    @abstractmethod
+    def update_cache(self, key: str, data: any) -> bool:
+        """Update key related cached data"""
