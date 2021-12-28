@@ -1,19 +1,21 @@
 import json
 import re
 import asyncio
-from listener import EndPoint, SocketListener
 from context import SourceContext, RESTfulContext, WebContext, RequestContext
+from listener import EndPoint, DuplexSocketListener, Message
 from .dispatcher import Dispatcher
 
 
-class SocketDispatcher(Dispatcher):
+class DuplexSocketDispatcher(Dispatcher):
     def __init__(self, options: dict):
         super().__init__(options)
-        self.__listener = SocketListener(
-            EndPoint(options["ip"], options["port"]), self.__on_message_receive)
+        self.__listener = DuplexSocketListener(
+            EndPoint(self.options.receiver.ip, self.options.receiver.port),
+            EndPoint(self.options.sender.ip, self.options.sender.port),
+            self.__on_message_receive)
 
-    def __on_message_receive(self, request_bytes: list) -> bytes:
-        request_str = request_bytes.decode("utf-8")
+    def __on_message_receive(self, message: Message) -> None:
+        request_str = message.buffer.decode("utf-8")
         request_object = json.loads(request_str)
         req = request_object["cms"]["request"]
         log = f"{req['request-id']} {req['methode']} {req['full-url']}"
@@ -28,7 +30,10 @@ class SocketDispatcher(Dispatcher):
                 if key not in response:
                     response[key] = dict()
                 response[key].update(value)
-        return json.dumps(response).encode("utf-8")
+        message_result = json.dumps(response).encode("utf-8")
+        new_message = Message.create_add_hock(
+            message.session_id, message_result)
+        self.__listener.send_message(new_message)
 
     def __context_factory(self, url, cms_request: dict) -> RequestContext:
         ret_val: RequestContext = None

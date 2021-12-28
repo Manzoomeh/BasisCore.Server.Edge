@@ -27,8 +27,8 @@ class SocketListener:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((self.__endPoint.url, self.__endPoint.port))
             s.listen()
-            print('Host service is up and ready to connect in {0}:{1}'.format(
-                self.__endPoint.url, self.__endPoint.port))
+            print(
+                f'Host service is up and ready to connect in {self.__endPoint.url}:{self.__endPoint.port}')
 
             loop = asyncio.get_event_loop()
             while True:
@@ -40,7 +40,7 @@ class SocketListener:
         data = {
             'cms':
             {
-                'content': '<html><head><title>{0}</title></head><body>{1}</body></html>'.format(str(er), repr(er)),
+                'content': f'<html><head><title>{str(er)}</title></head><body>{repr(er)}</body></html>',
                 'webserver':
                 {
                     'index': '5',
