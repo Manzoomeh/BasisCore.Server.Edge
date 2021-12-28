@@ -39,7 +39,7 @@ class DuplexSocketListener:
                                 break
                             try:
                                 self.on_message_receive(message)
-                            except Exception as e:
+                            except Exception as ex:
                                 print(
                                     f"error in process received message {ex}")
             except Exception as ex:

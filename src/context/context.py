@@ -1,5 +1,6 @@
 from abc import ABC, abstractproperty
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     import dispatcher
 from .db_manager import DbManager, SqlDb, SQLiteDb, MongoDb, RabbitConnection, RESTfulConnection

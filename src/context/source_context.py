@@ -5,13 +5,14 @@ from .request_context import RequestContext
 
 if TYPE_CHECKING:
     import dispatcher
+    import listener
 
 
 class SourceContext(RequestContext):
     """Context for dbSource request"""
 
-    def __init__(self, request: dict, dispatcher: 'dispatcher.IDispatcher') -> None:
-        super().__init__(request, dispatcher)
+    def __init__(self, request: dict, dispatcher: 'dispatcher.IDispatcher', message: 'listener.Message') -> None:
+        super().__init__(request, dispatcher, message)
         parser = BasisCoreHtmlParser()
         html = self.cms.form.command
         parser.feed(html)

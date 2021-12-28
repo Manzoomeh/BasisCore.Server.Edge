@@ -3,7 +3,7 @@ import asyncio
 from typing import Callable, Any
 from functools import wraps
 from cache import create_chaching, CacheManager
-from listener import RabbitBusListener
+from listener import RabbitBusListener, MessageType
 from predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue
 from context import SourceContext, SourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext
 from utility import DictEx
@@ -23,7 +23,7 @@ class Dispatcher:
             for setting in self._options.router.rabbit:
                 self.__rabbit_dispatcher.append(
                     RabbitBusListener(setting, self))
-        print("Version : 1.2.0")
+        print("Version : 2.0.0")
 
     @property
     def options(self) -> DictEx:
@@ -151,6 +151,9 @@ class Dispatcher:
 
         loop = asyncio.get_event_loop()
         return loop.run_in_executor(None, callback, *args)
+
+    def send_message(self, message: MessageType) -> None:
+        """Send message to endpoint"""
 
     def cache(self, seconds: int = 0, key: str = None):
         """Cache result of function for seconds of time or until signal by key for clear"""

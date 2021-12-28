@@ -2,7 +2,7 @@ import json
 import re
 import asyncio
 from context import SourceContext, RESTfulContext, WebContext, RequestContext
-from listener import EndPoint, DuplexSocketListener, Message
+from listener import EndPoint, DuplexSocketListener, Message, MessageType
 from .dispatcher import Dispatcher
 
 
@@ -21,21 +21,21 @@ class DuplexSocketDispatcher(Dispatcher):
         log = f"{req['request-id']} {req['methode']} {req['full-url']}"
         print(log)
         context = self.__context_factory(
-            req["full-url"], request_object["cms"])
+            req["full-url"], request_object["cms"], message)
         result = self.dispatch(context)
+        if message.type == MessageType.ad_hoc:
+            response = context.generate_responce(result)
+            if context.response is not None:
+                for key, value in context.response["cms"].items():
+                    if key not in response:
+                        response[key] = dict()
+                    response[key].update(value)
+            message_result = json.dumps(response).encode("utf-8")
+            new_message = Message.create_add_hock(
+                message.session_id, message_result)
+            self.send_message(new_message)
 
-        response = context.generate_responce(result)
-        if context.response is not None:
-            for key, value in context.response["cms"].items():
-                if key not in response:
-                    response[key] = dict()
-                response[key].update(value)
-        message_result = json.dumps(response).encode("utf-8")
-        new_message = Message.create_add_hock(
-            message.session_id, message_result)
-        self.__listener.send_message(new_message)
-
-    def __context_factory(self, url, cms_request: dict) -> RequestContext:
+    def __context_factory(self, url, cms_request: dict, message: Message) -> RequestContext:
         ret_val: RequestContext = None
         context_type = None
         for key, patterns in self._options["router"].items():
@@ -47,17 +47,22 @@ class DuplexSocketDispatcher(Dispatcher):
             if context_type is not None:
                 break
         if context_type == "dbsource":
-            ret_val = SourceContext(cms_request, self)
+            ret_val = SourceContext(cms_request, self, message)
         elif context_type == "restful":
-            ret_val = RESTfulContext(cms_request, self)
+            ret_val = RESTfulContext(cms_request, self, message)
         elif context_type == "web":
-            ret_val = WebContext(cms_request, self)
+            ret_val = WebContext(cms_request, self, message)
         elif context_type is None:
             raise Exception(f"No context found for '{url}'")
         else:
             raise Exception(
                 f"Configured context type '{context_type}' not found for '{url}'")
         return ret_val
+
+    def send_message(self, message: Message) -> None:
+        """Send message to endpoint"""
+
+        self.__listener.send_message(message)
 
     def listening(self):
         super().listening()

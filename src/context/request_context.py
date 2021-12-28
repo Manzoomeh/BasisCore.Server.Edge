@@ -5,15 +5,21 @@ from .context import Context
 
 if TYPE_CHECKING:
     import dispatcher
+    import listener
 
 
 class RequestContext(Context):
     """Base class for dispatching request base context"""
 
-    def __init__(self, request: dict,  dispatcher: 'dispatcher.IDispatcher') -> None:
+    def __init__(self, request: dict,  dispatcher: 'dispatcher.IDispatcher', message: 'listener.Message') -> None:
         super().__init__(dispatcher)
         self.__cms = DictEx(request)
+        self.__message = message
         self.response: dict = None
+
+    @property
+    def message(self) -> 'listener.Message':
+        return self.__message
 
     @property
     def url(self) -> str:

@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 from typing import Callable, Any, TYPE_CHECKING
 from cache import CacheManager
+from listener import Message
 from utility import DictEx
 
 if TYPE_CHECKING:
@@ -24,6 +25,10 @@ class IDispatcher(ABC):
     @abstractmethod
     def dispatch(self, context: 'Context') -> Any:
         """Dispatch context and get result from related action methode"""
+
+    @abstractmethod
+    def send_message(self, message: Message) -> None:
+        """Send message to endpoint"""
 
     def run_in_background(self, callback: Callable, *args: Any) -> Any:
         """helper for run function in background thread"""
