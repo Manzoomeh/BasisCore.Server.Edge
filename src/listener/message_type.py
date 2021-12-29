@@ -2,7 +2,8 @@ import enum
 
 
 class MessageType(enum.Enum):
-    connect = 1
-    message = 2
-    disconnect = 3
-    ad_hoc = 4
+    CONNECT = 1
+    MESSAGE = 2
+    DISCONNECT = 3
+    AD_HOC = 4
+    NOT_EXIST = 5

@@ -1,4 +1,3 @@
 from .dispatcher import Dispatcher
-from .socket_dispatcher import SocketDispatcher
 from .dispatcher_interface import IDispatcher
-from .duplex_socket_dispatcher import DuplexSocketDispatcher
+from .socket_dispatcher import SocketDispatcher

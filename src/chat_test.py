@@ -3,9 +3,8 @@ import datetime
 import xml.etree.ElementTree
 import context
 import dispatcher
-from listener import Message
-from listener.message_type import MessageType
-from utility.DictEx import DictEx
+from listener import Message, MessageType
+from utility import DictEx
 
 
 options = {
@@ -23,7 +22,7 @@ options = {
 }
 
 
-app = dispatcher.DuplexSocketDispatcher(options)
+app = dispatcher.SocketDispatcher(options)
 
 
 class Client:
@@ -82,24 +81,33 @@ class ChatRoom:
 
     @staticmethod
     def process_message(message: Message, cms: DictEx):
-        if(message.type == MessageType.connect):
+        if(message.type == MessageType.CONNECT):
             ChatRoom.__sessions[message.session_id] = Client(
                 message.session_id, cms)
-        elif message.type == MessageType.disconnect:
+        elif message.type == MessageType.DISCONNECT:
             if message.session_id in ChatRoom.__sessions:
                 ChatRoom.__sessions[message.session_id].close(False)
                 del ChatRoom.__sessions[message.session_id]
-        elif message.type == MessageType.message:
+        elif message.type == MessageType.MESSAGE:
             if message.session_id in ChatRoom.__sessions:
                 ChatRoom.__sessions[message.session_id].update(cms.body)
-        elif message.type == MessageType.ad_hoc:
+        elif message.type == MessageType.NOT_EXIST:
+            if message.session_id in ChatRoom.__sessions:
+                del ChatRoom.__sessions[message.session_id]
+        elif message.type == MessageType.AD_HOC:
             if message.session_id in ChatRoom.__sessions:
                 print("adhoc message receive!")
 
 
+@app.not_exist_action()
+def process_not_exist_message(context: context.RequestContext):
+    print("process_not_exist_message")
+    ChatRoom.process_message(context.message, None)
+
+
 @ app.web_action()
-def process_rabbit_message2(context: context.WebContext):
-    print("process_rabbit_message2")
+def process_all_other_message(context: context.WebContext):
+    print("process_all_other_message")
     ChatRoom.process_message(context.message, context.cms)
 
 

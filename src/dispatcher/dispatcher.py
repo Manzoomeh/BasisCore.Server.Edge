@@ -3,6 +3,7 @@ import asyncio
 from typing import Callable, Any
 from functools import wraps
 from cache import create_chaching, CacheManager
+from context.request_context import RequestContext
 from listener import RabbitBusListener, MessageType
 from predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue
 from context import SourceContext, SourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext
@@ -32,6 +33,18 @@ class Dispatcher:
     @property
     def cache_manager(self) -> CacheManager:
         return self.__cache_manager
+
+    def not_exist_action(self):
+        """Decorator for determine not exist message type action"""
+
+        def _decorator(not_exist_action: Callable[[RequestContext], list]):
+            @wraps(not_exist_action)
+            def _wrapper(context: RequestContext):
+                return not_exist_action(context)
+            self._get_context_lookup(RequestContext.__name__)\
+                .append(CallbackInfo([], _wrapper))
+            return _wrapper
+        return _decorator
 
     def restful_action(self, * predicates: (Predicate)):
         """Decorator for determine RESTful action"""

@@ -19,30 +19,30 @@ class Message:
         connection.send(data_length_bytes)
         connection.send(data)
 
-        if self.type != MessageType.disconnect:
+        if self.type == MessageType.AD_HOC or self.type == MessageType.MESSAGE:
             data_length_bytes = len(self.buffer).to_bytes(4, 'big')
             connection.send(data_length_bytes)
             connection.send(self.buffer)
 
     @staticmethod
     def create_add_hock(session_id: str, buffer: bytes):
-        return Message(session_id, MessageType.ad_hoc, buffer)
+        return Message(session_id, MessageType.AD_HOC, buffer)
 
     @staticmethod
     def create_disconnect(session_id: str):
-        return Message(session_id, MessageType.disconnect, None)
+        return Message(session_id, MessageType.DISCONNECT, None)
 
     @staticmethod
     def create_from_text(session_id: str, text: str):
-        return Message(session_id, MessageType.message, text.encode())
+        return Message(session_id, MessageType.MESSAGE, text.encode())
 
     @staticmethod
     def create_from_byte(session_id: str, array: bytes):
-        return Message(session_id, MessageType.message, array)
+        return Message(session_id, MessageType.MESSAGE, array)
 
     @staticmethod
     def create_from_object(session_id: str, object: Any):
-        return Message(session_id, MessageType.message, json.dumps(object).encode("utf-8"))
+        return Message(session_id, MessageType.MESSAGE, json.dumps(object).encode("utf-8"))
 
     @staticmethod
     def create(session_id: str, data: Any):
@@ -63,15 +63,17 @@ class Message:
         message: Message = None
         data = connection.recv(1)
         if data:
-            message_type = int.from_bytes(data, byteorder='big', signed=True)
+            message_type = MessageType(int.from_bytes(
+                data, byteorder='big', signed=True))
             data = connection.recv(4)
             data_len = int.from_bytes(data, byteorder='big', signed=True)
             data = connection.recv(data_len)
             session_id = data.decode("utf-8")
             parameter = None
-            data = connection.recv(4)
-            data_len = int.from_bytes(data, byteorder='big', signed=True)
-            data = connection.recv(data_len)
-            parameter = data
-            message = Message(session_id, MessageType(message_type), parameter)
+            if message_type != MessageType.NOT_EXIST:
+                data = connection.recv(4)
+                data_len = int.from_bytes(data, byteorder='big', signed=True)
+                data = connection.recv(data_len)
+                parameter = data
+            message = Message(session_id, message_type, parameter)
         return message
