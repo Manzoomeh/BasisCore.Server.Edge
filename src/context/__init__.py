@@ -5,3 +5,4 @@ from .restful_context import RESTfulContext
 from .web_context import WebContext
 from .request_context import RequestContext
 from .rabbit_context import RabbitContext
+from .socket_context import SocketContext

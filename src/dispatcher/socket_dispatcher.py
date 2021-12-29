@@ -2,6 +2,8 @@ import json
 import re
 import asyncio
 from context import SourceContext, RESTfulContext, WebContext, RequestContext
+from context.context import Context
+from context.socket_context import SocketContext
 from listener import EndPoint, DuplexSocketListener, Message, MessageType
 from .dispatcher import Dispatcher
 
@@ -15,14 +17,10 @@ class SocketDispatcher(Dispatcher):
             self.__on_message_receive)
 
     def __on_message_receive(self, message: Message) -> None:
-        # request_str = message.buffer.decode("utf-8")
-        # request_object = json.loads(request_str)
-        # req = request_object["cms"]["request"]
-        # log = f"{req['request-id']} {req['methode']} {req['full-url']}"
-        # print(log)
         context = self.__context_factory(message)
         result = self.dispatch(context)
-        if message.type == MessageType.AD_HOC:
+        # message.type == MessageType.AD_HOC:
+        if isinstance(context, RequestContext):
             response = context.generate_responce(result)
             if context.response is not None:
                 for key, value in context.response["cms"].items():
@@ -34,20 +32,18 @@ class SocketDispatcher(Dispatcher):
                 message.session_id, message_result)
             self.send_message(new_message)
 
-    def __context_factory(self, message: Message) -> RequestContext:
+    def __context_factory(self, message: Message) -> Context:
         ret_val: RequestContext = None
         context_type = None
-        if message.type == MessageType.NOT_EXIST:
-            ret_val = RequestContext({}, self, message)
-        else:
-            request_str = message.buffer.decode("utf-8")
-            request_object = json.loads(request_str)
-            cms_request = request_object["cms"]
-            req = cms_request["request"]
+        request: dict = None
+        url: str = None
+        if message.buffer:
+            meaage_params = json.loads(message.buffer.decode("utf-8"))
+            request = meaage_params["cms"]
+            req = request["request"]
             url = req["full-url"]
-            log = f"{req['request-id']} {req['methode']} {url}"
-            print(log)
-
+            print(f"{req['request-id']} {req['methode']} {url}")
+        if message.type == MessageType.AD_HOC:
             for key, patterns in self._options["router"].items():
                 if key != "rabbit":
                     for pattern in patterns:
@@ -57,16 +53,18 @@ class SocketDispatcher(Dispatcher):
                 if context_type is not None:
                     break
             if context_type == "dbsource":
-                ret_val = SourceContext(cms_request, self, message)
+                ret_val = SourceContext(request, self)
             elif context_type == "restful":
-                ret_val = RESTfulContext(cms_request, self, message)
+                ret_val = RESTfulContext(request, self)
             elif context_type == "web":
-                ret_val = WebContext(cms_request, self, message)
+                ret_val = WebContext(request, self)
             elif context_type is None:
                 raise Exception(f"No context found for '{url}'")
             else:
                 raise Exception(
                     f"Configured context type '{context_type}' not found for '{url}'")
+        else:
+            ret_val = SocketContext(request, self, message)
         return ret_val
 
     def send_message(self, message: Message) -> None:

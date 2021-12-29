@@ -4,6 +4,7 @@ from typing import Callable, Any
 from functools import wraps
 from cache import create_chaching, CacheManager
 from context.request_context import RequestContext
+from context.socket_context import SocketContext
 from listener import RabbitBusListener, MessageType
 from predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue
 from context import SourceContext, SourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext
@@ -34,15 +35,16 @@ class Dispatcher:
     def cache_manager(self) -> CacheManager:
         return self.__cache_manager
 
-    def not_exist_action(self):
-        """Decorator for determine not exist message type action"""
+    def socket_action(self, * predicates: (Predicate)):
+        """Decorator for determine Socket action"""
 
-        def _decorator(not_exist_action: Callable[[RequestContext], list]):
-            @wraps(not_exist_action)
-            def _wrapper(context: RequestContext):
-                return not_exist_action(context)
-            self._get_context_lookup(RequestContext.__name__)\
-                .append(CallbackInfo([], _wrapper))
+        def _decorator(socket_action: Callable[[SocketContext], list]):
+            @wraps(socket_action)
+            def _wrapper(context: SocketContext):
+                socket_action(context)
+                return True
+            self._get_context_lookup(SocketContext.__name__)\
+                .append(CallbackInfo([*predicates], _wrapper))
             return _wrapper
         return _decorator
 

@@ -99,16 +99,22 @@ class ChatRoom:
                 print("adhoc message receive!")
 
 
-@app.not_exist_action()
-def process_not_exist_message(context: context.RequestContext):
+@app.socket_action(app.equal("context.message_type", MessageType.NOT_EXIST))
+def process_not_exist_message(context: context.SocketContext):
     print("process_not_exist_message")
     ChatRoom.process_message(context.message, None)
 
 
-@ app.web_action()
-def process_all_other_message(context: context.WebContext):
+@ app.socket_action(app.url("chat"))
+def process_all_other_message(context: context.SocketContext):
     print("process_all_other_message")
     ChatRoom.process_message(context.message, context.cms)
+
+
+@ app.web_action()
+def process_web_message(context: context.WebContext):
+    print("process_web_message")
+    return "<h1>hi</h1>"
 
 
 app.listening()
