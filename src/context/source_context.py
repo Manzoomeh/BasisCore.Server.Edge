@@ -1,13 +1,12 @@
-import json
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from utility import BasisCoreHtmlParser, DictEx
-from .request_context import RequestContext
+from .json_base_request_context import JsonBaseRequestContext
 
 if TYPE_CHECKING:
     import dispatcher
 
 
-class SourceContext(RequestContext):
+class SourceContext(JsonBaseRequestContext):
     """Context for dbSource request"""
 
     def __init__(self, request: dict, dispatcher: 'dispatcher.IDispatcher') -> None:
@@ -21,13 +20,3 @@ class SourceContext(RequestContext):
     @property
     def command(self) -> DictEx:
         return self.__command
-
-    def generate_responce(self, result: Any) -> dict:
-        ret_val = self.cms
-        ret_val["cms"]["content"] = json.dumps(result)
-        ret_val["cms"]["webserver"] = {
-            "index": "5",
-            "headercode": "200 Ok",
-            "mime": "application/json"
-        }
-        return ret_val

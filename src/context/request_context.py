@@ -15,6 +15,9 @@ class RequestContext(Context):
         self.__cms = DictEx(request)
         self.__url = self.__cms.request.url
         self.response: dict = None
+        self.index = "5"
+        self.headercode = "200 OK"
+        self.mime = "text/html"
 
     @property
     def url(self) -> str:
@@ -26,4 +29,10 @@ class RequestContext(Context):
 
     @abstractmethod
     def generate_responce(self, result: Any) -> dict:
-        return self.cms
+        ret_val = self.cms
+        ret_val["cms"]["webserver"] = {
+            "index": self.index,
+            "headercode": self.headercode,
+            "mime": self.mime
+        }
+        return ret_val
