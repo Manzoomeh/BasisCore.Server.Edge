@@ -14,7 +14,6 @@ class JsonBaseRequestContext(RequestContext):
         super().__init__(request, dispatcher)
         self.mime = "application/json"
 
-    @abstractmethod
     def generate_responce(self, result: Any) -> dict:
         ret_val = super().generate_responce(result)
         ret_val["cms"]["content"] = json.dumps(result)
