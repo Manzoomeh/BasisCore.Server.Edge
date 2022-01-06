@@ -1,3 +1,4 @@
 app-env
 __pycache__
 .rar
+qam_*.py

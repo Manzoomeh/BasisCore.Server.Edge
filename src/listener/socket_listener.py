@@ -48,7 +48,6 @@ class SocketListener:
                 }
             }
         }
-        print(json.dumps(data))
         return json.dumps(data).encode("utf-8")
 
     @staticmethod

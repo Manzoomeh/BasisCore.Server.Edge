@@ -1,4 +1,3 @@
-from abc import abstractmethod
 import json
 from typing import Any, TYPE_CHECKING
 from .request_context import RequestContext

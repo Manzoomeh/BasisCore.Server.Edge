@@ -19,17 +19,14 @@ class BasisCoreHtmlParser(HTMLParser):
         self.element = HtmlTag(tag)
         for name, value in attrs:
             self.element.attributes[name] = value
-        #print("Encountered a start tag:", tag, self.element.attributes)
 
     def handle_endtag(self, tag):
         if len(self.stack) != 0:
             tmp = self.element
             self.element = self.stack.pop()
             self.element.child_list.append(tmp)
-        #print("Encountered an end tag :", tag)
 
     def handle_data(self, data):
-        #print("Encountered some data  :", data)
         pass
 
     def get_dict_ex(self) -> DictEx:
