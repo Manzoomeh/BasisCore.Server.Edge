@@ -143,6 +143,17 @@ def process_web_sample_source_request(context: context.WebContext):
 @ app.web_action()
 def process_web_remain_request(context: context.WebContext):
     print("process_web_remain_request")
+    # context.add_header("Access-Control-Allow-Origin", "*")
+    context.response = {
+        "cms": {
+            "cms": {
+                "http": {
+                    "Access-Control-Allow-Origin": "*"
+                }
+            }
+        }
+    }
+    # context.add_header("x-ali", "12")
     return """
         <!DOCTYPE html>
         <html lang="en">
