@@ -1,5 +1,6 @@
 import json
 from typing import Any, TYPE_CHECKING
+from listener import HttpBaseDataName, HttpBaseDataType
 from .request_context import RequestContext
 
 if TYPE_CHECKING:
@@ -15,5 +16,6 @@ class JsonBaseRequestContext(RequestContext):
 
     def generate_responce(self, result: Any) -> dict:
         ret_val = super().generate_responce(result)
-        ret_val["cms"]["content"] = json.dumps(result)
+        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT] = json.dumps(
+            result)
         return ret_val

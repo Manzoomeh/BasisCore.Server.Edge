@@ -18,4 +18,6 @@ class HttpBaseDataName:
     TIME = "time"
     TIME2 = "time2"
     BODY = "body"
-    HTTP = "http"
+    HTTP = "http",
+    WEB_SERVER = "webserver"
+    CONTENT = "content"

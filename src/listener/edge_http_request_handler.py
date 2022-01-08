@@ -44,11 +44,19 @@ class EdgeHTTPRequestHandler(BaseHTTPRequestHandler):
         result: Message = self.server.on_message_receive(msg)
 
         cms: dict = json.loads(result.buffer.decode("utf-8"))
-        headercode: str = cms["cms"]["webserver"]["headercode"]
+        headercode: str = cms[HttpBaseDataType.CMS][HttpBaseDataType.WEB_SERVER]["headercode"]
         self.send_response(int(headercode.split(' ')[0]))
-        self.send_header("Content-type", cms["cms"]["webserver"]["mime"])
+        self.send_header(
+            "Content-type", cms[HttpBaseDataType.CMS][HttpBaseDataType.WEB_SERVER]["mime"])
+        if HttpBaseDataName.HTTP in cms[HttpBaseDataType.CMS]:
+            http: dict = cms[HttpBaseDataType.CMS][HttpBaseDataName.HTTP]
+            if http:
+                for key, value in http.items():
+                    self.send_header(key, ",".join(
+                        value) if isinstance(value, list)else value)
         self.end_headers()
-        self.wfile.write(bytes(cms["cms"]["content"], "utf-8"))
+        self.wfile.write(
+            bytes(cms[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT], "utf-8"))
 
     def __create_cms_object_from_requester(self) -> dict:
         cms_object = dict()

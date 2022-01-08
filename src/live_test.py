@@ -103,15 +103,7 @@ fetch("rest/create-factor/B0B03E47-2FA7-4D97-AF2E-642D9B5D5FF5", {
 
 @app.web_action(app.url("fetch2"))
 def process_basiscore_web4(context: WebContext):
-    context.response = {
-        "cms": {
-            "cms": {
-                "http": {
-                    "Access-Control-Allow-Origin": "*"
-                }
-            }
-        }
-    }
+    context.add_header("Access-Control-Allow-Origin", "*")
     return """
     <script>
 var myHeaders = new Headers();

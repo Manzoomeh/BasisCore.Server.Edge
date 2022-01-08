@@ -1,4 +1,6 @@
 from typing import Any, TYPE_CHECKING
+
+from listener import HttpBaseDataName, HttpBaseDataType
 from .request_context import RequestContext
 
 if TYPE_CHECKING:
@@ -13,5 +15,5 @@ class WebContext(RequestContext):
 
     def generate_responce(self, result: Any) -> dict:
         ret_val = super().generate_responce(result)
-        ret_val["cms"]["content"] = result
+        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT] = result
         return ret_val
