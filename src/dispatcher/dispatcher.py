@@ -24,7 +24,7 @@ class Dispatcher:
             for setting in self._options.router.rabbit:
                 self.__rabbit_dispatcher.append(
                     RabbitBusListener(setting, self))
-        print("Version : 2.1.0")
+        print("Version : 2.2.0")
 
     @property
     def options(self) -> DictEx:

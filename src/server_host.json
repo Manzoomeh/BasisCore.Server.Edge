@@ -1,0 +1,42 @@
+[
+  {
+    "server": {
+      "ip": "localhost",
+      "port": 8080
+    },
+    "router": {
+      "dbsource": [
+        "/source"
+      ],
+      "restful": [
+        "/rest"
+      ],
+      "web": [
+        "*"
+      ]
+    },
+    "code": "D:/Programming/Falsafi/BasisCore/Server/BasisCore.Server.Edge/src/dev_server.py"
+  },
+  {
+    "sender": {
+      "ip": "127.0.0.1",
+      "port": 1025
+    },
+    "receiver": {
+      "ip": "127.0.0.1",
+      "port": 1026
+    },
+    "router": {
+      "dbsource": [
+        "/source"
+      ],
+      "restful": [
+        "/rest"
+      ],
+      "web": [
+        "*"
+      ]
+    },
+    "code": "D:/Programming/Falsafi/BasisCore/Server/BasisCore.Server.Edge/src/dev_server.py"
+  }
+]

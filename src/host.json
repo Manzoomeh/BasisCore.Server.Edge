@@ -1,40 +1,47 @@
-{
-  "ip": "127.0.0.1",
-  "port": 1025,
-  "router": {
-    "dbsource": [
-      "/dbsource"
-    ],
-    "restful": [
-      "/rest"
-    ],
-    "web": [
-      "*"
-    ],
-    "rabbit": [
-      {
+  {
+    "sender": {
+      "ip": "127.0.0.1",
+      "port": 1025
+    },
+    "receiver": {
+      "ip": "127.0.0.1",
+      "port": 1026
+    },
+    "code": "D:/Programming/Falsafi/BasisCore/Server/BasisCore.Server.Edge/src/dev_server.py",
+    "router": {
+      "dbsource": [
+        "/dbsource"
+      ],
+      "restful": [
+        "/rest"
+      ],
+      "web": [
+        "*"
+      ],
+      "rabbit": [
+        {
+          "url": "amqp://guest:guest@localhost:5672",
+          "queue": "hello"
+        }
+      ]
+    },
+    "cache": {
+      "type": "memory",
+      "signaler": {
+        "type": "rabbit",
         "url": "amqp://guest:guest@localhost:5672",
-        "queue": "hello"
+        "queue": "demo"
       }
-    ]
-  },
-  "cache": {
-    "type": "memory",
-    "signaler": {
-      "type": "rabbit",
-      "url": "amqp://guest:guest@localhost:5672",
-      "queue": "demo"
-    }
-  },
-  "settings": {
-    "connections.sql.sql_demo": "DRIVER={ODBC Driver 17 for SQL Server};SERVER=.;DATABASE=MarketData;UID=sa;PWD=1234",
-    "connections.sqlite.sqlite_demo": "d:/sqlite.db",
-    "connections.mongo.mongo_demo": "mongodb://localhost:27017/",
-    "connections.rest.rest_demo": "http://127.0.0.1:5002/countries",
-    "connections.rest.check_rkey": "https://trust-login.com/api2/checkrkey",
-    "connections.rabbit.rabbit_test": {
-      "host": "amqp://guest:guest@localhost:5672",
-      "queue": "demo"
+    },
+    "settings": {
+      "connections.sql.sql_demo": "DRIVER={ODBC Driver 17 for SQL Server};SERVER=.;DATABASE=MarketData;UID=sa;PWD=1234",
+      "connections.sqlite.sqlite_demo": "d:/sqlite.db",
+      "connections.mongo.mongo_demo": "mongodb://localhost:27017/",
+      "connections.rest.rest_demo": "http://127.0.0.1:5002/countries",
+      "connections.rest.check_rkey": "https://trust-login.com/api2/checkrkey",
+      "connections.rabbit.rabbit_test": {
+        "host": "amqp://guest:guest@localhost:5672",
+        "queue": "demo"
+      }
     }
   }
-}

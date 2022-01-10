@@ -1,24 +1,24 @@
 import context
 import dispatcher
 
-
-options = {
-    "server": {
-        "ip": "localhost",
-        "port": 8080,
-    },
-    "router": {
-        "dbsource": ["/source"],
-        "restful": ["/rest"],
-        "web": ["*"],
+if "options" not in dir():
+    options = {
+        "server": {
+            "ip": "localhost",
+            "port": 8080,
+        },
+        "router": {
+            "dbsource": ["/source"],
+            "restful": ["/rest"],
+            "web": ["*"],
+        }
     }
-}
-
-app = dispatcher.DevServerDispatcher(options)
-
-app.cache()
 
 
+app = dispatcher.from_options(options)
+
+
+@app.cache()
 def generate_data() -> list:
     import string
     import random  # define the random module
@@ -55,7 +55,7 @@ def process_restful_request(context: context.RESTfulContext):
 ######################
 
 
-@ app.source_action(
+@app.source_action(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
 def process_basiscore_source(context: context.SourceContext):
@@ -140,19 +140,10 @@ def process_web_sample_source_request(context: context.WebContext):
         """
 
 
-@ app.web_action()
+@app.web_action()
 def process_web_remain_request(context: context.WebContext):
     print("process_web_remain_request")
     context.add_header("Access-Control-Allow-Origin", "*")
-    # context.response = {
-    #     "cms": {
-    #         "cms": {
-    #             "http": {
-    #                 "Access-Control-Allow-Origin": "*"
-    #             }
-    #         }
-    #     }
-    # }
     context.add_header("x-ali", "12")
     context.add_header("x-ali", "12232")
     return """
