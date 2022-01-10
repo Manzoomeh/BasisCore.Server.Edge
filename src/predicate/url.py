@@ -26,7 +26,6 @@ class Url (Predicate):
         segment_list = []
         return_dict_property_names = []
         where_part_list = []
-        url = url.lower()
         parts = url.split("/")
         last_part_index = len(parts)-1
         for index, value in enumerate(parts):
@@ -44,7 +43,7 @@ class Url (Predicate):
                     name = f"__{name}"
             else:
                 where_part_list.append(
-                    f"url_parts[{index}].lower() == '{value}'")
+                    f"url_parts[{index}].lower() == '{value.lower()}'")
             segment_list.append(name)
             if len(where_part_list) == 0:
                 where_part_list.append("True")
@@ -63,7 +62,7 @@ def url_function(url):
         else:
             body = f"""
 def url_function(url):
-    return (url.lower() == '{url}' ,None)"""
+    return (url.lower() == '{url.lower()}' ,None)"""
         f_code = compile(body, "<str>", "exec")
         f_func = FunctionType(f_code.co_consts[0], globals(), "url_function")
         return f_func
