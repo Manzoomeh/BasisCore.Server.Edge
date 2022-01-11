@@ -129,7 +129,7 @@ class EdgeHTTPRequestHandler(BaseHTTPRequestHandler):
         self.__add_header(cms_object, HttpBaseDataType.REQUEST,
                           HttpBaseDataName.HOST_PORT, str(self.server.server_address[1]))
         self.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                          HttpBaseDataName.CLIENT_IP, str(self.client_address[1]))
+                          HttpBaseDataName.CLIENT_IP, str(self.client_address[0]))
 
     def __add_query_string(self, value: str, cms_object: dict) -> None:
         query = parse_qs(value)
