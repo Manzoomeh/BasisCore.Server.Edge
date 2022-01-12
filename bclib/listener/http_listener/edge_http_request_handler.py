@@ -91,7 +91,7 @@ class EdgeHTTPRequestHandler(BaseHTTPRequestHandler):
             self.__add_header(cms_object, HttpBaseDataType.REQUEST,
                               HttpBaseDataName.BODY, body)
             content_type: str = self.headers.get("content-type")
-            if content_type != "application/json":
+            if content_type and content_type != "application/json":
                 if content_type.find("multipart/form-data") > -1:
                     _, content_type_value_params = cgi.parse_header(
                         content_type)
