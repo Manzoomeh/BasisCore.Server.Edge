@@ -1,2 +1,3 @@
 # BasisCore.Server.Edge
-Python base socket service
+
+Python base gateway for communicate with basiscore webserver
