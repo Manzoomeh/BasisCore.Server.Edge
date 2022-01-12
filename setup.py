@@ -1,11 +1,12 @@
 import setuptools
+from bclib import __version__
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="basiscore-edge",
-    version="2.2.4",
+    name="bclib",
+    version=__version__,
     author="Manzoomeh Negaran",
     author_email="info@manzoomeh.ir",
     description="Python base gateway for communicate with basiscore webserver",
@@ -19,6 +20,12 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
+    ],
+    install_requires=[
+        'pika',
+        'requests',
+        'pymongo',
+        'pyodbc'
     ],
     #package_dir={"": "basiscore"},
     packages=setuptools.find_packages(exclude=["test", "app-env", ".vscode"]),

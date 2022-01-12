@@ -1,4 +1,4 @@
-from basiscore import edge
+from bclib import edge
 
 if "options" not in dir():
     options = {
