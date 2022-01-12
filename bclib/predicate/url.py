@@ -47,14 +47,21 @@ class Url (Predicate):
                     f"url_parts[{index}].lower() == '{value.lower()}'")
             segment_list.append(name)
             if len(where_part_list) == 0:
-                where_part_list.append("True")
+                if len(return_dict_property_names) == 0:
+                    where_part_list.append("True")
+                else:
+                    where_part_list.append(
+                        f"len(url_parts) == {len(return_dict_property_names)}")
+                    if len(return_dict_property_names) == 1:
+                        where_part_list.append("len(url_parts[0]) > 0")
+
         if len(return_dict_property_names) > 0:
             body = f"""
 def url_function(url):
     try:
         url_parts = url.split("/")
         if {" and ".join(where_part_list)}:
-            {','.join(segment_list)} = url_parts
+            {','.join(segment_list)} = url_parts{"[0]" if len(segment_list)==1 else ""}
             return (True,{{ {','.join(return_dict_property_names)} }})
         else:
             return (False,None)
@@ -64,6 +71,7 @@ def url_function(url):
             body = f"""
 def url_function(url):
     return (url.lower() == '{url.lower()}' ,None)"""
+        print(body)
         f_code = compile(body, "<str>", "exec")
         f_func = FunctionType(f_code.co_consts[0], globals(), "url_function")
         return f_func
