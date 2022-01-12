@@ -1,8 +1,7 @@
 from typing import Callable
-from http.server import HTTPServer
 
+from ..http_listener.MultiThreadHTTPServer import MultiThreadHTTPServer
 from ..http_listener.edge_http_request_handler import EdgeHTTPRequestHandler
-
 from ..message import Message
 from ..endpoint import EndPoint
 
@@ -13,16 +12,15 @@ class HttpListener:
         self.on_message_receive = callBack
 
     async def process_async(self):
-        webServer = HTTPServer(
+        web_server = MultiThreadHTTPServer(
             (self.__endpoint.url,  self.__endpoint.port), EdgeHTTPRequestHandler)
-        webServer.on_message_receive = self.on_message_receive
+        web_server.on_message_receive = self.on_message_receive
         print(
             f"Development Edge server started at http://{self.__endpoint.url}:{self.__endpoint.port}")
-
         try:
-            webServer.serve_forever()
+            web_server.serve_forever()
         except KeyboardInterrupt:
             pass
 
-        webServer.server_close()
+        web_server.server_close()
         print("Development Edge server stopped.")
