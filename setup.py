@@ -1,12 +1,12 @@
 import setuptools
-from bclib import __version__
+from bclib import edge
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="bclib",
-    version=__version__,
+    version=edge.__version__,
     author="Manzoomeh Negaran",
     author_email="info@manzoomeh.ir",
     description="Python base gateway for communicate with basiscore webserver",
@@ -29,6 +29,6 @@ setuptools.setup(
     # ],
     #package_dir={"": "basiscore"},
     packages=setuptools.find_packages(exclude=["test", "app-env", ".vscode"]),
-    # python_requires=">=3.9.5",
+    python_requires=">=3.7",
     setup_requires=['wheel']
 )

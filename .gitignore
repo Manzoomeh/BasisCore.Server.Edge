@@ -1,8 +1,10 @@
-app-env
+#vertual environment folder
+app-env*
 __pycache__
 .rar
 qam_*.py
 #package part folder
+.eggs
 bclib.egg-info
 dist
 build

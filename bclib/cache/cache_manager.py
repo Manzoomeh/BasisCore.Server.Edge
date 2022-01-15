@@ -11,7 +11,7 @@ class CacheManager(ABC):
         """Cache result of function for seconds of time or until signal by key for clear"""
 
     @abstractmethod
-    def reset_cache(self, keys: list[str]):
+    def reset_cache(self, keys: 'list[str]'):
         """Remove key related cache"""
 
     @abstractmethod

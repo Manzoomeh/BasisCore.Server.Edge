@@ -7,7 +7,7 @@ from ..endpoint import EndPoint
 
 
 class HttpListener:
-    def __init__(self, endpoint: EndPoint, callBack: Callable[[Message], Message]):
+    def __init__(self, endpoint: EndPoint, callBack: 'Callable[[Message], Message]'):
         self.__endpoint = endpoint
         self.on_message_receive = callBack
 

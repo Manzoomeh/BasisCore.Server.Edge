@@ -4,7 +4,7 @@ from ..predicate import Predicate
 
 
 class CallbackInfo:
-    def __init__(self, predicates: list[Predicate],  callback: Callable[[Context], Any]) -> Any:
+    def __init__(self, predicates: 'list[Predicate]',  callback: 'Callable[[Context], Any]') -> Any:
         self.__callback = callback
         self.__predicates = predicates
 

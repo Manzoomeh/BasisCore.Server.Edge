@@ -7,7 +7,7 @@ from ..listener.endpoint import EndPoint
 
 
 class SocketListener:
-    def __init__(self, endpoint: EndPoint, callBack: Callable[[bytes], bytes]):
+    def __init__(self, endpoint: EndPoint, callBack: 'Callable[[bytes], bytes]'):
         self.__endPoint = endpoint
         self.__callback = callBack
 

@@ -8,7 +8,7 @@ from ..signaler.signaler_base import SignalerBase
 class RabbitSignaller(SignalerBase):
     """Implement rabbit-mq signaler"""
 
-    def __init__(self, options: dict, callback: Callable[[list], None]) -> None:
+    def __init__(self, options: dict, callback: 'Callable[[list], None]') -> None:
         super().__init__(options, callback)
         import pika
         try:
