@@ -7,7 +7,7 @@ from ..listener.endpoint import EndPoint
 
 
 class DuplexSocketListener:
-    def __init__(self, receiver: EndPoint, sender: EndPoint, callBack: Callable[[Message], Message]):
+    def __init__(self, receiver: EndPoint, sender: EndPoint, callBack: 'Callable[[Message], Message]'):
         self.__receiver_endpoint = receiver
         self.__sender_endpoint = sender
         self.on_message_receive = callBack

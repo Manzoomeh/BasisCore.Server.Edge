@@ -13,7 +13,7 @@ from bclib import __version__
 def from_config(file_path: str, file_name: str = "host.json"):
     with open(Path(file_path).with_name(file_name), encoding="utf-8") as options_file:
         host_config = json.load(options_file)
-    process_list: list[multiprocessing.Process] = list()
+    process_list: 'list[multiprocessing.Process]' = list()
     for options in host_config:
         file_path = options["code"]
         process = multiprocessing.Process(target=__run_edge_server, args=(

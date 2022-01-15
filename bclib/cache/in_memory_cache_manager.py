@@ -12,7 +12,7 @@ class InMemoryCacheManager(SignalBaseCacheManager):
 
     def __init__(self, options: DictEx) -> None:
         super().__init__(options)
-        self.__cache_list: dict[str, list[Callable]] = dict()
+        self.__cache_list: 'dict[str, list[Callable]]' = dict()
 
     def cache_decorator(self, seconds: int = 0, key: str = None):
         """Cache result of function for seconds of time or until signal by key for clear"""
@@ -44,7 +44,7 @@ class InMemoryCacheManager(SignalBaseCacheManager):
             return wrapper_with_time if seconds > 0 else wrapper_without_time
         return decorator
 
-    def reset_cache(self, keys: list[str]) -> None:
+    def reset_cache(self, keys: 'list[str]') -> None:
         """Remove key related cache"""
 
         print(f"reset cache for {keys}")

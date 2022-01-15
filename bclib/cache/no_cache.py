@@ -9,7 +9,7 @@ class NoCacheManager(CacheManager):
             return function
         return decorator
 
-    def reset_cache(self, keys: list[str]):
+    def reset_cache(self, keys: 'list[str]'):
         pass
 
     def get_cache(self, key: str) -> list:

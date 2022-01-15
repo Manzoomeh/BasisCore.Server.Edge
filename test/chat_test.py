@@ -60,7 +60,7 @@ class Client:
 
 class ChatRoom:
 
-    __sessions: dict[str, Client] = {}
+    __sessions: 'dict[str, Client]' = {}
 
     @staticmethod
     def send_to_all_message(owner: str, message: str, msg_category: str):

@@ -17,10 +17,10 @@ class Dispatcher:
     def __init__(self, options: dict = None):
         print(f"bclib Version : {__version__}")
         self._options = DictEx(options)
-        self.__look_up: dict[str, list[CallbackInfo]] = dict()
+        self.__look_up: 'dict[str, list[CallbackInfo]]' = dict()
         cache_options = self._options.cache if "cache" in self._options else None
         self.__cache_manager = create_chaching(cache_options)
-        self.__rabbit_dispatcher: list[RabbitBusListener] = list()
+        self.__rabbit_dispatcher: 'list[RabbitBusListener]' = list()
         if "router" in self._options and "rabbit" in self._options.router:
             for setting in self._options.router.rabbit:
                 self.__rabbit_dispatcher.append(
@@ -37,7 +37,7 @@ class Dispatcher:
     def socket_action(self, * predicates: (Predicate)):
         """Decorator for determine Socket action"""
 
-        def _decorator(socket_action: Callable[[SocketContext], list]):
+        def _decorator(socket_action: 'Callable[[SocketContext], list]'):
             @wraps(socket_action)
             def _wrapper(context: SocketContext):
                 socket_action(context)
@@ -50,7 +50,7 @@ class Dispatcher:
     def restful_action(self, * predicates: (Predicate)):
         """Decorator for determine RESTful action"""
 
-        def _decorator(restful_action: Callable[[RESTfulContext], list]):
+        def _decorator(restful_action: 'Callable[[RESTfulContext], list]'):
             @wraps(restful_action)
             def _wrapper(context: RESTfulContext):
                 return restful_action(context)
@@ -62,7 +62,7 @@ class Dispatcher:
     def web_action(self, * predicates: (Predicate)):
         """Decorator for determine legacy web request action"""
 
-        def _decorator(web_action: Callable[[WebContext], list]):
+        def _decorator(web_action: 'Callable[[WebContext], list]'):
             @wraps(web_action)
             def _wrapper(context: WebContext):
                 return web_action(context)
@@ -74,7 +74,7 @@ class Dispatcher:
     def source_action(self, *predicates: (Predicate)):
         """Decorator for determine source action"""
 
-        def _decorator(source_action: Callable[[SourceContext], list]):
+        def _decorator(source_action: 'Callable[[SourceContext], list]'):
             @wraps(source_action)
             def _wrapper(context: SourceContext):
                 data = source_action(context)
@@ -109,7 +109,7 @@ class Dispatcher:
     def source_member_action(self, *predicates: (Predicate)):
         """Decorator for determine source member action methode"""
 
-        def _decorator(function: Callable[[SourceMemberContext], list]):
+        def _decorator(function: 'Callable[[SourceMemberContext], list]'):
 
             @wraps(function)
             def _wrapper(context: SourceMemberContext):
@@ -123,7 +123,7 @@ class Dispatcher:
     def rabbit_action(self, * predicates: (Predicate)):
         """Decorator for determine rabbit-mq message request action"""
 
-        def _decorator(web_action: Callable[[RabbitContext], list]):
+        def _decorator(web_action: 'Callable[[RabbitContext], list]'):
             @wraps(web_action)
             def _wrapper(context: RabbitContext):
                 web_action(context)
@@ -133,7 +133,7 @@ class Dispatcher:
             return _wrapper
         return _decorator
 
-    def _get_context_lookup(self, key: str) -> list[CallbackInfo]:
+    def _get_context_lookup(self, key: str) -> 'list[CallbackInfo]':
         """Get key related action list object"""
 
         ret_val: None
