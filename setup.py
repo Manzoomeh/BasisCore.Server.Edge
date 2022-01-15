@@ -21,14 +21,14 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    install_requires=[
-        'pika',
-        'requests',
-        'pymongo',
-        'pyodbc'
-    ],
+    # install_requires=[
+    #     'pika',
+    #     'requests',
+    #     'pymongo',
+    #     'pyodbc'
+    # ],
     #package_dir={"": "basiscore"},
     packages=setuptools.find_packages(exclude=["test", "app-env", ".vscode"]),
-    python_requires=">=3.9.5",
+    # python_requires=">=3.9.5",
     setup_requires=['wheel']
 )

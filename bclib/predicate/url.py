@@ -71,7 +71,6 @@ def url_function(url):
             body = f"""
 def url_function(url):
     return (url.lower() == '{url.lower()}' ,None)"""
-        print(body)
         f_code = compile(body, "<str>", "exec")
         f_func = FunctionType(f_code.co_consts[0], globals(), "url_function")
         return f_func

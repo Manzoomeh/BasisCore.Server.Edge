@@ -7,6 +7,7 @@ from bclib.context import Context, WebContext, SocketContext, SourceContext, Sou
 from bclib.utility import DictEx
 from bclib.listener import Message, MessageType
 from bclib.listener.http_listener import HttpBaseDataType, HttpBaseDataName
+from bclib import __version__
 
 
 def from_config(file_path: str, file_name: str = "host.json"):

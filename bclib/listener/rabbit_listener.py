@@ -1,4 +1,3 @@
-import pika
 import asyncio
 from abc import ABC, abstractmethod
 from bclib.utility import DictEx
@@ -7,6 +6,7 @@ from bclib.utility import DictEx
 class RabbitListener(ABC):
 
     def __init__(self, connection_options: DictEx) -> None:
+        import pika
         try:
             param = pika.URLParameters(connection_options.url)
             self._host: str = param.host

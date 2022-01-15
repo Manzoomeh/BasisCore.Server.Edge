@@ -1,6 +1,5 @@
 from struct import error
 from typing import Callable
-import pika
 import json
 import asyncio
 from ..signaler.signaler_base import SignalerBase
@@ -11,6 +10,7 @@ class RabbitSignaller(SignalerBase):
 
     def __init__(self, options: dict, callback: Callable[[list], None]) -> None:
         super().__init__(options, callback)
+        import pika
         try:
             param = pika.URLParameters(options.url)
             queue_name = options.queue

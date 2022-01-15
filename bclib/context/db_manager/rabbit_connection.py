@@ -1,7 +1,6 @@
 """Restful implementation of Db wrapper"""
 import json
 from typing import Any
-import pika
 from bclib.utility import DictEx
 from ..db_manager.db import Db
 
@@ -16,6 +15,7 @@ class RabbitConnection(Db):
         self.__channel = None
 
     def __enter__(self):
+        import pika
         connection = pika.BlockingConnection(
             pika.URLParameters(self.__connection_setting.host))
         self.__channel = connection.channel()

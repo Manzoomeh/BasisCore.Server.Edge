@@ -1,6 +1,5 @@
 """RESTful implementation of Db wrapper"""
 from typing import Any
-import requests
 from ..db_manager.db import Db
 
 
@@ -16,7 +15,7 @@ class RESTfulConnection(Db):
 
         url = self.__api_url if segment is None else '{0}{1}'.format(
             self.__api_url, segment)
-
+        import requests
         response = requests.get(url, params=params)
         return response.json()
 
@@ -25,5 +24,6 @@ class RESTfulConnection(Db):
 
         url = self.__api_url if segment is None else '{0}{1}'.format(
             self.__api_url, segment)
+        import requests
         response = requests.post(url, data=params)
         return response.json()
