@@ -38,25 +38,28 @@ class EdgeHTTPRequestHandler(BaseHTTPRequestHandler):
         self.__process_request()
 
     def __process_request(self):
-        cms_object = self.__create_cms_object_from_requester()
-        msg = Message(str(uuid.uuid4()), MessageType.AD_HOC,
-                      json.dumps(cms_object).encode())
-        result: Message = self.server.on_message_receive(msg)
+        try:
+            cms_object = self.__create_cms_object_from_requester()
+            msg = Message(str(uuid.uuid4()), MessageType.AD_HOC,
+                          json.dumps(cms_object).encode())
+            result: Message = self.server.on_message_receive(msg)
 
-        cms: dict = json.loads(result.buffer.decode("utf-8"))
-        headercode: str = cms[HttpBaseDataType.CMS][HttpBaseDataType.WEB_SERVER]["headercode"]
-        self.send_response(int(headercode.split(' ')[0]))
-        self.send_header(
-            "Content-type", cms[HttpBaseDataType.CMS][HttpBaseDataType.WEB_SERVER]["mime"])
-        if HttpBaseDataName.HTTP in cms[HttpBaseDataType.CMS]:
-            http: dict = cms[HttpBaseDataType.CMS][HttpBaseDataName.HTTP]
-            if http:
-                for key, value in http.items():
-                    self.send_header(key, ",".join(
-                        value) if isinstance(value, list)else value)
-        self.end_headers()
-        self.wfile.write(
-            bytes(cms[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT], "utf-8"))
+            cms: dict = json.loads(result.buffer.decode("utf-8"))
+            headercode: str = cms[HttpBaseDataType.CMS][HttpBaseDataType.WEB_SERVER]["headercode"]
+            self.send_response(int(headercode.split(' ')[0]))
+            self.send_header(
+                "Content-type", cms[HttpBaseDataType.CMS][HttpBaseDataType.WEB_SERVER]["mime"])
+            if HttpBaseDataName.HTTP in cms[HttpBaseDataType.CMS]:
+                http: dict = cms[HttpBaseDataType.CMS][HttpBaseDataName.HTTP]
+                if http:
+                    for key, value in http.items():
+                        self.send_header(key, ",".join(
+                            value) if isinstance(value, list)else value)
+            self.end_headers()
+            self.wfile.write(
+                bytes(cms[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT], "utf-8"))
+        except ConnectionAbortedError:
+            pass
 
     def __create_cms_object_from_requester(self) -> dict:
         cms_object = dict()
