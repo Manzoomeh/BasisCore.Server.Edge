@@ -1,8 +1,10 @@
 """Dispatcher base class module"""
 from abc import ABC, abstractmethod
 from typing import Callable, Any, TYPE_CHECKING
-from ..cache import CacheManager
-from ..listener import Message
+
+from bclib.db_manager import DbManager
+from bclib.cache import CacheManager
+from bclib.listener import Message
 from bclib.utility import DictEx
 
 if TYPE_CHECKING:
@@ -11,6 +13,11 @@ if TYPE_CHECKING:
 
 class IDispatcher(ABC):
     """Dispatcher base class with core functionality for manage cache and background process"""
+
+    @property
+    @abstractmethod
+    def db_manager(self) -> DbManager:
+        pass
 
     @property
     @abstractmethod

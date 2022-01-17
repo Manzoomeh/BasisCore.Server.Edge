@@ -2,10 +2,11 @@
 import asyncio
 from typing import Callable, Any
 from functools import wraps
-from ..cache import create_chaching, CacheManager
-from ..listener import RabbitBusListener, MessageType
-from ..predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue
-from ..context import SourceContext, SourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext
+from bclib.cache import create_chaching, CacheManager
+from bclib.listener import RabbitBusListener, MessageType
+from bclib.predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue
+from bclib.context import SourceContext, SourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext
+from bclib.db_manager import DbManager
 from bclib.utility import DictEx
 from ..dispatcher.callback_info import CallbackInfo
 from bclib import __version__
@@ -20,6 +21,7 @@ class Dispatcher:
         self.__look_up: 'dict[str, list[CallbackInfo]]' = dict()
         cache_options = self._options.cache if "cache" in self._options else None
         self.__cache_manager = create_chaching(cache_options)
+        self.db_manager = DbManager(self._options)
         self.__rabbit_dispatcher: 'list[RabbitBusListener]' = list()
         if "router" in self._options and "rabbit" in self._options.router:
             for setting in self._options.router.rabbit:
