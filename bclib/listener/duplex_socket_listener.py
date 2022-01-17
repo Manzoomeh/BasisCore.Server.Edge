@@ -7,10 +7,10 @@ from ..listener.endpoint import EndPoint
 
 
 class DuplexSocketListener:
-    def __init__(self, receiver: EndPoint, sender: EndPoint, callBack: 'Callable[[Message], Message]'):
+    def __init__(self, receiver: EndPoint, sender: EndPoint, on_message_receive_call_back: 'Callable[[Message], Message]'):
         self.__receiver_endpoint = receiver
         self.__sender_endpoint = sender
-        self.on_message_receive = callBack
+        self.on_message_receive = on_message_receive_call_back
         self.__sender_socket = None
 
     def send_message(self, message: Message):
@@ -20,13 +20,13 @@ class DuplexSocketListener:
         asyncio.set_event_loop(loop)
         while True:
             try:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as receiver:
-                    receiver.bind((self.__receiver_endpoint.url,
-                                   self.__receiver_endpoint.port))
-                    receiver.listen()
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as receiver_socket:
+                    receiver_socket.bind((self.__receiver_endpoint.url,
+                                          self.__receiver_endpoint.port))
+                    receiver_socket.listen()
                     print(
                         f'Receiver up in {self.__receiver_endpoint.url}:{self.__receiver_endpoint.port} and ready to connect')
-                    conn, addr = receiver.accept()
+                    conn, addr = receiver_socket.accept()
                     print(f'{addr} connect to receiver')
 
                     with conn:
@@ -38,11 +38,9 @@ class DuplexSocketListener:
                             except error as ex:
                                 print(f"error in receiver {ex}")
                                 break
-                            try:
-                                self.on_message_receive(message)
-                            except error as ex:
-                                print(
-                                    f"error in process received message {ex}")
+                            loop.run_in_executor(
+                                None, self.on_message_receive, message)
+
             except error as ex:
                 print(ex)
 
