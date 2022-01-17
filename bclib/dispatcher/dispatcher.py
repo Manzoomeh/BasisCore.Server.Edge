@@ -1,8 +1,9 @@
 """Base class for dispaching request"""
 import asyncio
+from abc import ABC
 from typing import Callable, Any
 from functools import wraps
-from bclib.cache import create_chaching, CacheManager
+from bclib.cache import create_chaching
 from bclib.listener import RabbitBusListener, MessageType
 from bclib.predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue
 from bclib.context import SourceContext, SourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext
@@ -12,29 +13,36 @@ from ..dispatcher.callback_info import CallbackInfo
 from bclib import __version__
 
 
-class Dispatcher:
+class Dispatcher(ABC):
     """Base class for dispaching request"""
 
     def __init__(self, options: dict = None):
-        print(f"bclib Version : {__version__}")
-        self._options = DictEx(options)
+        print(f'''
+______           _                          _____    _            
+| ___ \         (_)                        |  ___|  | |           
+| |_/ / __ _ ___ _ ___  ___ ___  _ __ ___  | |__  __| | __ _  ___ 
+| ___ \/ _` / __| / __|/ __/ _ \| '__/ _ \ |  __|/ _` |/ _` |/ _ \\
+| |_/ / (_| \__ \ \__ \ (_| (_) | | |  __/ | |__| (_| | (_| |  __/
+\____/ \__,_|___/_|___/\___\___/|_|  \___| \____/\__,_|\__, |\___|
+                                                        __/ |     
+                                                       |___/      
+                                     
+***********************************
+Welcome To BasisCore Ecosystem
+follow us on https://BasisCore.com/
+bclib Version : {__version__}
+***********************************
+''')
+        self.options = DictEx(options)
         self.__look_up: 'dict[str, list[CallbackInfo]]' = dict()
-        cache_options = self._options.cache if "cache" in self._options else None
-        self.__cache_manager = create_chaching(cache_options)
-        self.db_manager = DbManager(self._options)
+        cache_options = self.options.cache if "cache" in self.options else None
+        self.cache_manager = create_chaching(cache_options)
+        self.db_manager = DbManager(self.options)
         self.__rabbit_dispatcher: 'list[RabbitBusListener]' = list()
-        if "router" in self._options and "rabbit" in self._options.router:
-            for setting in self._options.router.rabbit:
+        if "router" in self.options and "rabbit" in self.options.router:
+            for setting in self.options.router.rabbit:
                 self.__rabbit_dispatcher.append(
                     RabbitBusListener(setting, self))
-
-    @property
-    def options(self) -> DictEx:
-        return self._options
-
-    @property
-    def cache_manager(self) -> CacheManager:
-        return self.__cache_manager
 
     def socket_action(self, * predicates: (Predicate)):
         """Decorator for determine Socket action"""
@@ -174,7 +182,7 @@ class Dispatcher:
     def cache(self, seconds: int = 0, key: str = None):
         """Cache result of function for seconds of time or until signal by key for clear"""
 
-        return self.__cache_manager.cache_decorator(seconds, key)
+        return self.cache_manager.cache_decorator(seconds, key)
 
     @staticmethod
     def in_list(expression: str, *items) -> Predicate:

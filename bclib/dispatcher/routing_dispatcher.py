@@ -22,8 +22,6 @@ class RoutingDispatcher(Dispatcher):
             ret_val: Message = None
             if isinstance(context, RequestContext):
                 response = context.generate_responce(result)
-                if context.headers is not None:
-                    self.__add_user_defined_headers(response, context.headers)
                 message_result = json.dumps(response).encode("utf-8")
                 ret_val = Message.create_add_hock(
                     message.session_id, message_result)
@@ -32,25 +30,6 @@ class RoutingDispatcher(Dispatcher):
         except error as ex:
             print(f"Error in process received message {ex}")
             raise ex
-
-    def __add_user_defined_headers(self, response: dict, headers: dict) -> None:
-        """Adding user defined header to response"""
-
-        if HttpBaseDataType.CMS not in response:
-            response[HttpBaseDataType.CMS] = {}
-        if HttpBaseDataName.HTTP not in response[HttpBaseDataType.CMS]:
-            response[HttpBaseDataType.CMS][HttpBaseDataName.HTTP] = {}
-
-        http = response[HttpBaseDataType.CMS][HttpBaseDataName.HTTP]
-        for key, value in headers.items():
-            if key in http:
-                current_value = http[key] if isinstance(
-                    http[key], list) else [http[key]]
-                new_value = current_value + value
-            else:
-                new_value = value
-
-            http[key] = ",".join(new_value)
 
     def __context_factory(self, message: Message) -> Context:
         """Create context from message object"""
@@ -66,7 +45,7 @@ class RoutingDispatcher(Dispatcher):
             url = req["full-url"]
             print(f"{req['request-id']} {req['methode']} {url}")
         if message.type == MessageType.AD_HOC:
-            for key, patterns in self._options["router"].items():
+            for key, patterns in self.options["router"].items():
                 if key != "rabbit":
                     for pattern in patterns:
                         if pattern == "*" or re.search(pattern, url):

@@ -13,38 +13,24 @@ class RequestContext(Context):
 
     def __init__(self, request: dict,  dispatcher: 'dispatcher.IDispatcher') -> None:
         super().__init__(dispatcher)
-        self.__cms = DictEx(request)
-        self.__url = self.__cms.request.url
-        self.headers: dict = None
+        self.cms = DictEx(request)
+        self.url: str = self.cms.request.url
+        self.query: DictEx = self.cms.query
+        self.form: DictEx = self.cms.form
+        self.__headers: dict = None
         self.responce_type: ResponseType = ResponseType.RENDERED
         self.status_code: HttpStatusCodes = HttpStatusCodes.OK
         self.mime = HttpMimeTypes.HTML
 
-    @property
-    def query(self) -> DictEx:
-        return self.__cms.query
-
-    @property
-    def form(self) -> DictEx:
-        return self.__cms.form
-
-    @property
-    def url(self) -> str:
-        return self.__url
-
-    @property
-    def cms(self) -> DictEx:
-        return self.__cms
-
     def add_header(self, key: str, value: str) -> None:
         """Adding item to response header"""
 
-        if self.headers is None:
-            self.headers = dict()
-        if key not in self.headers:
-            self.headers[key] = [value]
+        if self.__headers is None:
+            self.__headers = dict()
+        if key not in self.__headers:
+            self.__headers[key] = [value]
         else:
-            self.headers[key].append(value)
+            self.__headers[key].append(value)
 
     @abstractmethod
     def generate_responce(self, result: Any) -> dict:
@@ -54,4 +40,25 @@ class RequestContext(Context):
             "headercode": self.status_code.value,
             "mime": self.mime
         }
+        if self.__headers is not None:
+            RequestContext.__add_user_defined_headers(ret_val, self.__headers)
         return ret_val
+
+    @staticmethod
+    def __add_user_defined_headers(response: dict, headers: dict) -> None:
+        """Adding user defined header to response"""
+
+        if HttpBaseDataType.CMS not in response:
+            response[HttpBaseDataType.CMS] = {}
+        if HttpBaseDataName.HTTP not in response[HttpBaseDataType.CMS]:
+            response[HttpBaseDataType.CMS][HttpBaseDataName.HTTP] = {}
+        http = response[HttpBaseDataType.CMS][HttpBaseDataName.HTTP]
+        for key, value in headers.items():
+            if key in http:
+                current_value = http[key] if isinstance(
+                    http[key], list) else [http[key]]
+                new_value = current_value + value
+            else:
+                new_value = value
+
+            http[key] = ",".join(new_value)

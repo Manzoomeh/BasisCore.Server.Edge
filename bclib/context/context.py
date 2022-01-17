@@ -12,17 +12,9 @@ class Context(ABC):
 
     def __init__(self, dispatcher: 'dispatcher.IDispatcher') -> None:
         super().__init__()
-        self._dispateher = dispatcher
+        self.dispatcher = dispatcher
         self.url_segments = None
-
-    @property
-    def dispatcher(self) -> 'dispatcher.IDispatcher':
-        return self._dispateher
-
-    @abstractproperty
-    @property
-    def url(self) -> str:
-        pass
+        self.url: str = None
 
     def open_sql_connection(self, key: str) -> SqlDb:
         return self.dispatcher.db_manager.open_sql_connection(key)

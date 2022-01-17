@@ -14,9 +14,5 @@ class SourceContext(JsonBaseRequestContext):
         parser = HtmlParserEx()
         html = self.cms.form.command
         parser.feed(html)
-        self.__command = parser.get_dict_ex()
+        self.command = parser.get_dict_ex()
         self.process_async = True
-
-    @ property
-    def command(self) -> DictEx:
-        return self.__command

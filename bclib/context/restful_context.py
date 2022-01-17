@@ -10,13 +10,5 @@ if TYPE_CHECKING:
 class RESTfulContext(JsonBaseRequestContext):
     def __init__(self, request: dict, dispatcher: 'dispatcher.IDispatcher') -> None:
         super().__init__(request, dispatcher)
-        if self.cms.form:
-            self.__body = DictEx(self.cms.form)
-        elif self.cms.request.body:
-            self.__body = DictEx(json.loads(self.cms.request.body))
-        else:
-            self.__body = None
-
-    @property
-    def body(self) -> DictEx:
-        return self.__body
+        self.body = DictEx(self.cms.form) if self.cms.form else DictEx(
+            json.loads(self.cms.request.body)) if self.cms.request.body else None
