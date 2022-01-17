@@ -1,5 +1,7 @@
 import json
 from typing import Any, TYPE_CHECKING
+
+from bclib.utility import HttpMimeTypes
 from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
 from ..context.request_context import RequestContext
 
@@ -12,7 +14,7 @@ class JsonBaseRequestContext(RequestContext):
 
     def __init__(self, request: dict,  dispatcher: 'dispatcher.IDispatcher') -> None:
         super().__init__(request, dispatcher)
-        self.mime = "application/json"
+        self.mime = HttpMimeTypes.JSON
 
     def generate_responce(self, result: Any) -> dict:
         ret_val = super().generate_responce(result)

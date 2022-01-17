@@ -1,6 +1,6 @@
 {
   "python.linting.pylintEnabled": true,
   "python.linting.enabled": true,
-  "cSpell.words": ["INET", "ODBC", "pymongo", "pyodbc"]
+  "cSpell.words": ["bclib", "INET", "ODBC", "pymongo", "pyodbc"]
   //"python.defaultInterpreterPath": "/path/to/your/venv/bin/python"
 }

@@ -1,2 +1,5 @@
 from bclib.utility.html_parser_ex import HtmlParserEx
-from bclib.utility.DictEx import DictEx
+from bclib.utility.dict_ex import DictEx
+from bclib.utility.http_status_codes import HttpStatusCodes
+from bclib.utility.http_mime_types import HttpMimeTypes
+from bclib.utility.response_type import ResponseType

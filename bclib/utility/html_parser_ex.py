@@ -1,7 +1,7 @@
 """import html parser"""
 from html.parser import HTMLParser
 from typing import Any
-from ..utility.DictEx import DictEx
+from ..utility.dict_ex import DictEx
 from ..utility.html_tag import HtmlTag
 
 

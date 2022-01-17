@@ -1,7 +1,8 @@
 from abc import abstractmethod
 import json
 import re
-from ..context import SourceContext, RESTfulContext, WebContext, RequestContext, Context, SocketContext
+from struct import error
+from bclib.context import SourceContext, RESTfulContext, WebContext, RequestContext, Context, SocketContext
 from bclib.listener import Message, MessageType
 from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
 from ..dispatcher.dispatcher import Dispatcher
@@ -15,18 +16,22 @@ class RoutingDispatcher(Dispatcher):
     def _on_message_receive(self, message: Message) -> Message:
         """Process received message"""
 
-        context = self.__context_factory(message)
-        result = self.dispatch(context)
-        ret_val: Message = None
-        if isinstance(context, RequestContext):
-            response = context.generate_responce(result)
-            if context.headers is not None:
-                self.__add_user_defined_headers(response, context.headers)
-            message_result = json.dumps(response).encode("utf-8")
-            ret_val = Message.create_add_hock(
-                message.session_id, message_result)
-            self._send_message(ret_val)
-        return ret_val
+        try:
+            context = self.__context_factory(message)
+            result = self.dispatch(context)
+            ret_val: Message = None
+            if isinstance(context, RequestContext):
+                response = context.generate_responce(result)
+                if context.headers is not None:
+                    self.__add_user_defined_headers(response, context.headers)
+                message_result = json.dumps(response).encode("utf-8")
+                ret_val = Message.create_add_hock(
+                    message.session_id, message_result)
+                self._send_message(ret_val)
+            return ret_val
+        except error as ex:
+            print(f"Error in process received message {ex}")
+            raise ex
 
     def __add_user_defined_headers(self, response: dict, headers: dict) -> None:
         """Adding user defined header to response"""

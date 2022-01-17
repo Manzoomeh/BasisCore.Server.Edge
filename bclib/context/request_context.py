@@ -1,8 +1,7 @@
 from abc import abstractmethod
 from typing import Any, TYPE_CHECKING
 from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
-
-from bclib.utility import DictEx
+from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseType
 from ..context.context import Context
 
 if TYPE_CHECKING:
@@ -17,9 +16,9 @@ class RequestContext(Context):
         self.__cms = DictEx(request)
         self.__url = self.__cms.request.url
         self.headers: dict = None
-        self.index = "5"
-        self.status_code = "200 OK"
-        self.mime = "text/html"
+        self.responce_type: ResponseType = ResponseType.RENDERED
+        self.status_code: HttpStatusCodes = HttpStatusCodes.OK
+        self.mime = HttpMimeTypes.HTML
 
     @property
     def query(self) -> DictEx:
@@ -51,8 +50,8 @@ class RequestContext(Context):
     def generate_responce(self, result: Any) -> dict:
         ret_val = self.cms
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER] = {
-            "index": self.index,
-            "headercode": self.status_code,
+            "index": self.responce_type.value,
+            "headercode": self.status_code.value,
             "mime": self.mime
         }
         return ret_val

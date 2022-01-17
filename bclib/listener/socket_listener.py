@@ -12,7 +12,7 @@ class SocketListener:
         self.__callback = callBack
 
     async def __start_receiver_async(self):
-        def MessageHandler(conn, loop):
+        def MessageHandler(conn: socket, address, loop: asyncio.AbstractEventLoop):
             asyncio.set_event_loop(loop)
             with conn:
                 responce = None
@@ -20,21 +20,21 @@ class SocketListener:
                     request = SocketListener.__read_from_socket(conn)
                     if request:
                         responce = self.__callback(request)
-                except error as e:
-                    print(repr(e))
-                    responce = SocketListener.__convert_to_responce(e)
+                except error as ex:
+                    print(repr(ex))
+                    responce = SocketListener.__convert_to_responce(ex)
                 SocketListener.__write_to_socket(conn, responce)
 
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((self.__endPoint.url, self.__endPoint.port))
-            s.listen()
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as socket_obj:
+            socket_obj.bind((self.__endPoint.url, self.__endPoint.port))
+            socket_obj.listen()
             print(
                 f'Host service is up and ready to connect in {self.__endPoint.url}:{self.__endPoint.port}')
 
             loop = asyncio.get_event_loop()
             while True:
-                conn, _ = s.accept()
-                loop.run_in_executor(None, MessageHandler, conn, loop)
+                conn, address = socket_obj.accept()
+                loop.run_in_executor(None, MessageHandler, conn, address, loop)
 
     @staticmethod
     def __convert_to_responce(er: Exception):
