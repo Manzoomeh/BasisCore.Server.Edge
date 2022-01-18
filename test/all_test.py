@@ -391,7 +391,7 @@ def process_web_sample_source_request(context: edge.WebContext):
 @ app.web_action()
 def process_web_remain_request(context: edge.WebContext):
     print("process_web_remain_request")
-    context.add_header("Access-Control-Allow-Origin", "*")
+    context.add_header(edge.HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
     context.add_header("x-ali", "12")
     return """
         <!DOCTYPE html>

@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Any, TYPE_CHECKING
 from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
-from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseType
+from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes
 from ..context.context import Context
 
 if TYPE_CHECKING:
@@ -18,7 +18,7 @@ class RequestContext(Context):
         self.query: DictEx = self.cms.query
         self.form: DictEx = self.cms.form
         self.__headers: dict = None
-        self.responce_type: ResponseType = ResponseType.RENDERED
+        self.responce_type: ResponseTypes = ResponseTypes.RENDERED
         self.status_code: HttpStatusCodes = HttpStatusCodes.OK
         self.mime = HttpMimeTypes.HTML
 
