@@ -36,36 +36,48 @@ class RoutingDispatcher(Dispatcher):
 
         ret_val: RequestContext = None
         context_type = None
-        request: dict = None
+        cms: dict = None
         url: str = None
+        request_id: str = None
+        method: str = None
         if message.buffer:
-            meaage_params = json.loads(message.buffer.decode("utf-8"))
-            request = meaage_params[HttpBaseDataType.CMS]
-            req = request["request"]
+            message_params = json.loads(message.buffer.decode("utf-8"))
+            cms = message_params[HttpBaseDataType.CMS]
+            req = cms["request"]
+            request_id = req['request-id']
+            method = req['methode']
             url = req["full-url"]
-            print(f"{req['request-id']} {req['methode']} {url}")
-        if message.type == MessageType.AD_HOC:
-            for key, patterns in self.options["router"].items():
-                if key != "rabbit":
-                    for pattern in patterns:
-                        if pattern == "*" or re.search(pattern, url):
-                            context_type = key
-                            break
-                if context_type is not None:
-                    break
-            if context_type == "dbsource":
-                ret_val = SourceContext(request, self)
-            elif context_type == "restful":
-                ret_val = RESTfulContext(request, self)
-            elif context_type == "web":
-                ret_val = WebContext(request, self)
-            elif context_type is None:
-                raise Exception(f"No context found for '{url}'")
+            meta = cms["_meta"] if "_meta" in cms else None
+            if meta is not None and "context_type" in meta:
+                context_type = meta["context_type"]
             else:
-                raise Exception(
-                    f"Configured context type '{context_type}' not found for '{url}'")
+                if message.type == MessageType.AD_HOC:
+                    for key, patterns in self.options["router"].items():
+                        if key != "rabbit":
+                            for pattern in patterns:
+                                if pattern == "*" or re.search(pattern, url):
+                                    context_type = key
+                                    break
+                        if context_type is not None:
+                            break
+                else:
+                    context_type = "socket"
+
+        print(f"{request_id} {method} {url} ({context_type})")
+
+        if context_type == "dbsource":
+            ret_val = SourceContext(cms, self)
+        elif context_type == "restful":
+            ret_val = RESTfulContext(cms, self)
+        elif context_type == "web":
+            ret_val = WebContext(cms, self)
+        elif context_type == "socket":
+            ret_val = SocketContext(cms, self, message)
+        elif context_type is None:
+            raise Exception(f"No context found for '{url}'")
         else:
-            ret_val = SocketContext(request, self, message)
+            raise Exception(
+                f"Configured context type '{context_type}' not found for '{url}'")
         return ret_val
 
     @abstractmethod
