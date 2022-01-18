@@ -1,6 +1,7 @@
 import json
 import socket
 from typing import Any
+from struct import error
 
 
 from ..listener.message_type import MessageType
@@ -12,17 +13,24 @@ class Message:
         self.type = messageType
         self.buffer = buffer
 
-    def write(self, connection: socket.socket) -> None:
-        connection.send(self.type.value.to_bytes(1, 'big'))
-        data = self.session_id.encode()
-        data_length_bytes = len(data).to_bytes(4, 'big')
-        connection.send(data_length_bytes)
-        connection.send(data)
+    def write(self, connection: socket.socket) -> bool:
+        try:
+            connection.sendall(self.type.value.to_bytes(1, 'big'))
+            data = self.session_id.encode()
+            data_length_bytes = len(data).to_bytes(4, 'big')
+            connection.sendall(data_length_bytes)
+            connection.sendall(data)
 
-        if self.type == MessageType.AD_HOC or self.type == MessageType.MESSAGE:
-            data_length_bytes = len(self.buffer).to_bytes(4, 'big')
-            connection.send(data_length_bytes)
-            connection.send(self.buffer)
+            if self.type == MessageType.AD_HOC or self.type == MessageType.MESSAGE:
+                data_length_bytes = len(self.buffer).to_bytes(4, 'big')
+                connection.sendall(data_length_bytes)
+                connection.sendall(self.buffer)
+            return True
+        except ConnectionResetError:
+            pass
+        except error as ex:
+            print(f'Error in write message to socket: {repr(ex)}')
+        return False
 
     @staticmethod
     def create_add_hock(session_id: str, buffer: bytes):
@@ -61,19 +69,25 @@ class Message:
     @staticmethod
     def read(connection: socket.socket):
         message: Message = None
-        data = connection.recv(1)
-        if data:
-            message_type = MessageType(int.from_bytes(
-                data, byteorder='big', signed=True))
-            data = connection.recv(4)
-            data_len = int.from_bytes(data, byteorder='big', signed=True)
-            data = connection.recv(data_len)
-            session_id = data.decode("utf-8")
-            parameter = None
-            if message_type != MessageType.NOT_EXIST:
+        try:
+            data = connection.recv(1)
+            if data:
+                message_type = MessageType(int.from_bytes(
+                    data, byteorder='big', signed=True))
                 data = connection.recv(4)
                 data_len = int.from_bytes(data, byteorder='big', signed=True)
                 data = connection.recv(data_len)
-                parameter = data
-            message = Message(session_id, message_type, parameter)
+                session_id = data.decode("utf-8")
+                parameter = None
+                if message_type != MessageType.NOT_EXIST:
+                    data = connection.recv(4)
+                    data_len = int.from_bytes(
+                        data, byteorder='big', signed=True)
+                    data = connection.recv(data_len)
+                    parameter = data
+                message = Message(session_id, message_type, parameter)
+        except ConnectionResetError:
+            pass
+        except error as ex:
+            print(f'Error in read message from socket: {repr(ex)}')
         return message

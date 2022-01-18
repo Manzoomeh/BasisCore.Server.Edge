@@ -1,7 +1,7 @@
 import asyncio
 import socket
 from struct import error
-from typing import Callable
+from typing import Any, Callable
 from ..listener.message import Message
 from ..listener.endpoint import EndPoint
 
@@ -13,10 +13,10 @@ class DuplexSocketListener:
         self.on_message_receive = on_message_receive_call_back
         self.__sender_socket = None
 
-    def send_message(self, message: Message):
-        message.write(self.__sender_socket)
+    def send_message(self, message: Message) -> bool:
+        return message.write(self.__sender_socket)
 
-    def __start_receiver(self, loop):
+    def __start_receiver(self, loop: asyncio.AbstractEventLoop):
         asyncio.set_event_loop(loop)
         while True:
             try:
@@ -26,23 +26,27 @@ class DuplexSocketListener:
                     receiver_socket.listen()
                     print(
                         f'Receiver up in {self.__receiver_endpoint.url}:{self.__receiver_endpoint.port} and ready to connect')
-                    conn, addr = receiver_socket.accept()
-                    print(f'{addr} connect to receiver')
-
-                    with conn:
-                        while True:
-                            try:
-                                message = Message.read(conn)
-                                if not message:
-                                    break
-                            except error as ex:
-                                print(f"error in receiver {ex}")
-                                break
-                            loop.run_in_executor(
-                                None, self.on_message_receive, message)
-
+                    connection, address = receiver_socket.accept()
+                    loop.run_in_executor(
+                        None, self.__on_receiver_connection_accepted, connection, address, loop)
             except error as ex:
-                print(ex)
+                print(f'Error in connect receiver. {repr(ex)}')
+
+    def __on_receiver_connection_accepted(self, socket_connection: socket.socket, address: Any, loop: asyncio.AbstractEventLoop):
+        asyncio.set_event_loop(loop)
+        print(f'{address} connect to receiver')
+        with socket_connection:
+            while True:
+                try:
+                    message = Message.read(socket_connection)
+                    if not message:
+                        break
+                except error as ex:
+                    print(f"error in receiver {ex}")
+                    break
+                loop.run_in_executor(
+                    None, self.on_message_receive, message)
+        print(f'{address} disconnect from receiver')
 
     def __start_sender(self, _):
         while True:
@@ -62,8 +66,8 @@ class DuplexSocketListener:
     async def process_async(self):
         while True:
             loop = asyncio.get_event_loop()
-            receiver_task = loop.run_in_executor(
-                None, self.__start_receiver, loop)
             sender_task = loop.run_in_executor(
                 None, self.__start_sender, loop)
+            receiver_task = loop.run_in_executor(
+                None, self.__start_receiver, loop)
             await asyncio.gather(receiver_task, sender_task, return_exceptions=True)

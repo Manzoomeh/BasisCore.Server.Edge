@@ -69,5 +69,5 @@ class RoutingDispatcher(Dispatcher):
         return ret_val
 
     @abstractmethod
-    def _send_message(self, message: Message) -> None:
+    def _send_message(self, message: Message) -> bool:
         """Send message to endpoint"""
