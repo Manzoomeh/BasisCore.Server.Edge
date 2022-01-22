@@ -31,7 +31,7 @@ def generate_data() -> list:
 
 @ app.server_source_action()
 def process_basiscore_source(context: edge.ServerSourceContext):
-    print("process_basiscore_source")
+    print("process_basiscore_source", context.params.p1)
     return generate_data()
 
 

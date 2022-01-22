@@ -58,7 +58,7 @@ def process_restful_request(context: edge.RESTfulContext):
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
 def process_basiscore_source(context: edge.SourceContext):
-    print("process_basiscore_source")
+    print("process_basiscore_source", context.params.p1)
     return generate_data()
 
 
@@ -114,6 +114,10 @@ def process_web_sample_source_request(context: edge.WebContext):
         <member name="list" type="list" pageno="3" perpage="20" request="catname" order="id desc"></member>
         <member name="paging" type="list" request="paging" count="5" parentname="list"></member>
         <member name="count" type="scalar" request="count" ></member>
+        <params>
+            <add name='p1' value='v1' ></add>
+            <add name='p2' value='v2' ></add>
+        </params>
      </basis>
 
     <basis core="callback" run="AtClient" triggers="demo.list demo.paging demo.count" method="onSource"></basis>
