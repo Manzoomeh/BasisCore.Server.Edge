@@ -6,7 +6,7 @@ from functools import wraps
 from bclib.cache import create_chaching
 from bclib.listener import RabbitBusListener, MessageType
 from bclib.predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue
-from bclib.context import SourceContext, SourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext
+from bclib.context import SourceContext, SourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext
 from bclib.db_manager import DbManager
 from bclib.utility import DictEx
 from ..dispatcher.callback_info import CallbackInfo
@@ -126,6 +126,55 @@ bclib Version : {__version__}
                 return function(context)
 
             self._get_context_lookup(SourceMemberContext.__name__)\
+                .append(CallbackInfo([*predicates], _wrapper))
+            return _wrapper
+        return _decorator
+
+    def server_source_action(self, *predicates: (Predicate)):
+        """Decorator for determine source action"""
+
+        def _decorator(source_action: 'Callable[[ServerSourceContext], list]'):
+            @wraps(source_action)
+            def _wrapper(context: ServerSourceContext):
+                data = source_action(context)
+                result_set = list()
+                if data is not None:
+                    for member in context.command.member:
+                        member_context = ServerSourceMemberContext(
+                            context, data, member)
+                        dispath_result = self.dispatch(member_context)
+                        result = {
+                            "options": {
+                                "tableName": member_context.table_name,
+                                "keyFieldName": member_context.key_field_name,
+                                "statusFieldName": member_context.status_field_name,
+                                "mergeType": member_context.merge_type.value[0]
+                            },
+                            "data": dispath_result
+                        }
+                        result_set.append(result)
+                ret_val = {
+                    "setting": {
+                        "keepalive": False,
+                    },
+                    "sources": result_set
+                }
+                return ret_val
+            self._get_context_lookup(ServerSourceContext.__name__)\
+                .append(CallbackInfo([*predicates], _wrapper))
+            return _wrapper
+        return _decorator
+
+    def server_source_member_action(self, *predicates: (Predicate)):
+        """Decorator for determine server source member action methode"""
+
+        def _decorator(function: 'Callable[[ServerSourceMemberContext], list]'):
+
+            @wraps(function)
+            def _wrapper(context: ServerSourceMemberContext):
+                return function(context)
+
+            self._get_context_lookup(ServerSourceMemberContext.__name__)\
                 .append(CallbackInfo([*predicates], _wrapper))
             return _wrapper
         return _decorator

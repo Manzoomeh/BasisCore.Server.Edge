@@ -1,10 +1,11 @@
-from abc import ABC,  abstractproperty
+from abc import ABC
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .. import dispatcher
 
 from bclib.db_manager import SqlDb, SQLiteDb, MongoDb, RabbitConnection, RESTfulConnection
+from bclib.utility import DictEx
 
 
 class Context(ABC):
@@ -13,8 +14,9 @@ class Context(ABC):
     def __init__(self, dispatcher: 'dispatcher.IDispatcher') -> None:
         super().__init__()
         self.dispatcher = dispatcher
-        self.url_segments = None
+        self.url_segments: DictEx = None
         self.url: str = None
+        self.is_adhoc = True
 
     def open_sql_connection(self, key: str) -> SqlDb:
         return self.dispatcher.db_manager.open_sql_connection(key)

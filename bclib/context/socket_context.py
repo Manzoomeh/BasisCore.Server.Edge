@@ -17,3 +17,4 @@ class SocketContext(Context):
         self.message = message
         self.session_id = self.message.session_id
         self.message_type = self.message.type
+        self.is_adhoc = False

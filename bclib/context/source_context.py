@@ -1,5 +1,5 @@
 from typing import TYPE_CHECKING
-from bclib.utility import HtmlParserEx, DictEx
+from bclib.utility import HtmlParserEx
 from ..context.json_base_request_context import JsonBaseRequestContext
 
 if TYPE_CHECKING:
