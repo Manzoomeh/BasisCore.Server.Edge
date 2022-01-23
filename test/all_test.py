@@ -2,7 +2,6 @@ import json
 import datetime
 import xml.etree.ElementTree
 import edge
-from utility.dict_ex import DictEx
 
 
 options = {
@@ -120,7 +119,7 @@ class Client:
         self.SessionId = sessionId
         self.UserName = None
 
-    def update(self, message: DictEx):
+    def update(self, message: edge.DictEx):
         command = xml.etree.ElementTree.fromstring(message.command)
         if self.UserName == None:
             self.UserName = command.get('user-name')
@@ -167,7 +166,7 @@ class ChatRoom:
             app.send_message(edge.Message.create_from_text(session_id, msg))
 
     @staticmethod
-    def process_message(message: edge.Message, cms: edge.DictEx, body: DictEx):
+    def process_message(message: edge.Message, cms: edge.DictEx, body: edge.DictEx):
         if(message.type == edge.MessageType.CONNECT):
             ChatRoom.__sessions[message.session_id] = Client(
                 message.session_id, cms)

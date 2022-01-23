@@ -2,7 +2,7 @@ import json
 from typing import Any, TYPE_CHECKING
 
 from bclib.utility import HttpMimeTypes
-from bclib.listener import HttpBaseDataName, HttpBaseDataType
+from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
 from ..context.request_context import RequestContext
 
 if TYPE_CHECKING:

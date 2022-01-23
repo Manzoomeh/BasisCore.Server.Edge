@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from typing import Any, TYPE_CHECKING
-from bclib.listener import HttpBaseDataName, HttpBaseDataType
+from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
 from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes
 from ..context.context import Context
 
