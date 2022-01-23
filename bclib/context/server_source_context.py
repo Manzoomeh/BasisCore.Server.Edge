@@ -3,7 +3,8 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from .. import dispatcher
 
-from bclib.utility import HtmlParserEx, DictEx
+from bclib.parser import HtmlParserEx
+from bclib.utility import DictEx
 from ..context.context import Context
 
 

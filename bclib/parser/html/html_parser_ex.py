@@ -1,8 +1,8 @@
 """import html parser"""
 from html.parser import HTMLParser
 from typing import Any
-from ..utility.dict_ex import DictEx
-from ..utility.html_tag import HtmlTag
+from bclib.utility import DictEx
+from ..html.html_tag import HtmlTag
 
 
 class HtmlParserEx(HTMLParser):
