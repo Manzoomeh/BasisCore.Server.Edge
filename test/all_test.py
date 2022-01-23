@@ -2,6 +2,7 @@ import json
 import datetime
 import xml.etree.ElementTree
 import edge
+from utility.dict_ex import DictEx
 
 
 options = {
@@ -119,9 +120,8 @@ class Client:
         self.SessionId = sessionId
         self.UserName = None
 
-    def update(self, message: str):
-        data = json.loads(message)
-        command = xml.etree.ElementTree.fromstring(data["command"])
+    def update(self, message: DictEx):
+        command = xml.etree.ElementTree.fromstring(message.command)
         if self.UserName == None:
             self.UserName = command.get('user-name')
             if(self.UserName == "."):
@@ -167,7 +167,7 @@ class ChatRoom:
             app.send_message(edge.Message.create_from_text(session_id, msg))
 
     @staticmethod
-    def process_message(message: edge.Message, cms: edge.DictEx):
+    def process_message(message: edge.Message, cms: edge.DictEx, body: DictEx):
         if(message.type == edge.MessageType.CONNECT):
             ChatRoom.__sessions[message.session_id] = Client(
                 message.session_id, cms)
@@ -177,7 +177,7 @@ class ChatRoom:
                 del ChatRoom.__sessions[message.session_id]
         elif message.type == edge.MessageType.MESSAGE:
             if message.session_id in ChatRoom.__sessions:
-                ChatRoom.__sessions[message.session_id].update(cms.body)
+                ChatRoom.__sessions[message.session_id].update(body)
         elif message.type == edge.MessageType.NOT_EXIST:
             if message.session_id in ChatRoom.__sessions:
                 del ChatRoom.__sessions[message.session_id]
@@ -189,13 +189,14 @@ class ChatRoom:
 @app.socket_action(app.equal("context.message_type", edge.MessageType.NOT_EXIST))
 def process_not_exist_message(context: edge.SocketContext):
     print("process_not_exist_message")
-    ChatRoom.process_message(context.message, None)
+    ChatRoom.process_message(context.message_object, None, None)
 
 
-@ app.socket_action(app.url("chat"))
+@ app.socket_action()
 def process_all_other_message(context: edge.SocketContext):
     print("process_all_other_message")
-    ChatRoom.process_message(context.message, context.cms)
+    ChatRoom.process_message(context.message_object,
+                             context.cms, context.body)
 
 
 #####

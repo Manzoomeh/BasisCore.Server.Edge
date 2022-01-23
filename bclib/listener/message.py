@@ -79,7 +79,7 @@ class Message:
                 data = connection.recv(data_len)
                 session_id = data.decode("utf-8")
                 parameter = None
-                if message_type != MessageType.NOT_EXIST:
+                if message_type == MessageType.AD_HOC or message_type == MessageType.MESSAGE or message_type == MessageType.CONNECT:
                     data = connection.recv(4)
                     data_len = int.from_bytes(
                         data, byteorder='big', signed=True)

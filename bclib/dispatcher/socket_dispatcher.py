@@ -11,7 +11,7 @@ class SocketDispatcher(RoutingDispatcher):
             EndPoint(self.options.sender.ip, self.options.sender.port),
             self._on_message_receive)
 
-    def _send_message(self, message: Message) -> bool:
+    def send_message(self, message: Message) -> bool:
         """Send message to endpoint"""
 
         return self.__listener.send_message(message)

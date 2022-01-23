@@ -5,8 +5,7 @@ from struct import error
 from typing import Callable
 
 from bclib.context import SourceContext, RESTfulContext, WebContext, RequestContext, Context, SocketContext, ServerSourceContext
-from bclib.listener import Message, MessageType
-from bclib.listener.http_listener import HttpBaseDataType
+from bclib.listener import Message, MessageType, HttpBaseDataType
 from ..dispatcher.dispatcher import Dispatcher
 
 
@@ -47,7 +46,7 @@ class RoutingDispatcher(Dispatcher):
                 message_result = json.dumps(response).encode("utf-8")
                 ret_val = Message.create_add_hock(
                     message.session_id, message_result)
-                self._send_message(ret_val)
+                self.send_message(ret_val)
             return ret_val
         except error as ex:
             print(f"Error in process received message {ex}")
@@ -58,39 +57,39 @@ class RoutingDispatcher(Dispatcher):
 
         ret_val: RequestContext = None
         context_type = None
-        cms: dict = None
+        cms_object: dict = None
         url: str = None
         request_id: str = None
         method: str = None
+        message_json: dict = None
         if message.buffer:
-            message_params = json.loads(message.buffer.decode("utf-8"))
-            cms = message_params[HttpBaseDataType.CMS] if HttpBaseDataType.CMS in message_params else None
-            if cms:
-                req = cms["request"]
+            message_string = message.buffer.decode("utf-8")
+            message_json = json.loads(message_string)
+            cms_object = message_json[HttpBaseDataType.CMS] if HttpBaseDataType.CMS in message_json else None
+            if cms_object:
+                req = cms_object["request"]
                 request_id = req['request-id']
                 method = req['methode']
                 url = req["full-url"]
-            context_type = self.__context_type_detector(
-                url) if message.type == MessageType.AD_HOC else "socket"
-            print(f"{f'{request_id} {method} {url} ' if cms else ''}({context_type})")
+        context_type = self.__context_type_detector(
+            url) if message.type == MessageType.AD_HOC else "socket"
+
+        print(
+            f"({context_type}::{message.type.name}){f' : {request_id} {method} {url} ' if cms_object else ''}")
 
         if context_type == "dbsource":
-            ret_val = SourceContext(cms, self)
+            ret_val = SourceContext(cms_object, self)
         elif context_type == "restful":
-            ret_val = RESTfulContext(cms, self)
+            ret_val = RESTfulContext(cms_object, self)
         elif context_type == "web":
-            ret_val = WebContext(cms, self)
+            ret_val = WebContext(cms_object, self)
         elif context_type == "socket":
-            ret_val = SocketContext(cms, self, message)
+            ret_val = SocketContext(cms_object, self, message, message_json)
         elif context_type == "server_dbsource":
-            ret_val = ServerSourceContext(message_params, self)
+            ret_val = ServerSourceContext(message_json, self)
         elif context_type is None:
             raise Exception(f"No context found for '{url}'")
         else:
             raise Exception(
                 f"Configured context type '{context_type}' not found for '{url}'")
         return ret_val
-
-    @abstractmethod
-    def _send_message(self, message: Message) -> bool:
-        """Send message to endpoint"""

@@ -10,13 +10,13 @@ from ..context.context import Context
 class ServerSourceContext(Context):
     """Base class for dispatching server base dbsource request context"""
 
-    def __init__(self, request: dict,  dispatcher: 'dispatcher.IDispatcher') -> None:
+    def __init__(self, cms_object: dict,  dispatcher: 'dispatcher.IDispatcher') -> None:
         super().__init__(dispatcher)
         parser = HtmlParserEx()
-        self.raw_command = request["command"]
-        self.dmn_id = request["dmnid"] if "dmnid" in request else None
+        self.raw_command = cms_object["command"]
+        self.dmn_id = cms_object["dmnid"] if "dmnid" in cms_object else None
         self.params = DictEx(
-            request["params"]) if "params" in request else None
+            cms_object["params"]) if "params" in cms_object else None
         html = self.raw_command
         parser.feed(html)
         self.command = parser.get_dict_ex()

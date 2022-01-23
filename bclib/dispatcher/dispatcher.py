@@ -1,6 +1,6 @@
 """Base class for dispaching request"""
 import asyncio
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Callable, Any
 from functools import wraps
 from bclib.cache import create_chaching
@@ -225,7 +225,8 @@ bclib Version : {__version__}
         loop = asyncio.get_event_loop()
         return loop.run_in_executor(None, callback, *args)
 
-    def send_message(self, message: MessageType) -> None:
+    @abstractmethod
+    def send_message(self, message: MessageType) -> bool:
         """Send message to endpoint"""
 
     def cache(self, seconds: int = 0, key: str = None):

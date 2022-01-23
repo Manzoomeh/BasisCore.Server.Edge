@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING
 
-from utility.dict_ex import DictEx
-from bclib.utility import HtmlParserEx
+from bclib.utility import HtmlParserEx, DictEx
 from ..context.json_base_request_context import JsonBaseRequestContext
 
 if TYPE_CHECKING:
@@ -11,8 +10,8 @@ if TYPE_CHECKING:
 class SourceContext(JsonBaseRequestContext):
     """Context for dbSource request"""
 
-    def __init__(self, request: dict, dispatcher: 'dispatcher.IDispatcher') -> None:
-        super().__init__(request, dispatcher)
+    def __init__(self, cms_object: dict, dispatcher: 'dispatcher.IDispatcher') -> None:
+        super().__init__(cms_object, dispatcher)
         parser = HtmlParserEx()
         html = self.cms.form.command
         parser.feed(html)

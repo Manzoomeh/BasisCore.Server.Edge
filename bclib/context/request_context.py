@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from typing import Any, TYPE_CHECKING
-from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
+from bclib.listener import HttpBaseDataName, HttpBaseDataType
 from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes
 from ..context.context import Context
 
@@ -11,9 +11,9 @@ if TYPE_CHECKING:
 class RequestContext(Context):
     """Base class for dispatching http base request context"""
 
-    def __init__(self, request: dict,  dispatcher: 'dispatcher.IDispatcher') -> None:
+    def __init__(self, cms_object: dict,  dispatcher: 'dispatcher.IDispatcher') -> None:
         super().__init__(dispatcher)
-        self.cms = DictEx(request)
+        self.cms = DictEx(cms_object)
         self.url: str = self.cms.request.url
         self.query: DictEx = self.cms.query
         self.form: DictEx = self.cms.form
@@ -34,6 +34,8 @@ class RequestContext(Context):
 
     @abstractmethod
     def generate_responce(self, result: Any) -> dict:
+        """Generate responce from process result"""
+
         ret_val = self.cms
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER] = {
             "index": self.responce_type.value,
