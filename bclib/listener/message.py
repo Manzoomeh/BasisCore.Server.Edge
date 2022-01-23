@@ -21,7 +21,7 @@ class Message:
             connection.sendall(data_length_bytes)
             connection.sendall(data)
 
-            if self.type == MessageType.AD_HOC or self.type == MessageType.MESSAGE:
+            if self.type in (MessageType.AD_HOC, MessageType.MESSAGE):
                 data_length_bytes = len(self.buffer).to_bytes(4, 'big')
                 connection.sendall(data_length_bytes)
                 connection.sendall(self.buffer)
@@ -70,20 +70,20 @@ class Message:
     def read(connection: socket.socket):
         message: Message = None
         try:
-            data = connection.recv(1)
+            data = Message.__read_bytes(connection, 1)
             if data:
                 message_type = MessageType(int.from_bytes(
                     data, byteorder='big', signed=True))
-                data = connection.recv(4)
+                data = Message.__read_bytes(connection, 4)
                 data_len = int.from_bytes(data, byteorder='big', signed=True)
-                data = connection.recv(data_len)
+                data = Message.__read_bytes(connection, data_len)
                 session_id = data.decode("utf-8")
                 parameter = None
-                if message_type == MessageType.AD_HOC or message_type == MessageType.MESSAGE or message_type == MessageType.CONNECT:
-                    data = connection.recv(4)
+                if message_type in (MessageType.AD_HOC, MessageType.MESSAGE, MessageType.CONNECT):
+                    data = Message.__read_bytes(connection, 4)
                     data_len = int.from_bytes(
                         data, byteorder='big', signed=True)
-                    data = connection.recv(data_len)
+                    data = Message.__read_bytes(connection, data_len)
                     parameter = data
                 message = Message(session_id, message_type, parameter)
         except ConnectionResetError:
@@ -91,3 +91,18 @@ class Message:
         except error as ex:
             print(f'Error in read message from socket: {repr(ex)}')
         return message
+
+    @ staticmethod
+    def __read_bytes(connection: socket.socket, length: int) -> bytes:
+        data = connection.recv(length)
+        data_len = len(data)
+        if data_len != length:
+            print(f"Must read {length} byte(s), but read {data_len}!")
+            remain = length - data_len
+            while remain > 0:
+                buffer = connection.recv(remain)
+                remain -= len(buffer)
+                data += buffer
+                print(
+                    f"Read {len(buffer)} byte(s) again. {remain} byte(s) remain!")
+        return data
