@@ -11,7 +11,7 @@ options = {
         "port": 1026,
     },
     "router": {
-        "dbsource": ["*"],
+        "client_source": ["*"],
     }
 }
 
@@ -21,7 +21,7 @@ app = dispatcher.SocketDispatcher(options)
 @ app.source_action(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
-def process_basiscore_source(context: context.SourceContext):
+def process_basiscore_source(context: context.ClientSourceContext):
     print("process_basiscore_source",  context)
 
     return [
@@ -35,7 +35,7 @@ def process_basiscore_source(context: context.SourceContext):
 @app.source_action(
     app.equal("context.command.source", "demo"),
     app.in_list("context.command.mid", "10", "20"))
-def process_demo_source(context: context.SourceContext):
+def process_demo_source(context: context.ClientSourceContext):
     print("process1 ",  context)
     data = [
         {"id": 1, "name": "Data1"},
@@ -52,7 +52,7 @@ def process_demo_source(context: context.SourceContext):
     app.in_list("context.command.source", "basiscore", "demo"),
     app.equal("context.member.name", "list")
 )
-def process_list_member(context: context.SourceMemberContext):
+def process_list_member(context: context.ClientSourceMemberContext):
     print("process_list_member")
     return context.data
 
@@ -61,7 +61,7 @@ def process_list_member(context: context.SourceMemberContext):
     app.in_list("context.command.source", "basiscore", "demo"),
     app.equal("context.member.name", "paging")
 )
-def process_page_member(context: context.SourceMemberContext):
+def process_page_member(context: context.ClientSourceMemberContext):
     data = {
         "total": len(context.data),
         "from": 0,
@@ -75,7 +75,7 @@ def process_page_member(context: context.SourceMemberContext):
     app.equal("context.command.source", "basiscore"),
     app.equal("context.member.name", "count")
 )
-def process_count_member(context: context.SourceMemberContext):
+def process_count_member(context: context.ClientSourceMemberContext):
     data = {
         "count": len(context.data)
     }

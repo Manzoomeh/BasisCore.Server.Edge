@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 from bclib.utility import DictEx
-from ..context.context import Context
+from .context import Context
 
 if TYPE_CHECKING:
     from .. import dispatcher

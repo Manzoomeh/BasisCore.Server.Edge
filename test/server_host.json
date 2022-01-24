@@ -5,7 +5,7 @@
       "port": 8080
     },
     "router": {
-      "dbsource": [
+      "client_source": [
         "/source"
       ],
       "restful": [

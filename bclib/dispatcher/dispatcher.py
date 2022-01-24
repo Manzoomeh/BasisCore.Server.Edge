@@ -6,7 +6,7 @@ from functools import wraps
 from bclib.cache import create_chaching
 from bclib.listener import RabbitBusListener, MessageType
 from bclib.predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue
-from bclib.context import SourceContext, SourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext
+from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext
 from bclib.db_manager import DbManager
 from bclib.utility import DictEx
 from ..dispatcher.callback_info import CallbackInfo
@@ -84,14 +84,14 @@ bclib Version : {__version__}
     def source_action(self, *predicates: (Predicate)):
         """Decorator for determine source action"""
 
-        def _decorator(source_action: 'Callable[[SourceContext], list]'):
+        def _decorator(source_action: 'Callable[[ClientSourceContext], Any]'):
             @wraps(source_action)
-            def _wrapper(context: SourceContext):
+            def _wrapper(context: ClientSourceContext):
                 data = source_action(context)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
-                        member_context = SourceMemberContext(
+                        member_context = ClientSourceMemberContext(
                             context, data, member)
                         dispath_result = self.dispatch(member_context)
                         result = {
@@ -99,7 +99,7 @@ bclib Version : {__version__}
                                 "tableName": member_context.table_name,
                                 "keyFieldName": member_context.key_field_name,
                                 "statusFieldName": member_context.status_field_name,
-                                "mergeType": member_context.merge_type.value[0]
+                                "mergeType": member_context.merge_type.value
                             },
                             "data": dispath_result
                         }
@@ -111,7 +111,7 @@ bclib Version : {__version__}
                     "sources": result_set
                 }
                 return ret_val
-            self._get_context_lookup(SourceContext.__name__)\
+            self._get_context_lookup(ClientSourceContext.__name__)\
                 .append(CallbackInfo([*predicates], _wrapper))
             return _wrapper
         return _decorator
@@ -119,13 +119,13 @@ bclib Version : {__version__}
     def source_member_action(self, *predicates: (Predicate)):
         """Decorator for determine source member action methode"""
 
-        def _decorator(function: 'Callable[[SourceMemberContext], list]'):
+        def _decorator(function: 'Callable[[ClientSourceMemberContext], Any]'):
 
             @wraps(function)
-            def _wrapper(context: SourceMemberContext):
+            def _wrapper(context: ClientSourceMemberContext):
                 return function(context)
 
-            self._get_context_lookup(SourceMemberContext.__name__)\
+            self._get_context_lookup(ClientSourceMemberContext.__name__)\
                 .append(CallbackInfo([*predicates], _wrapper))
             return _wrapper
         return _decorator
@@ -133,7 +133,7 @@ bclib Version : {__version__}
     def server_source_action(self, *predicates: (Predicate)):
         """Decorator for determine source action"""
 
-        def _decorator(source_action: 'Callable[[ServerSourceContext], list]'):
+        def _decorator(source_action: 'Callable[[ServerSourceContext], Any]'):
             @wraps(source_action)
             def _wrapper(context: ServerSourceContext):
                 data = source_action(context)
@@ -148,7 +148,7 @@ bclib Version : {__version__}
                                 "tableName": member_context.table_name,
                                 "keyFieldName": member_context.key_field_name,
                                 "statusFieldName": member_context.status_field_name,
-                                "mergeType": member_context.merge_type.value[0]
+                                "mergeType": member_context.merge_type.value
                             },
                             "data": dispath_result
                         }
@@ -168,7 +168,7 @@ bclib Version : {__version__}
     def server_source_member_action(self, *predicates: (Predicate)):
         """Decorator for determine server source member action methode"""
 
-        def _decorator(function: 'Callable[[ServerSourceMemberContext], list]'):
+        def _decorator(function: 'Callable[[ServerSourceMemberContext], Any]'):
 
             @wraps(function)
             def _wrapper(context: ServerSourceMemberContext):
@@ -182,7 +182,7 @@ bclib Version : {__version__}
     def rabbit_action(self, * predicates: (Predicate)):
         """Decorator for determine rabbit-mq message request action"""
 
-        def _decorator(web_action: 'Callable[[RabbitContext], list]'):
+        def _decorator(web_action: 'Callable[[RabbitContext], Any]'):
             @wraps(web_action)
             def _wrapper(context: RabbitContext):
                 web_action(context)

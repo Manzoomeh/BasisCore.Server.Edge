@@ -1,27 +1,31 @@
-from typing import TYPE_CHECKING
-
-from bclib.parser import HtmlParserEx
+from abc import ABC, abstractmethod
 from bclib.utility import DictEx
-from ..context.json_base_request_context import JsonBaseRequestContext
-
-if TYPE_CHECKING:
-    from .. import dispatcher
 
 
-class SourceContext(JsonBaseRequestContext):
-    """Context for dbSource request"""
+class SourceContext(ABC):
+    """Base class for manage source base context"""
 
-    def __init__(self, cms_object: dict, dispatcher: 'dispatcher.IDispatcher') -> None:
-        super().__init__(cms_object, dispatcher)
-        parser = HtmlParserEx()
-        html = self.cms.form.command
-        parser.feed(html)
-        self.command = parser.get_dict_ex()
-        self.params: DictEx = None
-        if "params" in self.command:
-            if len(self.command.params) > 0 and "add" in self.command.params[0]:
-                tmp_dic = dict()
-                for item in self.command.params[0].add:
-                    tmp_dic[item.name] = item.value
-                self.params = DictEx(tmp_dic)
-        self.process_async = True
+    @property
+    @abstractmethod
+    def raw_command(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def command(self) -> DictEx:
+        pass
+
+    @property
+    @abstractmethod
+    def params(self) -> DictEx:
+        pass
+
+    @property
+    @abstractmethod
+    def dmn_id(self) -> int:
+        pass
+
+    @property
+    @abstractmethod
+    def process_async(self) -> bool:
+        pass

@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from context import SourceContext, SourceMemberContext
+from context import ClientSourceContext, ClientSourceMemberContext
 from dispatcher import Dispatcher
 
 
@@ -13,7 +13,7 @@ app = Dispatcher(options)
 @ app.source_action(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
-def process_basiscore_source(context: SourceContext):
+def process_basiscore_source(context: ClientSourceContext):
     print("process_basiscore_source",  context)
 
     # sql_connection = context.open_sql_connection("sql_demo")
@@ -84,7 +84,7 @@ def process_basiscore_source(context: SourceContext):
 @app.source_action(
     app.equal("context.command.source", "demo"),
     app.in_list("context.command.mid", "10", "20"))
-def process_demo_source(context: SourceContext):
+def process_demo_source(context: ClientSourceContext):
     print("process1 ",  context)
     data = [
         {"id": 1, "name": "Data1"},
@@ -99,7 +99,7 @@ def process_demo_source(context: SourceContext):
     app.equal("context.command.source", "basiscore"),
     app.equal("context.member.name", "list")
 )
-def process_list_member(context: SourceMemberContext):
+def process_list_member(context: ClientSourceMemberContext):
     print("process_list_member")
     return context.data
 
@@ -108,7 +108,7 @@ def process_list_member(context: SourceMemberContext):
     app.equal("context.command.source", "basiscore"),
     app.equal("context.member.name", "paging")
 )
-def process_page_member(context: SourceMemberContext):
+def process_page_member(context: ClientSourceMemberContext):
     data = {
         "total": len(context.data),
         "from": 0,
@@ -122,7 +122,7 @@ def process_page_member(context: SourceMemberContext):
     app.equal("context.command.source", "basiscore"),
     app.equal("context.member.name", "count")
 )
-def process_count_member(context: SourceMemberContext):
+def process_count_member(context: ClientSourceMemberContext):
     data = {
         "count": len(context.data)
     }
@@ -131,7 +131,7 @@ def process_count_member(context: SourceMemberContext):
 
 
 @app.source_member_action()
-def all_member_process(_: SourceMemberContext):
+def all_member_process(_: ClientSourceMemberContext):
     print("all_member_process", )
     return None
 
@@ -172,6 +172,6 @@ p = {
     }
 }
 
-source_context = SourceContext(p["cms"], options)
+source_context = ClientSourceContext(p["cms"], options)
 result = app.dispatch(source_context)
 print(result)

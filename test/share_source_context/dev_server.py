@@ -1,26 +1,33 @@
-from bclib import edge
+from typing import Any
+import edge
 
-if "options" not in dir():
-    options = {
-        "server": {
-            "ip": "localhost",
-            "port": 8080,
-        },
-        "router": {
-            "client_source": ["/source"],
-            "restful": ["/rest"],
-            "web": ["*"],
-        }
+
+options = {
+    "sender": {
+        "ip": "127.0.0.1",
+        "port": 1025,
+    },
+    "receiver": {
+        "ip": "127.0.0.1",
+        "port": 1026,
+    },
+    "defaultRouter": "server_source",
+    "router": {
+        "client_source": ["/source"],
+        "web": ["*"],
     }
+}
 
-
-app = edge.from_options(options)
+app = edge.SocketDispatcher(options)
+######################
+# Share Business
+######################
 
 
 @app.cache()
 def generate_data() -> list:
     import string
-    import random  # define the random module
+    import random
 
     ret_val = list()
     for i in range(10):
@@ -29,95 +36,112 @@ def generate_data() -> list:
     return ret_val
 
 
-###########################################
-# rest
-###########################################
-
-
-@app.restful_action(
-    app.url("rest/:id"))
-def process_restful_with_filter_request(context: edge.RESTfulContext):
-    print("process_restful_with_filter_request")
-    id = int(context.url_segments.id)
-    return [row for row in generate_data() if row["id"] == id]
-
-
-@app.restful_action(
-    app.url("rest"))
-def process_restful_request(context: edge.RESTfulContext):
-    print("process_restful_request")
+def load_source(context: edge.SourceContext) -> Any:
     return generate_data()
 
 
-######################
-# source
-######################
-
-
-@app.source_action(
-    app.equal("context.command.source", "basiscore"),
-    app.in_list("context.command.mid", "10", "20"))
-def process_basiscore_source(context: edge.ClientSourceContext):
-    print("process_basiscore_source", context.params.p1)
-    return generate_data()
-
-
-@app.source_action(
-    app.equal("context.command.source", "demo"),
-    app.in_list("context.command.mid", "10", "20"))
-def process_demo_source(context: edge.ClientSourceContext):
-    return [row for row in generate_data() if row["id"] < 5]
-
-
-@app.source_member_action(
-    app.equal("context.member.name", "list")
-)
-def process_list_member(context: edge.ClientSourceMemberContext):
-    print("process_list_member")
+def process_list_member(context: edge.SourceMemberContext) -> Any:
     return context.data
 
 
-@app.source_member_action(
-    app.equal("context.member.name", "paging")
-)
-def process_page_member(context: edge.ClientSourceMemberContext):
+def process_page_member(context: edge.SourceMemberContext) -> Any:
     data = {
         "total": len(context.data),
         "from": 0,
         "to": len(context.data)-1,
     }
-    print("process_page_member")
     return data
+
+
+def process_count_member(context: edge.SourceMemberContext) -> Any:
+    data = {
+        "count": len(context.data)
+    }
+    return data
+
+######################
+# Server source
+######################
+
+
+@app.server_source_action()
+def process_basiscore_server_source(context: edge.ServerSourceContext) -> Any:
+    print("process_basiscore_server_source", context.params.p1)
+    return load_source(context)
+
+
+@app.server_source_member_action(
+    app.equal("context.member.name", "list")
+)
+def process_list_server_member(context: edge.ServerSourceMemberContext) -> Any:
+    print("process_list_server_member")
+    return process_list_member(context)
+
+
+@app.server_source_member_action(
+    app.equal("context.member.name", "paging")
+)
+def process_page_server_member(context: edge.ServerSourceMemberContext) -> Any:
+    print("process_page_server_member")
+    return process_page_member(context)
+
+
+@app.server_source_member_action(
+    app.equal("context.member.name", "count")
+)
+def process_count_server_member(context: edge.ServerSourceMemberContext) -> Any:
+    print("process_count_server_member")
+    return process_count_member(context)
+
+######################
+# Client Source
+######################
+
+
+@ app.source_action(
+    app.equal("context.command.source", "basiscore"),
+    app.in_list("context.command.mid", "10", "20"))
+def process_basiscore_client_source(context: edge.ClientSourceContext):
+    print("process_basiscore_client_source")
+    return load_source(context)
+
+
+@app.source_member_action(
+    app.equal("context.member.name", "list")
+)
+def process_list_client_member(context: edge.ClientSourceMemberContext):
+    print("process_list_client_member")
+    return process_list_member(context)
+
+
+@app.source_member_action(
+    app.equal("context.member.name", "paging")
+)
+def process_page_client_member(context: edge.ClientSourceMemberContext):
+    print("process_page_client_member")
+    return process_page_member(context)
 
 
 @app.source_member_action(
     app.equal("context.member.name", "count")
 )
-def process_count_member(context: edge.ClientSourceMemberContext):
-    data = {
-        "count": len(context.data)
-    }
-    print("process_count_member")
-    return data
+def process_count_client_member(context: edge.ClientSourceMemberContext):
+    print("process_count_client_member")
+    return process_count_member(context)
+
 
 #####
 # Web
 #####
 
-
 @ app.web_action(
-    app.url("sample-source/:source"),
-    app.in_list("context.url_segments.source", "demo", "basiscore"))
+    app.url("qam-test/sample-client-source"))
 def process_web_sample_source_request(context: edge.WebContext):
     return f"""
-     <basis core="dbsource" run="atclient" source="{context.url_segments.source}" mid="20" name="demo"  lid="1" dmnid="" ownerpermit="" >
+     <basis core="dbsource" run="atclient" source="basiscore" mid="20" name="demo"  lid="1" dmnid="" ownerpermit="" >
         <member name="list" type="list" pageno="3" perpage="20" request="catname" order="id desc"></member>
         <member name="paging" type="list" request="paging" count="5" parentname="list"></member>
         <member name="count" type="scalar" request="count" ></member>
-        <params>
-            <add name='p1' value='v1' ></add>
-            <add name='p2' value='v2' ></add>
-        </params>
      </basis>
 
     <basis core="callback" run="AtClient" triggers="demo.list demo.paging demo.count" method="onSource"></basis>
@@ -128,7 +152,8 @@ def process_web_sample_source_request(context: edge.WebContext):
             autoRender: true,
             'DbLibPath': '/alasql.min.js',
             settings: {{
-                'connection.web.{context.url_segments.source}': '/source',
+                'connection.web.basiscore': 'http://localhost:1564/qam-test/source',
+                
                 'default.dmnid': 2668,
             }},
 
@@ -143,12 +168,30 @@ def process_web_sample_source_request(context: edge.WebContext):
         """
 
 
-@app.web_action()
+@ app.web_action(app.url("qam-test/sample-server-source"))
+def process_web_sample_dbsource_request(context: edge.WebContext):
+    context.responce_type = edge.ResponseTypes.RENDERABLE
+    return """
+     <basis core="dbsource"  source="cmsDbService" mid="20" name="demo"  lid="1" dmnid="" ownerpermit="" >
+        <member name="list" type="list" pageno="3" perpage="20" request="catname" order="id desc"></member>
+        <member name="paging" type="list" request="paging" count="5" parentname="list"></member>
+        <member name="count" type="scalar" request="count" ></member>
+        <params>
+            <add name='p1' value='v1' ></add>
+            <add name='p2' value='v2' ></add>
+        </params>
+     </basis>
+     [##demo.count.count##]
+     <br/>
+[##demo.list.id##]
+        """
+
+
+@ app.web_action()
 def process_web_remain_request(context: edge.WebContext):
     print("process_web_remain_request")
-    context.add_header("Access-Control-Allow-Origin", "*")
+    context.add_header(edge.HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
     context.add_header("x-ali", "12")
-    context.add_header("x-ali", "12232")
     return """
         <!DOCTYPE html>
         <html lang="en">
@@ -169,28 +212,13 @@ def process_web_remain_request(context: edge.WebContext):
             </h1>
             <ul>
             <li>
-                RESTful
-                <ul>
-                <li>
-                    <a href="/rest" target="_blank"
-                    >Simple</a
-                    >
-                </li>
-                <li>
-                    <a href="/rest/5" target="_blank"
-                    >With param</a
-                    >
-                </li>
-                </ul>
-            </li>
-            <li>
                 DbSource
                 <ul>
-                    <li> <a href="/sample-source/basiscore" target="_blank"
-                        >Sample 1</a
+                    <li> <a href="http://localhost:1564/qam-test/sample-client-source" target="_blank"
+                        >Client DbSource</a
                     ></li>
-                    <li> <a href="/sample-source/demo" target="_blank"
-                        >Sample 2</a
+                    <li> <a href="http://localhost:1564/qam-test/sample-server-source" target="_blank"
+                        >Server DbSource</a
                     ></li>
                 </ul>
             </li>

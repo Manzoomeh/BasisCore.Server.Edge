@@ -13,7 +13,7 @@ options = {
         "ip": "127.0.0.1",
         "port": 1026,
     },
-    "defaultRouter1": "server_dbsource",
+    "defaultRouter1": "server_source",
     "router": [{
         "dbsource": ["/source"],
         "restful": ["/rest"],
@@ -114,7 +114,7 @@ def process_count_server_member(context: edge.ServerSourceMemberContext):
 @ app.source_action(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
-def process_basiscore_client_source(context: edge.SourceContext):
+def process_basiscore_client_source(context: edge.ClientSourceContext):
     print("process_basiscore_source")
     return generate_data()
 
@@ -122,14 +122,14 @@ def process_basiscore_client_source(context: edge.SourceContext):
 @app.source_action(
     app.equal("context.command.source", "demo"),
     app.in_list("context.command.mid", "10", "20"))
-def process_demo_client_source(context: edge.SourceContext):
+def process_demo_client_source(context: edge.ClientSourceContext):
     return [row for row in generate_data() if row["id"] < 5]
 
 
 @app.source_member_action(
     app.equal("context.member.name", "list")
 )
-def process_list_client_member(context: edge.SourceMemberContext):
+def process_list_client_member(context: edge.ClientSourceMemberContext):
     print("process_list_member")
     return context.data
 
@@ -137,7 +137,7 @@ def process_list_client_member(context: edge.SourceMemberContext):
 @app.source_member_action(
     app.equal("context.member.name", "paging")
 )
-def process_page_client_member(context: edge.SourceMemberContext):
+def process_page_client_member(context: edge.ClientSourceMemberContext):
     data = {
         "total": len(context.data),
         "from": 0,
@@ -150,7 +150,7 @@ def process_page_client_member(context: edge.SourceMemberContext):
 @app.source_member_action(
     app.equal("context.member.name", "count")
 )
-def process_count_client_member(context: edge.SourceMemberContext):
+def process_count_client_member(context: edge.ClientSourceMemberContext):
     data = {
         "count": len(context.data)
     }

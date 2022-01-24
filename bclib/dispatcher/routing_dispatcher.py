@@ -6,7 +6,7 @@ from typing import Callable
 
 from bclib.utility.dict_ex import DictEx
 
-from bclib.context import SourceContext, RESTfulContext, WebContext, RequestContext, Context, SocketContext, ServerSourceContext
+from bclib.context import ClientSourceContext, RESTfulContext, WebContext, RequestContext, Context, SocketContext, ServerSourceContext
 from bclib.listener import Message, MessageType, HttpBaseDataType
 from ..dispatcher.dispatcher import Dispatcher
 
@@ -96,16 +96,16 @@ class RoutingDispatcher(Dispatcher):
         print(
             f"({context_type}::{message.type.name}){f' : {request_id} {method} {url} ' if cms_object else ''}")
 
-        if context_type == "dbsource":
-            ret_val = SourceContext(cms_object, self)
+        if context_type == "client_source":
+            ret_val = ClientSourceContext(cms_object, self)
         elif context_type == "restful":
             ret_val = RESTfulContext(cms_object, self)
+        elif context_type == "server_source":
+            ret_val = ServerSourceContext(message_json, self)
         elif context_type == "web":
             ret_val = WebContext(cms_object, self)
         elif context_type == "socket":
             ret_val = SocketContext(cms_object, self, message, message_json)
-        elif context_type == "server_dbsource":
-            ret_val = ServerSourceContext(message_json, self)
         elif context_type is None:
             raise Exception(f"No context found for '{url}'")
         else:

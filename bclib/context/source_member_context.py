@@ -1,21 +1,44 @@
+from abc import ABC, abstractmethod
+from typing import Any
+
 from ..context.merge_type import MergeType
-from ..context.context import Context
-from ..context.source_context import SourceContext
+
+from bclib.utility import DictEx
 
 
-class SourceMemberContext(Context):
-    """Context for dbSource member request"""
+class SourceMemberContext(ABC):
 
-    def __init__(self, sourceContext: SourceContext, data: list, member: dict) -> None:
-        super().__init__(sourceContext.dispatcher)
-        self.__source_context = sourceContext
-        self.member = member
-        self.data = data
-        self.cms = self.__source_context.cms
-        self.command = self.__source_context.command
-        self.url = self.__source_context.url
-        self.result: list = None
-        self.table_name: str = f"{sourceContext.command.name}.{member.name}"
-        self.key_field_name: str = None
-        self.status_field_name: str = None
-        self.merge_type: MergeType = MergeType.REPLACE
+    @property
+    @abstractmethod
+    def member(self) -> DictEx:
+        pass
+
+    @property
+    @abstractmethod
+    def data(self) -> Any:
+        pass
+
+    @property
+    @abstractmethod
+    def command(self) -> DictEx:
+        pass
+
+    @property
+    @abstractmethod
+    def table_name(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def key_field_name(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def status_field_name(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def merge_type(self) -> MergeType:
+        pass

@@ -10,7 +10,7 @@ if "options" not in dir():
             "ip": "127.0.0.1",
             "port": 1026,
         },
-        "router": "server_dbsource"
+        "router": "server_source"
     }
 
 
