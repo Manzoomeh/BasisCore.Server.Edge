@@ -17,7 +17,7 @@ if "options" not in dir():
 app = edge.from_options(options)
 
 
-@ app.cache()
+@app.cache()
 def generate_data() -> list:
     import string
     import random  # define the random module
@@ -29,13 +29,13 @@ def generate_data() -> list:
     return ret_val
 
 
-@ app.server_source_action()
+@app.server_source_action()
 def process_basiscore_source(context: edge.ServerSourceContext):
     print("process_basiscore_source", context.params.p1)
     return generate_data()
 
 
-@ app.server_source_action(
+@app.server_source_action(
     app.equal("context.command.source", "demo"),
     app.in_list("context.command.mid", "10", "20"))
 def process_demo_source(context: edge.ServerSourceContext):

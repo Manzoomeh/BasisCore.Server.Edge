@@ -4,6 +4,8 @@ import re
 from struct import error
 from typing import Callable
 
+from bclib.utility.dict_ex import DictEx
+
 from bclib.context import SourceContext, RESTfulContext, WebContext, RequestContext, Context, SocketContext, ServerSourceContext
 from bclib.listener import Message, MessageType, HttpBaseDataType
 from ..dispatcher.dispatcher import Dispatcher
@@ -13,26 +15,43 @@ class RoutingDispatcher(Dispatcher):
 
     def __init__(self, options: dict):
         super().__init__(options)
-        router = self.options["router"]
-        if isinstance(router, str):
-            self.__context_type_detector: 'Callable[[str],str]' = lambda _: router
+        self.__default_router = self.options.defaultRouter if 'defaultRouter' in self.options and isinstance(
+            self.options.defaultRouter, str) else None
+
+        if 'router' in self.options:
+            router = self.options["router"]
+            if isinstance(router, str):
+                self.__context_type_detector: 'Callable[[str],str]' = lambda _: router
+            elif isinstance(router, DictEx):
+                self.__context_type_lookup = self.options["router"].items()
+                self.__context_type_detector = self.__context_type_detect_from_lookup
+            else:
+                raise error(
+                    "Invalid value for 'router' property in host options! Use string or dict object only.")
+        elif self.__default_router:
+            self.__context_type_detector: 'Callable[[str],str]' = lambda _: self.__default_router
         else:
-            self.__context_type_lookup = self.options["router"].items()
-            self.__context_type_detector = self.__context_type_detect_from_lookup
+            raise error(
+                "Invalid routing config! Please at least set one of 'router' or 'defaultRouter' property in host options.")
 
     def __context_type_detect_from_lookup(self, url: str) -> str:
         """Detect context type from url about lookup"""
 
         context_type: str = None
-        for key, patterns in self.__context_type_lookup:
-            if key != "rabbit":
-                for pattern in patterns:
-                    if pattern == "*" or re.search(pattern, url):
-                        context_type = key
-                        break
-            if context_type is not None:
-                break
-        return context_type
+        try:
+            for key, patterns in self.__context_type_lookup:
+                if key != "rabbit":
+                    for pattern in patterns:
+                        if pattern == "*" or re.search(pattern, url):
+                            context_type = key
+                            break
+                if context_type is not None:
+                    break
+        except TypeError:
+            pass
+        except error as ex:
+            print("Error in detect context from routing options!", ex)
+        return context_type if context_type else self.__default_router
 
     def _on_message_receive(self, message: Message) -> Message:
         """Process received message"""
