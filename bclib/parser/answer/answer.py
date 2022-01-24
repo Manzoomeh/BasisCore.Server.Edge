@@ -1,5 +1,5 @@
 import json
-from typing import Any
+from typing import Any, Callable
 from .user_action_types import UserActionTypes
 from .user_action import UserAction
 
@@ -42,22 +42,22 @@ class Answer:
 
         return self.__answer_list
 
-    def __get_action(self, prp_id_list: 'list[int]', action_list: 'list[UserActionTypes]', part_list: 'list[int]') -> 'list[UserAction]':
-
-        content = list()
+    def __get_action(self, prp_id_list: 'list[int]', action_list: 'list[UserActionTypes]', part_list: 'list[int]', predicate: 'Callable[[UserAction],bool]' = None) -> 'list[UserAction]':
+        ret_val: 'list[UserAction]' = None
         if self.__answer_list is None:
             self.__fill_answer_list()
-
-        return [x for x in self.__answer_list if
-                (prp_id_list is None or x.prp_id in prp_id_list) and
-                (action_list is None or x.action in action_list) and
-                (part_list is None or x.part in part_list)
-                ]
-
-        return content
+        if predicate:
+            ret_val = [x for x in self.__answer_list if predicate(x)]
+        else:
+            ret_val = [x for x in self.__answer_list if
+                       (prp_id_list is None or x.prp_id in prp_id_list) and
+                       (action_list is None or x.action in action_list) and
+                       (part_list is None or x.part in part_list)
+                       ]
+        return ret_val if ret_val else list()
 
     def get_actions(self, prp_id: 'int|list[int]' = None, action: 'UserActionTypes|list[UserActionTypes]' = None,
-                    part: int = None) -> 'list[UserAction]':
+                    part: int = None, predicate: 'Callable[[UserAction],bool]' = None) -> 'list[UserAction]':
         """
         inputs:
         prpid: None, int or list
@@ -73,4 +73,4 @@ class Answer:
         prp_id_list = [prp_id] if isinstance(prp_id, int) else prp_id
         part_list = [part] if isinstance(part, int) else part
 
-        return self.__get_action(prp_id_list, action_list, part_list)
+        return self.__get_action(prp_id_list, action_list, part_list, predicate)

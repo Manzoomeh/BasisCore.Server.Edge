@@ -191,6 +191,8 @@ print(parser.UserActionTypes("edited"))
 my_object = parser.ParseAnswer(js)
 # print(my_object.actions())
 print(my_object.get_actions(prp_id=12345))
+print('f', my_object.get_actions(predicate=lambda x: x.prp_id ==
+      12345 or x.action == parser.UserActionTypes.DELETED))
 # print(my_object.actions(prpid=[1000,12345],))
 # print(my_object.actions(action='deleted'))
 # print(my_object.actions(action=['deleted', 'added']))
