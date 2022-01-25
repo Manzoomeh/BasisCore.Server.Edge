@@ -2,10 +2,7 @@ from bclib import edge
 
 if "options" not in dir():
     options = {
-        "server": {
-            "ip": "localhost",
-            "port": 8080,
-        },
+        "server": "localhost:8080",
         "router": {
             "client_source": ["/source"],
             "restful": ["/rest"],

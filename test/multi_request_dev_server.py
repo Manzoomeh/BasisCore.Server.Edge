@@ -2,10 +2,7 @@ from bclib import edge
 
 # if "options" not in dir():
 #     options = {
-#         "server": {
-#             "ip": "localhost",
-#             "port": 8080,
-#         },
+#         "server":"localhost:8080",
 #         "router": {
 #             "restful": ["*"],
 #         },
@@ -16,14 +13,8 @@ from bclib import edge
 #         }
 #     }
 options = {
-    "sender": {
-        "ip": "127.0.0.1",
-        "port": 1025,
-    },
-    "receiver": {
-        "ip": "127.0.0.1",
-        "port": 1026,
-    },
+    "sender": "127.0.0.1:1025",
+    "receiver": "127.0.0.1:1026",
     "router": {
         "restful": ["*"],
     },

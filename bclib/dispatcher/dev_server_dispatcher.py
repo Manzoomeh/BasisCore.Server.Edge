@@ -1,13 +1,13 @@
 import asyncio
 from ..dispatcher.socket_dispatcher import RoutingDispatcher
-from bclib.listener import EndPoint,  Message, HttpListener
+from bclib.listener import Endpoint,  Message, HttpListener
 
 
 class DevServerDispatcher(RoutingDispatcher):
     def __init__(self, options: dict):
         super().__init__(options)
         self.__listener = HttpListener(
-            EndPoint(self.options.server.ip, self.options.server.port),
+            Endpoint(self.options.server),
             self._on_message_receive)
 
     def send_message(self, message: Message) -> bool:

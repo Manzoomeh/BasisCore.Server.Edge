@@ -3,13 +3,13 @@ from typing import Callable
 from ..http_listener.MultiThreadHTTPServer import MultiThreadHTTPServer
 from ..http_listener.edge_http_request_handler import EdgeHTTPRequestHandler
 from ..message import Message
-from ..endpoint import EndPoint
+from ..endpoint import Endpoint
 
 
 class HttpListener:
-    def __init__(self, endpoint: EndPoint, callBack: 'Callable[[Message], Message]'):
+    def __init__(self, endpoint: Endpoint, callback: 'Callable[[Message], Message]'):
         self.__endpoint = endpoint
-        self.on_message_receive = callBack
+        self.on_message_receive = callback
 
     async def process_async(self):
         web_server = MultiThreadHTTPServer(

@@ -2,14 +2,8 @@ from bclib import edge
 
 if "options" not in dir():
     options = {
-        "sender": {
-            "ip": "127.0.0.1",
-            "port": 1025,
-        },
-        "receiver": {
-            "ip": "127.0.0.1",
-            "port": 1026,
-        },
+        "sender": "127.0.0.1:1025",
+        "receiver": "127.0.0.1:1026",
         "router": "server_source"
     }
 

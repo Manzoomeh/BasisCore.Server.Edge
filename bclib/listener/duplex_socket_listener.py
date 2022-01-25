@@ -3,11 +3,11 @@ import socket
 from struct import error
 from typing import Any, Callable
 from ..listener.message import Message
-from ..listener.endpoint import EndPoint
+from ..listener.endpoint import Endpoint
 
 
 class DuplexSocketListener:
-    def __init__(self, receiver: EndPoint, sender: EndPoint, on_message_receive_call_back: 'Callable[[Message], Message]'):
+    def __init__(self, receiver: Endpoint, sender: Endpoint, on_message_receive_call_back: 'Callable[[Message], Message]'):
         self.__receiver_endpoint = receiver
         self.__sender_endpoint = sender
         self.on_message_receive = on_message_receive_call_back

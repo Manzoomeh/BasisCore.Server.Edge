@@ -2,10 +2,7 @@ import edge
 
 
 options = {
-    "server": {
-        "ip": "127.0.0.1",
-        "port": 1020,
-    },
+    "server": "localhost:8080",
     "router": "restful"
 }
 

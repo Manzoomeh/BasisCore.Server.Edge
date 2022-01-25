@@ -3,13 +3,13 @@ import socket
 import json
 from struct import error
 from typing import Callable
-from ..listener.endpoint import EndPoint
+from ..listener.endpoint import Endpoint
 
 
 class SocketListener:
-    def __init__(self, endpoint: EndPoint, callBack: 'Callable[[bytes], bytes]'):
+    def __init__(self, endpoint: Endpoint, callback: 'Callable[[bytes], bytes]'):
         self.__endPoint = endpoint
-        self.__callback = callBack
+        self.__callback = callback
 
     async def __start_receiver_async(self):
         def MessageHandler(conn: socket, address, loop: asyncio.AbstractEventLoop):

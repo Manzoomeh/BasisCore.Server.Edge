@@ -3,10 +3,7 @@ from datetime import datetime
 
 
 options = {
-    "server": {
-        "ip": "localhost",
-        "port": 1010,
-    },
+    "server": "localhost:8080",
     "router": "restful",
     "cache": {
         "type": "memory",

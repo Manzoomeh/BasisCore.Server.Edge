@@ -1,7 +1,7 @@
 import asyncio
 import threading
 from ..dispatcher.routing_dispatcher import RoutingDispatcher
-from ..listener import EndPoint, DuplexSocketListener, Message
+from ..listener import Endpoint, DuplexSocketListener, Message
 
 
 class SocketDispatcher(RoutingDispatcher):
@@ -9,8 +9,8 @@ class SocketDispatcher(RoutingDispatcher):
         super().__init__(options)
         self.__lock = threading.Lock()
         self.__listener = DuplexSocketListener(
-            EndPoint(self.options.receiver.ip, self.options.receiver.port),
-            EndPoint(self.options.sender.ip, self.options.sender.port),
+            Endpoint(self.options.receiver),
+            Endpoint(self.options.sender),
             self._on_message_receive)
 
     def send_message(self, message: Message) -> bool:

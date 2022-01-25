@@ -1,13 +1,7 @@
 
 options = {
-    "sender": {
-        "ip": "127.0.0.1",
-        "port": 1025,
-    },
-    "receiver": {
-        "ip": "127.0.0.1",
-        "port": 1026,
-    },
+    "sender": "127.0.0.1:1025",
+    "receiver": "127.0.0.1:1026",
     "router": {
         "rabbit": ["asasa", '4'],
         "client_source": ["/source", "/sasa", '4', ],

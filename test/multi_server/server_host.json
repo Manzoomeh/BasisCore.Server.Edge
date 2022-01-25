@@ -1,9 +1,6 @@
 [
   {
-    "server": {
-      "ip": "localhost",
-      "port": 8080
-    },
+    "server": "localhost:8080",
     "router": {
       "client_source": [
         "/source"
@@ -18,14 +15,8 @@
     "code": "D:/Programming/Falsafi/BasisCore/Server/BasisCore.Server.Edge/test/multi_server/dev_server.py"
   },
   {
-    "sender": {
-      "ip": "127.0.0.1",
-      "port": 1025
-    },
-    "receiver": {
-      "ip": "127.0.0.1",
-      "port": 1026
-    },
+    "sender": "127.0.0.1:1025",
+    "receiver": "127.0.0.1:1026",
     "router": {
       "dbsource": [
         "/source"
