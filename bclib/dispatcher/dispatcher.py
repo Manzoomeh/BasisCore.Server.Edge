@@ -7,10 +7,11 @@ from functools import wraps
 from bclib.cache import create_chaching
 from bclib.listener import RabbitBusListener, MessageType
 from bclib.predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue, Callback
-from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext
+from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext, RequestContext
 from bclib.db_manager import DbManager
 from bclib.utility import DictEx
 from ..dispatcher.callback_info import CallbackInfo
+from bclib.exception import NotFoundErr
 
 
 class Dispatcher(ABC):
@@ -187,6 +188,10 @@ class Dispatcher(ABC):
             result = item.try_execute(context)
             if result is not None:
                 break
+        else:
+            if isinstance(context, RequestContext):
+                result = context.generate_error_responce(NotFoundErr(
+                    f"No handler found for url '{context.url}' in '{name}' collection!"))
         return result
 
     def listening(self):
