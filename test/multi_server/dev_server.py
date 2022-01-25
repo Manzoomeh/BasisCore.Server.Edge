@@ -54,7 +54,7 @@ def process_restful_request(context: edge.RESTfulContext):
 ######################
 
 
-@app.source_action(
+@app.client_source_action(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
 def process_basiscore_source(context: edge.ClientSourceContext):
@@ -62,14 +62,14 @@ def process_basiscore_source(context: edge.ClientSourceContext):
     return generate_data()
 
 
-@app.source_action(
+@app.client_source_action(
     app.equal("context.command.source", "demo"),
     app.in_list("context.command.mid", "10", "20"))
 def process_demo_source(context: edge.ClientSourceContext):
     return [row for row in generate_data() if row["id"] < 5]
 
 
-@app.source_member_action(
+@app.client_source_member_action(
     app.equal("context.member.name", "list")
 )
 def process_list_member(context: edge.ClientSourceMemberContext):
@@ -77,7 +77,7 @@ def process_list_member(context: edge.ClientSourceMemberContext):
     return context.data
 
 
-@app.source_member_action(
+@app.client_source_member_action(
     app.equal("context.member.name", "paging")
 )
 def process_page_member(context: edge.ClientSourceMemberContext):
@@ -90,7 +90,7 @@ def process_page_member(context: edge.ClientSourceMemberContext):
     return data
 
 
-@app.source_member_action(
+@app.client_source_member_action(
     app.equal("context.member.name", "count")
 )
 def process_count_member(context: edge.ClientSourceMemberContext):

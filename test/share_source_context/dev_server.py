@@ -98,7 +98,7 @@ def process_count_server_member(context: edge.ServerSourceMemberContext) -> Any:
 ######################
 
 
-@ app.source_action(
+@ app.client_source_action(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
 def process_basiscore_client_source(context: edge.ClientSourceContext):
@@ -106,7 +106,7 @@ def process_basiscore_client_source(context: edge.ClientSourceContext):
     return load_source(context)
 
 
-@app.source_member_action(
+@app.client_source_member_action(
     app.equal("context.member.name", "list")
 )
 def process_list_client_member(context: edge.ClientSourceMemberContext):
@@ -114,7 +114,7 @@ def process_list_client_member(context: edge.ClientSourceMemberContext):
     return process_list_member(context)
 
 
-@app.source_member_action(
+@app.client_source_member_action(
     app.equal("context.member.name", "paging")
 )
 def process_page_client_member(context: edge.ClientSourceMemberContext):
@@ -122,7 +122,7 @@ def process_page_client_member(context: edge.ClientSourceMemberContext):
     return process_page_member(context)
 
 
-@app.source_member_action(
+@app.client_source_member_action(
     app.equal("context.member.name", "count")
 )
 def process_count_client_member(context: edge.ClientSourceMemberContext):

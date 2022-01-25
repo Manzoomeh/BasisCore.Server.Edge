@@ -18,7 +18,7 @@ options = {
 app = dispatcher.SocketDispatcher(options)
 
 
-@ app.source_action(
+@ app.client_source_action(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
 def process_basiscore_source(context: context.ClientSourceContext):
@@ -32,7 +32,7 @@ def process_basiscore_source(context: context.ClientSourceContext):
     ]
 
 
-@app.source_action(
+@app.client_source_action(
     app.equal("context.command.source", "demo"),
     app.in_list("context.command.mid", "10", "20"))
 def process_demo_source(context: context.ClientSourceContext):
@@ -48,7 +48,7 @@ def process_demo_source(context: context.ClientSourceContext):
     return data
 
 
-@app.source_member_action(
+@app.client_source_member_action(
     app.in_list("context.command.source", "basiscore", "demo"),
     app.equal("context.member.name", "list")
 )
@@ -57,7 +57,7 @@ def process_list_member(context: context.ClientSourceMemberContext):
     return context.data
 
 
-@app.source_member_action(
+@app.client_source_member_action(
     app.in_list("context.command.source", "basiscore", "demo"),
     app.equal("context.member.name", "paging")
 )
@@ -71,7 +71,7 @@ def process_page_member(context: context.ClientSourceMemberContext):
     return data
 
 
-@app.source_member_action(
+@app.client_source_member_action(
     app.equal("context.command.source", "basiscore"),
     app.equal("context.member.name", "count")
 )

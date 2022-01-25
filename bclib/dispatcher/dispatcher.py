@@ -65,7 +65,7 @@ class Dispatcher(ABC):
             return _wrapper
         return _decorator
 
-    def source_action(self, *predicates: (Predicate)):
+    def client_source_action(self, *predicates: (Predicate)):
         """Decorator for determine source action"""
 
         def _decorator(source_action: 'Callable[[ClientSourceContext], Any]'):
@@ -100,7 +100,7 @@ class Dispatcher(ABC):
             return _wrapper
         return _decorator
 
-    def source_member_action(self, *predicates: (Predicate)):
+    def client_source_member_action(self, *predicates: (Predicate)):
         """Decorator for determine source member action methode"""
 
         def _decorator(function: 'Callable[[ClientSourceMemberContext], Any]'):
