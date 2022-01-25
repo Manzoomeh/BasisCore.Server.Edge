@@ -1,4 +1,3 @@
-from abc import abstractmethod
 import json
 import re
 from struct import error
@@ -38,19 +37,20 @@ class RoutingDispatcher(Dispatcher):
         """Detect context type from url about lookup"""
 
         context_type: str = None
-        try:
-            for key, patterns in self.__context_type_lookup:
-                if key != "rabbit":
-                    for pattern in patterns:
-                        if pattern == "*" or re.search(pattern, url):
-                            context_type = key
-                            break
-                if context_type is not None:
-                    break
-        except TypeError:
-            pass
-        except error as ex:
-            print("Error in detect context from routing options!", ex)
+        if url:
+            try:
+                for key, patterns in self.__context_type_lookup:
+                    if key != "rabbit":
+                        for pattern in patterns:
+                            if pattern == "*" or re.search(pattern, url):
+                                context_type = key
+                                break
+                    if context_type is not None:
+                        break
+            except TypeError:
+                pass
+            except error as ex:
+                print("Error in detect context from routing options!", ex)
         return context_type if context_type else self.__default_router
 
     def _on_message_receive(self, message: Message) -> Message:

@@ -1,11 +1,9 @@
 import json
-from typing import Any, TYPE_CHECKING
-from struct import error
+from typing import TYPE_CHECKING
 
-from bclib.utility import HttpMimeTypes, HttpStatusCodes
+from bclib.utility import HttpMimeTypes
 from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
 from ..context.request_context import RequestContext
-from bclib.exception import ShortCircuitErr
 
 if TYPE_CHECKING:
     from .. import dispatcher
@@ -18,17 +16,10 @@ class JsonBaseRequestContext(RequestContext):
         super().__init__(cms_object, dispatcher)
         self.mime = HttpMimeTypes.JSON
 
-    def generate_error_responce(self, error: error) -> dict:
+    def generate_error_responce(self,  exception: Exception) -> dict:
         """Generate error responce from process result"""
-        error_code = -1
-        if isinstance(error, ShortCircuitErr):
-            self.status_code = error.status_code
-            error_code = error.error_code
-        else:
-            self.status_code = HttpStatusCodes.INTERNAL_SERVER_ERROR
-
-        content = {"error_code": error_code, "error_message": str(error)}
-        return self.generate_responce(content)
+        error_object = self._generate_error_object(exception)
+        return self.generate_responce(error_object)
 
     def generate_responce(self, result: dict) -> dict:
         """Generate responce from process result"""

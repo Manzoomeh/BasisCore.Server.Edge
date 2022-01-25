@@ -388,7 +388,7 @@ def process_web_sample_source_request(context: edge.WebContext):
         """
 
 
-@ app.web_action()
+@ app.web_action(app.url("qam-testa/sample-source/:source"))
 def process_web_remain_request(context: edge.WebContext):
     print("process_web_remain_request")
     context.add_header(edge.HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")

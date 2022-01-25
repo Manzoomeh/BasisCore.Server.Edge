@@ -7,11 +7,11 @@ from functools import wraps
 from bclib.cache import create_chaching
 from bclib.listener import RabbitBusListener, MessageType
 from bclib.predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue, Callback
-from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext, RequestContext
+from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext
 from bclib.db_manager import DbManager
 from bclib.utility import DictEx
 from ..dispatcher.callback_info import CallbackInfo
-from bclib.exception import NotFoundErr
+from bclib.exception import HandlerNotFoundErr
 
 
 class Dispatcher(ABC):
@@ -183,15 +183,17 @@ class Dispatcher(ABC):
 
         result: Any = None
         name = type(context).__name__
-        items = self._get_context_lookup(name)
-        for item in items:
-            result = item.try_execute(context)
-            if result is not None:
-                break
-        else:
-            if isinstance(context, RequestContext):
-                result = context.generate_error_responce(NotFoundErr(
-                    f"No handler found for url '{context.url}' in '{name}' collection!"))
+        try:
+            items = self._get_context_lookup(name)
+            for item in items:
+                result = item.try_execute(context)
+                if result is not None:
+                    break
+            else:
+                result = context.generate_error_responce(
+                    HandlerNotFoundErr(name))
+        except Exception as ex:
+            result = context.generate_error_responce(ex)
         return result
 
     def listening(self):

@@ -1,7 +1,7 @@
 from abc import ABC
-from struct import error
-from typing import TYPE_CHECKING, Any
-from xml.dom import NotSupportedErr
+from typing import TYPE_CHECKING
+
+from bclib.exception import ShortCircuitErr
 
 if TYPE_CHECKING:
     from .. import dispatcher
@@ -35,7 +35,16 @@ class Context(ABC):
     def open_rabbit_connection(self, key: str) -> RabbitConnection:
         return self.dispatcher.db_manager.open_rabbit_connection(key)
 
-    def generate_error_responce(self,  error: error) -> dict:
+    def generate_error_responce(self, exception: Exception) -> dict:
         """Generate error responce from process result"""
-        raise NotSupportedErr(
-            'Generating error responce not supported in this type of context')
+        return self._generate_error_object(exception)
+
+    def _generate_error_object(self, exception: Exception) -> dict:
+        """Generate error object from exception object"""
+        error_code = None
+        if isinstance(exception, ShortCircuitErr):
+            self.status_code = exception.status_code
+            error_code = exception.error_code
+        else:
+            self.status_code = HttpStatusCodes.INTERNAL_SERVER_ERROR
+        return {"errorCode": error_code, "errorMessage": str(exception)}

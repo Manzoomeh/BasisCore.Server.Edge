@@ -15,7 +15,7 @@ app = edge.from_options(options)
 @app.cache()
 def generate_data() -> list:
     import string
-    import random  # define the random module
+    import random
 
     ret_val = list()
     for i in range(10):
