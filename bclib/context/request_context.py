@@ -1,5 +1,8 @@
 from abc import abstractmethod
+from struct import error
 from typing import Any, TYPE_CHECKING
+
+from exception.short_circuit_err import ShortCircuitErr
 from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
 from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes
 from ..context.context import Context
@@ -32,7 +35,17 @@ class RequestContext(Context):
         else:
             self.__headers[key].append(value)
 
-    @abstractmethod
+    def generate_error_responce(self, error: error) -> dict:
+        """Generate error responce from process result"""
+        if isinstance(error, ShortCircuitErr):
+            self.status_code = error.status_code
+            content = f"{error.error_code} - {error}"
+        else:
+            self.status_code = HttpStatusCodes.INTERNAL_SERVER_ERROR
+            content = str(error)
+
+        return self.generate_responce(content)
+
     def generate_responce(self, result: Any) -> dict:
         """Generate responce from process result"""
 

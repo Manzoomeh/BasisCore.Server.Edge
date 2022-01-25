@@ -1,11 +1,13 @@
 from abc import ABC
-from typing import TYPE_CHECKING
+from struct import error
+from typing import TYPE_CHECKING, Any
+from xml.dom import NotSupportedErr
 
 if TYPE_CHECKING:
     from .. import dispatcher
 
 from bclib.db_manager import SqlDb, SQLiteDb, MongoDb, RabbitConnection, RESTfulConnection
-from bclib.utility import DictEx
+from bclib.utility import DictEx, HttpStatusCodes
 
 
 class Context(ABC):
@@ -32,3 +34,8 @@ class Context(ABC):
 
     def open_rabbit_connection(self, key: str) -> RabbitConnection:
         return self.dispatcher.db_manager.open_rabbit_connection(key)
+
+    def generate_error_responce(self,  error: error) -> dict:
+        """Generate error responce from process result"""
+        raise NotSupportedErr(
+            'Generating error responce not supported in this type of context')

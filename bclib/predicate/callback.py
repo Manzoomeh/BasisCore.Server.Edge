@@ -1,3 +1,4 @@
+from bclib.exception import ShortCircuitErr
 from ..predicate.predicate import Predicate
 from typing import Callable
 from bclib.context import Context
@@ -13,5 +14,7 @@ class Callback (Predicate):
     def check(self, context: Context) -> bool:
         try:
             return self.__callback(context)
+        except ShortCircuitErr:
+            raise
         except:  # pylint: disable=bare-except
             return False

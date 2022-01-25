@@ -58,10 +58,9 @@ class RoutingDispatcher(Dispatcher):
 
         try:
             context = self.__context_factory(message)
-            result = self.dispatch(context)
+            response = self.dispatch(context)
             ret_val: Message = None
             if context.is_adhoc:
-                response = context.generate_responce(result)
                 message_result = json.dumps(response).encode("utf-8")
                 ret_val = Message.create_add_hock(
                     message.session_id, message_result)

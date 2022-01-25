@@ -1,6 +1,7 @@
 from typing import Any, Callable
 from ..context import Context
 from ..predicate import Predicate
+from bclib.exception import ShortCircuitErr
 
 
 class CallbackInfo:
@@ -11,7 +12,11 @@ class CallbackInfo:
     def try_execute(self, context: Context) -> Any:
         result: Any = None
         for predicate in self.__predicates:
-            if predicate.check(context) is False:
+            try:
+                if predicate.check(context) is False:
+                    break
+            except ShortCircuitErr as ex:
+                result = context.generate_error_responce(ex)
                 break
         else:
             result = self.__callback(context)

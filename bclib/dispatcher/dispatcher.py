@@ -31,47 +31,47 @@ class Dispatcher(ABC):
     def socket_action(self, * predicates: (Predicate)):
         """Decorator for determine Socket action"""
 
-        def _decorator(socket_action: 'Callable[[SocketContext], list]'):
-            @wraps(socket_action)
-            def _wrapper(context: SocketContext):
-                socket_action(context)
+        def _decorator(socket_action_handler: 'Callable[[SocketContext],None]'):
+            @wraps(socket_action_handler)
+            def wrapper(context: SocketContext):
+                socket_action_handler(context)
                 return True
             self._get_context_lookup(SocketContext.__name__)\
-                .append(CallbackInfo([*predicates], _wrapper))
-            return _wrapper
+                .append(CallbackInfo([*predicates], wrapper))
+            return socket_action_handler
         return _decorator
 
     def restful_action(self, * predicates: (Predicate)):
         """Decorator for determine RESTful action"""
 
-        def _decorator(restful_action: 'Callable[[RESTfulContext], list]'):
-            @wraps(restful_action)
-            def _wrapper(context: RESTfulContext):
-                return restful_action(context)
+        def _decorator(restful_action_handler: 'Callable[[RESTfulContext], dict]'):
+            @wraps(restful_action_handler)
+            def wrapper(context: RESTfulContext):
+                return context.generate_responce(restful_action_handler(context))
             self._get_context_lookup(RESTfulContext.__name__)\
-                .append(CallbackInfo([*predicates], _wrapper))
-            return _wrapper
+                .append(CallbackInfo([*predicates], wrapper))
+            return restful_action_handler
         return _decorator
 
     def web_action(self, * predicates: (Predicate)):
         """Decorator for determine legacy web request action"""
 
-        def _decorator(web_action: 'Callable[[WebContext], list]'):
-            @wraps(web_action)
-            def _wrapper(context: WebContext):
-                return web_action(context)
+        def _decorator(web_action_handler: 'Callable[[WebContext], str]'):
+            @wraps(web_action_handler)
+            def wrapper(context: WebContext):
+                return context.generate_responce(web_action_handler(context))
             self._get_context_lookup(WebContext.__name__)\
-                .append(CallbackInfo([*predicates], _wrapper))
-            return _wrapper
+                .append(CallbackInfo([*predicates], wrapper))
+            return web_action_handler
         return _decorator
 
     def client_source_action(self, *predicates: (Predicate)):
         """Decorator for determine source action"""
 
-        def _decorator(source_action: 'Callable[[ClientSourceContext], Any]'):
-            @wraps(source_action)
-            def _wrapper(context: ClientSourceContext):
-                data = source_action(context)
+        def _decorator(client_source_action_handler: 'Callable[[ClientSourceContext], Any]'):
+            @wraps(client_source_action_handler)
+            def wrapper(context: ClientSourceContext):
+                data = client_source_action_handler(context)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -94,33 +94,28 @@ class Dispatcher(ABC):
                     },
                     "sources": result_set
                 }
-                return ret_val
+                return context.generate_responce(ret_val)
             self._get_context_lookup(ClientSourceContext.__name__)\
-                .append(CallbackInfo([*predicates], _wrapper))
-            return _wrapper
+                .append(CallbackInfo([*predicates], wrapper))
+            return client_source_action_handler
         return _decorator
 
     def client_source_member_action(self, *predicates: (Predicate)):
         """Decorator for determine source member action methode"""
 
-        def _decorator(function: 'Callable[[ClientSourceMemberContext], Any]'):
-
-            @wraps(function)
-            def _wrapper(context: ClientSourceMemberContext):
-                return function(context)
-
+        def _decorator(client_source_member_handler: 'Callable[[ClientSourceMemberContext], Any]'):
             self._get_context_lookup(ClientSourceMemberContext.__name__)\
-                .append(CallbackInfo([*predicates], _wrapper))
-            return _wrapper
+                .append(CallbackInfo([*predicates], client_source_member_handler))
+            return client_source_member_handler
         return _decorator
 
     def server_source_action(self, *predicates: (Predicate)):
         """Decorator for determine source action"""
 
-        def _decorator(source_action: 'Callable[[ServerSourceContext], Any]'):
-            @wraps(source_action)
-            def _wrapper(context: ServerSourceContext):
-                data = source_action(context)
+        def _decorator(server_source_action_handler: 'Callable[[ServerSourceContext], Any]'):
+            @wraps(server_source_action_handler)
+            def wrapper(context: ServerSourceContext):
+                data = server_source_action_handler(context)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -143,37 +138,32 @@ class Dispatcher(ABC):
                     },
                     "sources": result_set
                 }
-                return ret_val
+                return context.generate_responce(ret_val)
             self._get_context_lookup(ServerSourceContext.__name__)\
-                .append(CallbackInfo([*predicates], _wrapper))
-            return _wrapper
+                .append(CallbackInfo([*predicates], wrapper))
+            return server_source_action_handler
         return _decorator
 
     def server_source_member_action(self, *predicates: (Predicate)):
         """Decorator for determine server source member action methode"""
 
-        def _decorator(function: 'Callable[[ServerSourceMemberContext], Any]'):
-
-            @wraps(function)
-            def _wrapper(context: ServerSourceMemberContext):
-                return function(context)
-
+        def _decorator(server_source_member_action_handler: 'Callable[[ServerSourceMemberContext], Any]'):
             self._get_context_lookup(ServerSourceMemberContext.__name__)\
-                .append(CallbackInfo([*predicates], _wrapper))
-            return _wrapper
+                .append(CallbackInfo([*predicates], server_source_member_action_handler))
+            return server_source_member_action_handler
         return _decorator
 
     def rabbit_action(self, * predicates: (Predicate)):
         """Decorator for determine rabbit-mq message request action"""
 
-        def _decorator(web_action: 'Callable[[RabbitContext], Any]'):
-            @wraps(web_action)
-            def _wrapper(context: RabbitContext):
-                web_action(context)
+        def _decorator(rabbit_action_handler: 'Callable[[RabbitContext], None]'):
+            @wraps(rabbit_action_handler)
+            def wrapper(context: RabbitContext):
+                rabbit_action_handler(context)
                 return True
             self._get_context_lookup(RabbitContext.__name__)\
-                .append(CallbackInfo([*predicates], _wrapper))
-            return _wrapper
+                .append(CallbackInfo([*predicates], wrapper))
+            return wrapper
         return _decorator
 
     def _get_context_lookup(self, key: str) -> 'list[CallbackInfo]':
