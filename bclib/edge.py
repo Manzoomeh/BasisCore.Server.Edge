@@ -7,7 +7,7 @@ from bclib.context import Context, WebContext, SocketContext, ClientSourceContex
 from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes, HttpHeaders
 from bclib.listener import Message, MessageType, HttpBaseDataType, HttpBaseDataName
 from bclib.predicate import Predicate
-from bclib.exception import ShortCircuitErr, UnauthorizedErr
+from bclib.exception import ShortCircuitErr, UnauthorizedErr, HandlerNotFoundErr, InternalServerErr, NotFoundErr
 from bclib import __version__
 
 
