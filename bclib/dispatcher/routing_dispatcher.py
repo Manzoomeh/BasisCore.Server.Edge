@@ -14,16 +14,16 @@ class RoutingDispatcher(Dispatcher):
 
     def __init__(self, options: dict):
         super().__init__(options)
-        self.__default_router = self.options.defaultRouter if 'defaultRouter' in self.options and isinstance(
-            self.options.defaultRouter, str) else None
+        self.__default_router = self.options.defaultRouter\
+            if 'defaultRouter' in self.options and isinstance(self.options.defaultRouter, str)\
+            else None
 
         if 'router' in self.options:
             router = self.options["router"]
             if isinstance(router, str):
                 self.__context_type_detector: 'Callable[[str],str]' = lambda _: router
             elif isinstance(router, DictEx):
-                self.__context_type_lookup = self.options["router"].items()
-                self.__context_type_detector = self.__context_type_detect_from_lookup
+                self.init_router_lookup()
             else:
                 raise error(
                     "Invalid value for 'router' property in host options! Use string or dict object only.")
@@ -33,19 +33,35 @@ class RoutingDispatcher(Dispatcher):
             raise error(
                 "Invalid routing config! Please at least set one of 'router' or 'defaultRouter' property in host options.")
 
+    def init_router_lookup(self):
+        """create router lookup dictionary"""
+
+        route_dict = dict()
+        for key, values in self.options["router"].items():
+            if key != 'rabbit'.strip():
+                if '*' in values:
+                    route_dict['*'] = key
+                    break
+                else:
+                    for value in values:
+                        if len(value.strip()) != 0 and value not in route_dict:
+                            route_dict[value] = key
+        if len(route_dict) == 1 and '*' in route_dict:
+            router = route_dict['*']
+            self.__context_type_detector: 'Callable[[str],str]' = lambda _: router
+        else:
+            self.__context_type_lookup = route_dict.items()
+            self.__context_type_detector = self.__context_type_detect_from_lookup
+
     def __context_type_detect_from_lookup(self, url: str) -> str:
         """Detect context type from url about lookup"""
 
         context_type: str = None
         if url:
             try:
-                for key, patterns in self.__context_type_lookup:
-                    if key != "rabbit":
-                        for pattern in patterns:
-                            if pattern == "*" or re.search(pattern, url):
-                                context_type = key
-                                break
-                    if context_type is not None:
+                for pattern, lookup_conyext_type in self.__context_type_lookup:
+                    if pattern == "*" or re.search(pattern, url):
+                        context_type = lookup_conyext_type
                         break
             except TypeError:
                 pass
