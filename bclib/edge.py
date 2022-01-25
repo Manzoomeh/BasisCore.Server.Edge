@@ -6,6 +6,7 @@ from bclib.dispatcher import Dispatcher, IDispatcher, SocketDispatcher, DevServe
 from bclib.context import Context, WebContext, SocketContext, ClientSourceContext, ClientSourceMemberContext, RabbitContext, RESTfulContext, RequestContext, MergeType, ServerSourceContext, ServerSourceMemberContext, SourceContext, SourceMemberContext
 from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes, HttpHeaders
 from bclib.listener import Message, MessageType, HttpBaseDataType, HttpBaseDataName
+from bclib.predicate import Predicate
 from bclib import __version__
 
 

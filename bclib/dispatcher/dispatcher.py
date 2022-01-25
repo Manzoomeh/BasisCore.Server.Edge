@@ -3,9 +3,10 @@ import asyncio
 from abc import ABC, abstractmethod
 from typing import Callable, Any
 from functools import wraps
+
 from bclib.cache import create_chaching
 from bclib.listener import RabbitBusListener, MessageType
-from bclib.predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue
+from bclib.predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue, Callback
 from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext
 from bclib.db_manager import DbManager
 from bclib.utility import DictEx
@@ -282,3 +283,9 @@ class Dispatcher(ABC):
         """Create has value cheking predicate"""
 
         return HasValue(expression)
+
+    @staticmethod
+    def callback(callback: 'Callable[[Context],bool]') -> Predicate:
+        """Create Callback cheking predicate"""
+
+        return Callback(callback)
