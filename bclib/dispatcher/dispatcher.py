@@ -10,29 +10,12 @@ from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebCon
 from bclib.db_manager import DbManager
 from bclib.utility import DictEx
 from ..dispatcher.callback_info import CallbackInfo
-from bclib import __version__
 
 
 class Dispatcher(ABC):
     """Base class for dispaching request"""
 
     def __init__(self, options: dict = None):
-        print(f'''
-______           _                          _____    _            
-| ___ \         (_)                        |  ___|  | |           
-| |_/ / __ _ ___ _ ___  ___ ___  _ __ ___  | |__  __| | __ _  ___ 
-| ___ \/ _` / __| / __|/ __/ _ \| '__/ _ \ |  __|/ _` |/ _` |/ _ \\
-| |_/ / (_| \__ \ \__ \ (_| (_) | | |  __/ | |__| (_| | (_| |  __/
-\____/ \__,_|___/_|___/\___\___/|_|  \___| \____/\__,_|\__, |\___|
-                                                        __/ |     
-                                                       |___/      
-                                     
-***********************************
-Welcome To BasisCore Ecosystem
-follow us on https://BasisCore.com/
-bclib Version : {__version__}
-***********************************
-''')
         self.options = DictEx(options)
         self.__look_up: 'dict[str, list[CallbackInfo]]' = dict()
         cache_options = self.options.cache if "cache" in self.options else None

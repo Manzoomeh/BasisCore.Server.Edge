@@ -9,14 +9,16 @@ from bclib.listener import Message, MessageType, HttpBaseDataType, HttpBaseDataN
 from bclib import __version__
 
 
-def from_config(file_path: str, file_name: str = "host.json"):
-    with open(Path(file_path).with_name(file_name), encoding="utf-8") as options_file:
+def from_config(option_file_path: str, file_name: str = "host.json"):
+    __print_splash(True)
+    with open(Path(option_file_path).with_name(file_name), encoding="utf-8") as options_file:
         host_config = json.load(options_file)
     process_list: 'list[multiprocessing.Process]' = list()
     for options in host_config:
-        file_path = options["code"]
+        options["__edge_multi_mode__"] = True
+        code_file_path = options["code"]
         process = multiprocessing.Process(target=__run_edge_server, args=(
-            file_path, Path(file_path).name, options))
+            code_file_path, Path(code_file_path).name, options))
         process_list.append(process)
 
     for process in process_list:
@@ -34,9 +36,32 @@ def __run_edge_server(file_path: str, file_name: str, options: dict()):
 
 
 def from_options(options: dict) -> Dispatcher:
+    if "__edge_multi_mode__" not in options:
+        __print_splash(False)
     ret_val: Dispatcher = None
     if "server" in options:
         ret_val = DevServerDispatcher(options)
     else:
         ret_val = SocketDispatcher(options)
     return ret_val
+
+
+def __print_splash(inMultiMode: bool):
+    print(f'''
+______           _                          _____    _            
+| ___ \         (_)                        |  ___|  | |           
+| |_/ / __ _ ___ _ ___  ___ ___  _ __ ___  | |__  __| | __ _  ___ 
+| ___ \/ _` / __| / __|/ __/ _ \| '__/ _ \ |  __|/ _` |/ _` |/ _ \\
+| |_/ / (_| \__ \ \__ \ (_| (_) | | |  __/ | |__| (_| | (_| |  __/
+\____/ \__,_|___/_|___/\___\___/|_|  \___| \____/\__,_|\__, |\___|
+                                                        __/ |     
+                                                       |___/      
+***********************************
+Basiscore Edge
+
+Welcome To BasisCore Ecosystem
+Follow us on https://BasisCore.com/
+bclib Version : {__version__}
+Run in {'multi' if inMultiMode else 'single'} instance mode!
+***********************************
+''')
