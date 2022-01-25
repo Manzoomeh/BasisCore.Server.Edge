@@ -3,17 +3,17 @@ from datetime import datetime
 
 
 options = {
-    "ip": "127.0.0.1",
-    "port": 1025,
-    "router": {
-        "restful": ["api/"],
+    "server": {
+        "ip": "localhost",
+        "port": 1010,
     },
+    "router": "restful",
     "cache": {
         "type": "memory",
     }
 }
 
-app = edge.SocketDispatcher(options)
+app = edge.from_options(options)
 
 
 @app.restful_action(app.url("api/data"))

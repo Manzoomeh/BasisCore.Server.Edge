@@ -18,7 +18,7 @@ options = {
     }
 }
 
-app = edge.SocketDispatcher(options)
+app = edge.from_options(options)
 ######################
 # Share Business
 ######################

@@ -1,4 +1,5 @@
 import asyncio
+import threading
 from ..dispatcher.routing_dispatcher import RoutingDispatcher
 from ..listener import EndPoint, DuplexSocketListener, Message
 
@@ -6,6 +7,7 @@ from ..listener import EndPoint, DuplexSocketListener, Message
 class SocketDispatcher(RoutingDispatcher):
     def __init__(self, options: dict):
         super().__init__(options)
+        self.__lock = threading.Lock()
         self.__listener = DuplexSocketListener(
             EndPoint(self.options.receiver.ip, self.options.receiver.port),
             EndPoint(self.options.sender.ip, self.options.sender.port),
@@ -14,7 +16,11 @@ class SocketDispatcher(RoutingDispatcher):
     def send_message(self, message: Message) -> bool:
         """Send message to endpoint"""
 
-        return self.__listener.send_message(message)
+        try:
+            self.__lock.acquire()
+            return self.__listener.send_message(message)
+        finally:
+            self.__lock.release()
 
     def listening(self):
         super().listening()
