@@ -187,15 +187,14 @@ js = {
 for action_type in parser.UserActionTypes:
     print(action_type.value)
 
-print(parser.UserActionTypes("edited"))
 my_object = parser.ParseAnswer(js)
-# print(my_object.actions())
+print(my_object.get_actions())
 print(my_object.get_actions(prp_id=12345))
 print('f', my_object.get_actions(predicate=lambda x: x.prp_id ==
-      12345 or x.action == parser.UserActionTypes.DELETED))
-# print(my_object.actions(prpid=[1000,12345],))
-# print(my_object.actions(action='deleted'))
-# print(my_object.actions(action=['deleted', 'added']))
-print(my_object.get_actions(action=[
-      parser.UserActionTypes.EDITED, parser.UserActionTypes.ADDED], part=[1, 2]))
-# print(my_object.actions(prpid=12344, action='edit', part=2))
+#       12345 or x.action == parser.UserActionTypes.DELETED))
+# print(my_object.get_actions(prp_id=[1000,12345],))
+# print(my_object.get_actions(action=[parser.UserActionTypes.DELETED]))
+# print(my_object.get_actions(action=[parser.UserActionTypes.DELETED, parser.UserActionTypes.ADDED]))
+# print(my_object.get_actions(action=[
+#       parser.UserActionTypes.EDITED, parser.UserActionTypes.ADDED], part=[1, 2]))
+# print(my_object.get_actions(prp_id=12344, action=parser.UserActionTypes.EDITED, part=2))
