@@ -1,67 +1,124 @@
 import asyncio
-import socket
-import json
-from struct import error
-from typing import Callable
+from typing import Callable, Coroutine
+from ..listener.message import Message
 from ..listener.endpoint import Endpoint
 
 
 class SocketListener:
-    def __init__(self, endpoint: Endpoint, callback: 'Callable[[bytes], bytes]'):
-        self.__endPoint = endpoint
-        self.__callback = callback
+    def __init__(self, receiver: Endpoint, sender: Endpoint, on_message_receive_call_back: 'Callable[[Message], Coroutine[Message]]'):
+        self.__receiver_endpoint = receiver
+        self.__sender_endpoint = sender
+        self.on_message_receive = on_message_receive_call_back
+        self.__sender_stream_writer: asyncio.StreamWriter = None
+        self.__receiver_server: asyncio.AbstractServer = None
+        self.__sender_server: asyncio.AbstractServer = None
 
-    async def __start_receiver_async(self):
-        def MessageHandler(conn: socket, address, loop: asyncio.AbstractEventLoop):
-            asyncio.set_event_loop(loop)
-            with conn:
-                responce = None
-                try:
-                    request = SocketListener.__read_from_socket(conn)
-                    if request:
-                        responce = self.__callback(request)
-                except error as ex:
-                    print(repr(ex))
-                    responce = SocketListener.__convert_to_responce(ex)
-                SocketListener.__write_to_socket(conn, responce)
+    async def send_message(self, message: Message) -> bool:
+        try:
+            await message.write_to_stream(self.__sender_stream_writer)
+        except Exception as ex:
+            print(f"Error in send message {ex}")
+            return False
 
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as socket_obj:
-            socket_obj.bind((self.__endPoint.url, self.__endPoint.port))
-            socket_obj.listen()
-            print(
-                f'Host service is up and ready to connect in {self.__endPoint.url}:{self.__endPoint.port}')
-
-            loop = asyncio.get_event_loop()
+    async def on_sender_client_connect(self, _: asyncio.StreamReader, writer: asyncio.StreamWriter):
+        peer_name = writer.get_extra_info('peername')
+        print(f'Reader from {peer_name}, connect to sender!')
+        if self.__sender_stream_writer and not self.__sender_stream_writer.is_closing():
+            if self.__sender_stream_writer.can_write_eof():
+                self.__sender_stream_writer.write_eof()
+                await self.__sender_stream_writer.drain()
+            self.__sender_stream_writer.close()
+            await self.__sender_stream_writer.wait_closed()
+        self.__sender_stream_writer = writer
+        cause = "closed!"
+        try:
             while True:
-                conn, address = socket_obj.accept()
-                loop.run_in_executor(None, MessageHandler, conn, address, loop)
+                await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            cause = 'closed by sender!'
+        except (ConnectionResetError, asyncio.IncompleteReadError):
+            cause = 'disconnected!'
+        finally:
+            print(
+                f'Reader from {peer_name}, {cause}')
+            if writer and not writer.is_closing():
+                if writer.can_write_eof():
+                    writer.write_eof()
+                    await writer.drain()
+                writer.close()
+                await writer.wait_closed()
 
-    @staticmethod
-    def __convert_to_responce(er: Exception):
-        data = {
-            'cms':
-            {
-                'content': f'<html><head><title>{str(er)}</title></head><body>{repr(er)}</body></html>',
-                'webserver':
-                {
-                    'index': '5',
-                    'headercode': '500 Internal Server Error'
-                }
-            }
-        }
-        return json.dumps(data).encode("utf-8")
+    async def on_receiver_client_connect(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+        peer_name = writer.get_extra_info('peername')
+        print(f'Writer from {peer_name}, connect to receiver!')
+        loop = asyncio.get_running_loop()
+        cause = "closed!"
+        try:
+            while True:
+                message = await Message.read_from_stream(reader)
+                if message:
+                    loop.create_task(self.on_message_receive(message))
+        except asyncio.CancelledError:
+            cause = 'closed by receiver!'
+        except (ConnectionResetError, asyncio.IncompleteReadError):
+            cause = 'disconnected!'
+        finally:
+            print(
+                f'Writer from {peer_name}, {cause}')
+            if writer and not writer.is_closing():
+                if writer.can_write_eof():
+                    writer.write_eof()
+                    await writer.drain()
+                writer.close()
+                await writer.wait_closed()
 
-    @staticmethod
-    def __read_from_socket(connection: socket.socket):
-        message_length_in_byte = connection.recv(4)
-        message_length = int.from_bytes(
-            message_length_in_byte, byteorder='little', signed=True)
-        return connection.recv(message_length)
+    def initialize_task(self, loop: asyncio.AbstractEventLoop):
+        async def start_servers():
+            loop = asyncio.get_running_loop()
+            try:
+                self.__sender_server = await asyncio.start_server(
+                    self.on_sender_client_connect,
+                    host=self.__sender_endpoint.url,
+                    port=self.__sender_endpoint.port)
+                print(
+                    f'Sender server up in {self.__sender_endpoint.url}:{self.__sender_endpoint.port} and wait for reader connection...')
+                self.__receiver_server = await asyncio.start_server(
+                    self.on_receiver_client_connect,
+                    host=self.__receiver_endpoint.url,
+                    port=self.__receiver_endpoint.port)
+                print(
+                    f'Receiver server up in {self.__receiver_endpoint.url}:{self.__receiver_endpoint.port} and wait for writer connection...')
+            except Exception:
+                try:
+                    if self.__sender_server:
+                        self.__sender_server.close()
+                        await self.__sender_server.wait_closed()
+                except:
+                    pass
+                try:
+                    if self.__receiver_server:
+                        self.__receiver_server.close()
+                        await self.__receiver_server.wait_closed()
+                except:
+                    pass
 
-    @staticmethod
-    def __write_to_socket(connection: socket.socket, data: list):
-        connection.send(data)
+            async def sender_loop():
+                try:
+                    async with self.__sender_server:
+                        await self.__sender_server.serve_forever()
+                except asyncio.CancelledError:
+                    self.__sender_server.close()
+                    await self.__sender_server.wait_closed()
+                    print("Sender server shutdown...")
 
-    async def process_async(self):
-        while True:
-            await asyncio.create_task(self.__start_receiver_async())
+            async def receiver_loop():
+                try:
+                    async with self.__receiver_server:
+                        await self.__receiver_server.serve_forever()
+                except asyncio.CancelledError:
+                    self.__receiver_server.close()
+                    await self.__receiver_server.wait_closed()
+                    print("Receiver server shutdown...")
+            loop.create_task(sender_loop())
+            loop.create_task(receiver_loop())
+        loop.create_task(start_servers())

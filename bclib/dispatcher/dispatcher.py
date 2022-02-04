@@ -196,6 +196,10 @@ class Dispatcher(ABC):
             result = context.generate_error_responce(ex)
         return result
 
+    def initialize_task(self, loop: asyncio.AbstractEventLoop):
+        for dispacher in self.__rabbit_dispatcher:
+            dispacher.initialize_task(loop)
+
     def listening(self):
         for dispacher in self.__rabbit_dispatcher:
             dispacher.start_listening()
@@ -207,7 +211,7 @@ class Dispatcher(ABC):
         return loop.run_in_executor(None, callback, *args)
 
     @abstractmethod
-    def send_message(self, message: MessageType) -> bool:
+    async def send_message(self, message: MessageType) -> bool:
         """Send message to endpoint"""
 
     def cache(self, seconds: int = 0, key: str = None):

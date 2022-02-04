@@ -69,7 +69,7 @@ class RoutingDispatcher(Dispatcher):
                 print("Error in detect context from routing options!", ex)
         return context_type if context_type else self.__default_router
 
-    def _on_message_receive(self, message: Message) -> Message:
+    async def _on_message_receive(self, message: Message) -> Message:
         """Process received message"""
 
         try:
@@ -80,7 +80,7 @@ class RoutingDispatcher(Dispatcher):
                 message_result = json.dumps(response).encode("utf-8")
                 ret_val = Message.create_add_hock(
                     message.session_id, message_result)
-                self.send_message(ret_val)
+                await self.send_message(ret_val)
             return ret_val
         except error as ex:
             print(f"Error in process received message {ex}")

@@ -11,8 +11,8 @@ class RabbitListener(ABC):
             param = pika.URLParameters(connection_options.url)
             self._host: str = param.host
             self._queue_name: str = connection_options.queue
-            connection = pika.BlockingConnection(param)
-            self.__channel = connection.channel()
+            self.__connection = pika.BlockingConnection(param)
+            self.__channel = self.__connection.channel()
             self.__channel.queue_declare(queue=self._queue_name)
 
             self.__channel.basic_consume(
@@ -24,6 +24,25 @@ class RabbitListener(ABC):
     @abstractmethod
     def on_rabbit_message_received(self, body):
         pass
+
+    def initialize_task(self, loop: asyncio.AbstractEventLoop):
+        loop.create_task(self.__consuming_task())
+
+    async def __consuming_task(self):
+        try:
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, self.__channel.start_consuming)
+        except asyncio.CancelledError:
+            self.__channel.stop_consuming()
+            self.__channel.cancel()
+            try:
+                self.__channel.close()
+            except:
+                pass
+            try:
+                self.__connection.close()
+            except:
+                pass
 
     def start_listening(self):
         try:
