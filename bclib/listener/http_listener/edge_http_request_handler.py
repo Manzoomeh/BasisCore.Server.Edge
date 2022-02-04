@@ -1,3 +1,4 @@
+import asyncio
 import cgi
 import io
 import datetime
@@ -42,8 +43,10 @@ class EdgeHTTPRequestHandler(BaseHTTPRequestHandler):
             cms_object = self.__create_cms_object_from_requester()
             msg = Message(str(uuid.uuid4()), MessageType.AD_HOC,
                           json.dumps(cms_object).encode())
-            result: Message = self.server.on_message_receive(msg)
-
+            loop = asyncio.new_event_loop()
+            task = loop.create_task(self.server.on_message_receive(msg))
+            loop.run_until_complete(task)
+            result: Message = task.result()
             cms: dict = json.loads(result.buffer.decode("utf-8"))
             headercode: str = cms[HttpBaseDataType.CMS][HttpBaseDataType.WEB_SERVER]["headercode"]
             self.send_response(int(headercode.split(' ')[0]))

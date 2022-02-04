@@ -11,8 +11,12 @@ class DevServerDispatcher(RoutingDispatcher):
             Endpoint(self.options.server),
             self._on_message_receive)
 
-    def send_message(self, message: Message) -> bool:
+    async def send_message(self, message: Message) -> bool:
         """Send message to endpoint"""
+
+        ret_val = asyncio.Future()
+        ret_val.set_result(None)
+        return ret_val
 
     def listening(self):
         loop = asyncio.get_event_loop()
