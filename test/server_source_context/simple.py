@@ -84,7 +84,7 @@ def process_count_server_member(context: edge.ServerSourceMemberContext):
 
 @app.web_action()
 def process_web_sample_dbsource_request(context: edge.WebContext):
-    context.responce_type = edge.ResponseTypes.RENDERABLE
+    context.response_type = edge.ResponseTypes.RENDERABLE
     return """
      <basis core="dbsource"  source="cmsDbService" mid="20" name="demo"  lid="1" dmnid="" ownerpermit="" >
         <member name="list" type="list" pageno="3" perpage="20" request="catname" order="id desc"></member>

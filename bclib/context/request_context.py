@@ -18,7 +18,7 @@ class RequestContext(Context):
         self.query: DictEx = self.cms.query
         self.form: DictEx = self.cms.form
         self.__headers: dict = None
-        self.responce_type: ResponseTypes = ResponseTypes.RENDERED
+        self.response_type: ResponseTypes = ResponseTypes.RENDERED
         self.status_code: HttpStatusCodes = HttpStatusCodes.OK
         self.mime = HttpMimeTypes.HTML
 
@@ -43,7 +43,7 @@ class RequestContext(Context):
 
         ret_val = self.cms
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER] = {
-            "index": self.responce_type.value,
+            "index": self.response_type.value,
             "headercode": self.status_code.value,
             "mime": self.mime
         }
