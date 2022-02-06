@@ -82,7 +82,7 @@ p = {
 }
 
 restful_context = RESTfulContext(p["cms"], options)
-result = app.dispatch(restful_context)
+result = app.dispatch_async(restful_context)
 print(type(result).__name__, result)
 # op = None
 # if type(result).__name__ == "tuple":

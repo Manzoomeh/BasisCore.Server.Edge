@@ -66,4 +66,5 @@ Follow us on https://BasisCore.com/
 bclib Version : {__version__}
 Run in {'multi' if inMultiMode else 'single'} instance mode!
 ***********************************
+(Press CTRL+C to quit)
 ''')

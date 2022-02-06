@@ -9,9 +9,9 @@ class DevServerDispatcher(RoutingDispatcher):
         super().__init__(options)
         self.__listener = HttpListener(
             Endpoint(self.options.server),
-            self._on_message_receive)
+            self._on_message_receive_async)
 
-    async def send_message(self, message: Message) -> bool:
+    async def send_message_async(self, message: Message) -> bool:
         """Send message to endpoint"""
 
         ret_val = asyncio.Future()

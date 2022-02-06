@@ -12,14 +12,14 @@ class SocketDispatcher(RoutingDispatcher):
         self.__listener = SocketListener(
             Endpoint(self.options.receiver),
             Endpoint(self.options.sender),
-            self._on_message_receive)
+            self._on_message_receive_async)
 
-    def send_message(self, message: Message) -> bool:
+    async def send_message_async(self, message: Message) -> bool:
         """Send message to endpoint"""
 
         try:
             self.__lock.acquire()
-            return self.__listener.send_message(message)
+            return await self.__listener.send_message_async(message)
         finally:
             self.__lock.release()
 

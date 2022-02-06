@@ -12,7 +12,7 @@ class Message:
         self.type = messageType
         self.buffer = buffer
 
-    async def write_to_stream(self, stream: asyncio.StreamWriter) -> bool:
+    async def write_to_stream_async(self, stream: asyncio.StreamWriter) -> bool:
         is_send = True
         try:
             stream.write(self.type.value.to_bytes(1, 'big'))
@@ -65,7 +65,7 @@ class Message:
         return ret_val
 
     @staticmethod
-    async def read_from_stream(stream: asyncio.StreamReader) -> 'Message':
+    async def read_from_stream_async(stream: asyncio.StreamReader) -> 'Message':
         message: Message = None
         data = await stream.readexactly(1)
         if data:

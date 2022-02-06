@@ -1,13 +1,16 @@
+import asyncio
 import json
 import re
 from struct import error
-from typing import Callable
+from typing import Callable, Any
+from abc import abstractmethod
 
-from bclib.utility.dict_ex import DictEx
+from bclib.utility import DictEx
 
 from bclib.context import ClientSourceContext, RESTfulContext, WebContext, RequestContext, Context, SocketContext, ServerSourceContext
 from bclib.listener import Message, MessageType, HttpBaseDataType
 from ..dispatcher.dispatcher import Dispatcher
+from bclib.predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue, Callback
 
 
 class RoutingDispatcher(Dispatcher):
@@ -46,7 +49,7 @@ class RoutingDispatcher(Dispatcher):
                     for value in values:
                         if len(value.strip()) != 0 and value not in route_dict:
                             route_dict[value] = key
-        if len(route_dict) == 1 and '*' in route_dict:
+        if len(route_dict) == 1 and '*' in route_dict and self.__default_router is None:
             router = route_dict['*']
             self.__context_type_detector: 'Callable[[str],str]' = lambda _: router
         else:
@@ -69,18 +72,18 @@ class RoutingDispatcher(Dispatcher):
                 print("Error in detect context from routing options!", ex)
         return context_type if context_type else self.__default_router
 
-    async def _on_message_receive(self, message: Message) -> Message:
+    async def _on_message_receive_async(self, message: Message) -> Message:
         """Process received message"""
 
         try:
             context = self.__context_factory(message)
-            response = self.dispatch(context)
+            response = await self.dispatch_async(context)
             ret_val: Message = None
             if context.is_adhoc:
                 message_result = json.dumps(response).encode("utf-8")
                 ret_val = Message.create_add_hock(
                     message.session_id, message_result)
-                await self.send_message(ret_val)
+                await self.send_message_async(ret_val)
             return ret_val
         except error as ex:
             print(f"Error in process received message {ex}")
@@ -127,3 +130,90 @@ class RoutingDispatcher(Dispatcher):
             raise Exception(
                 f"Configured context type '{context_type}' not found for '{url}'")
         return ret_val
+
+    def run_in_background(self, callback: Callable, *args: Any) -> Any:
+        """helper for run function in background thread"""
+
+        loop = asyncio.get_event_loop()
+        return loop.run_in_executor(None, callback, *args)
+
+    @abstractmethod
+    async def send_message_async(self, message: MessageType) -> bool:
+        """Send message to endpoint"""
+
+    def cache(self, seconds: int = 0, key: str = None):
+        """Cache result of function for seconds of time or until signal by key for clear"""
+
+        return self.cache_manager.cache_decorator(seconds, key)
+
+    @staticmethod
+    def in_list(expression: str, *items) -> Predicate:
+        """Create list cheking predicate"""
+
+        return InList(expression,  *items)
+
+    @staticmethod
+    def equal(expression: str, value: Any) -> Predicate:
+        """Create equality cheking predicate"""
+
+        return Equal(expression, value)
+
+    @staticmethod
+    def url(pattern: str) -> Predicate:
+        """Create url cheking predicate"""
+
+        return Url(pattern)
+
+    @staticmethod
+    def between(expression: str, min_value: int, max_value: int) -> Predicate:
+        """Create between cheking predicate"""
+
+        return Between(expression, min_value, max_value)
+
+    @staticmethod
+    def not_equal(expression: str, value: Any) -> Predicate:
+        """Create not equality cheking predicate"""
+
+        return NotEqual(expression, value)
+
+    @staticmethod
+    def greater_than(expression: str, value: int) -> Predicate:
+        """Create not greater than cheking predicate"""
+
+        return GreaterThan(expression, value)
+
+    @staticmethod
+    def less_than(expression: str, value: int) -> Predicate:
+        """Create not less than cheking predicate"""
+
+        return LessThan(expression, value)
+
+    @staticmethod
+    def less_than_equal(expression: str, value: int) -> Predicate:
+        """Create not less than and equal cheking predicate"""
+
+        return LessThanEqual(expression, value)
+
+    @staticmethod
+    def greater_than_equal(expression: str, value: int) -> Predicate:
+        """Create not less than and equal cheking predicate"""
+
+        return GreaterThanEqual(expression, value)
+
+    @staticmethod
+    def match(expression: str, value: str) -> Predicate:
+        """Create regex matching cheking predicate"""
+
+        return Match(expression, value)
+
+    @staticmethod
+    def has_value(expression: str) -> Predicate:
+        """Create has value cheking predicate"""
+
+        return HasValue(expression)
+
+    @staticmethod
+    def callback(callback: 'Callable[[Context],bool]') -> Predicate:
+        """Create Callback cheking predicate"""
+
+        return Callback(callback)

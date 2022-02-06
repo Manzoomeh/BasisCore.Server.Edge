@@ -10,20 +10,22 @@ class RESTfulConnection(Db):
         super().__init__()
         self.__api_url = connection_string
 
-    def get(self, segment: str = None, params: dict = None) -> Any:
+    async def get_async(self, segment: str = None, params: dict = None) -> Any:
         """Send get request to web api"""
 
         url = self.__api_url if segment is None else '{0}{1}'.format(
             self.__api_url, segment)
-        import requests
-        response = requests.get(url, params=params)
-        return response.json()
+        import aiohttp
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params=params) as response:
+                return await response.json()
 
-    def post(self, segment: str = None, params: dict = None) -> Any:
+    async def post_async(self, segment: str = None, params: dict = None) -> Any:
         """Send post request to web api"""
 
         url = self.__api_url if segment is None else '{0}{1}'.format(
             self.__api_url, segment)
-        import requests
-        response = requests.post(url, data=params)
-        return response.json()
+        import aiohttp
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, params=params) as response:
+                return await response.json()

@@ -2,10 +2,12 @@
   "python.linting.pylintEnabled": true,
   "python.linting.enabled": true,
   "cSpell.words": [
+    "aiohttp",
     "bclib",
     "dbsource",
     "dmnid",
     "INET",
+    "iscoroutinefunction",
     "ODBC",
     "pymongo",
     "pyodbc"

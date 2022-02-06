@@ -1,4 +1,5 @@
-import edge
+import asyncio
+from bclib import edge
 
 
 options = {
@@ -37,8 +38,9 @@ def generate_data() -> list:
 @app.client_source_action(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
-def process_basiscore_source(context: edge.ClientSourceContext):
+async def process_basiscore_source(context: edge.ClientSourceContext):
     print("process_basiscore_source")
+    await asyncio.sleep(2)
     return generate_data()
 
 

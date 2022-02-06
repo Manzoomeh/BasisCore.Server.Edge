@@ -1,15 +1,15 @@
-from typing import Any, Callable
+from typing import Any, Callable, Coroutine
 from ..context import Context
 from ..predicate import Predicate
 from bclib.exception import ShortCircuitErr
 
 
 class CallbackInfo:
-    def __init__(self, predicates: 'list[Predicate]',  callback: 'Callable[[Context], Any]') -> Any:
-        self.__callback = callback
+    def __init__(self, predicates: 'list[Predicate]',  async_callback: 'Callable[[Context], Coroutine[Any]]') -> Any:
+        self.__async_callback = async_callback
         self.__predicates = predicates
 
-    def try_execute(self, context: Context) -> Any:
+    async def try_execute_async(self, context: Context) -> Any:
         result: Any = None
         for predicate in self.__predicates:
             try:
@@ -19,5 +19,5 @@ class CallbackInfo:
                 result = context.generate_error_responce(ex)
                 break
         else:
-            result = self.__callback(context)
+            result = await self.__async_callback(context)
         return result

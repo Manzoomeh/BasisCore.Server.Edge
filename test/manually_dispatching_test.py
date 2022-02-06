@@ -173,5 +173,5 @@ p = {
 }
 
 source_context = ClientSourceContext(p["cms"], options)
-result = app.dispatch(source_context)
+result = app.dispatch_async(source_context)
 print(result)

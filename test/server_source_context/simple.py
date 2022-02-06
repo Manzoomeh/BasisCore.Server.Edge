@@ -33,14 +33,14 @@ def generate_data() -> list:
 ######################
 
 
-@ app.server_source_action(app.equal("context.command.source", "demo"))
+@ app.server_source_action(app.equal("context.command.name", "demo"))
 def process_basiscore_server_source(context: edge.ServerSourceContext):
     print("process_basiscore_source", context.params.p1)
     return generate_data()
 
 
 @ app.server_source_action(
-    app.equal("context.command.source", "demo"),
+    app.equal("context.command.name", "basiscode"),
     app.in_list("context.command.mid", "10", "20"))
 def process_demo_source(context: edge.ServerSourceContext):
     return [row for row in generate_data() if row["id"] < 5]

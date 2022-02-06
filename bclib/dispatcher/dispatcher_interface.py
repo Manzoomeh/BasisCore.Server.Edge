@@ -30,11 +30,11 @@ class IDispatcher(ABC):
         pass
 
     @abstractmethod
-    def dispatch(self, context: 'Context') -> Any:
+    async def dispatch_async(self, context: 'Context') -> Any:
         """Dispatch context and get result from related action methode"""
 
     @abstractmethod
-    def send_message(self, message: Message) -> None:
+    async def send_message_async(self, message: Message) -> None:
         """Send message to endpoint"""
 
     def run_in_background(self, callback: Callable, *args: Any) -> Any:

@@ -13,9 +13,9 @@ class SocketListener:
         self.__receiver_server: asyncio.AbstractServer = None
         self.__sender_server: asyncio.AbstractServer = None
 
-    async def send_message(self, message: Message) -> bool:
+    async def send_message_async(self, message: Message) -> bool:
         try:
-            await message.write_to_stream(self.__sender_stream_writer)
+            await message.write_to_stream_async(self.__sender_stream_writer)
         except Exception as ex:
             print(f"Error in send message {ex}")
             return False
@@ -55,7 +55,7 @@ class SocketListener:
         cause = "closed!"
         try:
             while True:
-                message = await Message.read_from_stream(reader)
+                message = await Message.read_from_stream_async(reader)
                 if message:
                     loop.create_task(self.on_message_receive(message))
         except asyncio.CancelledError:
@@ -73,7 +73,7 @@ class SocketListener:
                 await writer.wait_closed()
 
     def initialize_task(self, loop: asyncio.AbstractEventLoop):
-        async def start_servers():
+        async def start_servers_async():
             loop = asyncio.get_running_loop()
             try:
                 self.__sender_server = await asyncio.start_server(
@@ -88,7 +88,7 @@ class SocketListener:
                     port=self.__receiver_endpoint.port)
                 print(
                     f'Receiver server up in {self.__receiver_endpoint.url}:{self.__receiver_endpoint.port} and wait for writer connection...')
-            except Exception:
+            except Exception as ex:
                 try:
                     if self.__sender_server:
                         self.__sender_server.close()
@@ -101,8 +101,10 @@ class SocketListener:
                         await self.__receiver_server.wait_closed()
                 except:
                     pass
+                print(f"server not start. {repr(ex)}")
+                return
 
-            async def sender_loop():
+            async def sender_loop_async():
                 try:
                     async with self.__sender_server:
                         await self.__sender_server.serve_forever()
@@ -111,7 +113,7 @@ class SocketListener:
                     await self.__sender_server.wait_closed()
                     print("Sender server shutdown...")
 
-            async def receiver_loop():
+            async def receiver_loop_async():
                 try:
                     async with self.__receiver_server:
                         await self.__receiver_server.serve_forever()
@@ -119,6 +121,6 @@ class SocketListener:
                     self.__receiver_server.close()
                     await self.__receiver_server.wait_closed()
                     print("Receiver server shutdown...")
-            loop.create_task(sender_loop())
-            loop.create_task(receiver_loop())
-        loop.create_task(start_servers())
+            loop.create_task(sender_loop_async())
+            loop.create_task(receiver_loop_async())
+        loop.create_task(start_servers_async())

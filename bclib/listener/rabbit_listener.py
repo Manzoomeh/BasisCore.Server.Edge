@@ -30,6 +30,8 @@ class RabbitListener(ABC):
 
     async def __consuming_task(self):
         try:
+            print(
+                f'Waiting for messages from {self._host}:{self._queue_name}.')
             loop = asyncio.get_running_loop()
             await loop.run_in_executor(None, self.__channel.start_consuming)
         except asyncio.CancelledError:
@@ -43,12 +45,3 @@ class RabbitListener(ABC):
                 self.__connection.close()
             except:
                 pass
-
-    def start_listening(self):
-        try:
-            print(
-                f'Waiting for messages from {self._host}:{self._queue_name}.')
-            loop = asyncio.get_event_loop()
-            loop.run_in_executor(None, self.__channel.start_consuming)
-        except KeyboardInterrupt:
-            print('Bye!')
