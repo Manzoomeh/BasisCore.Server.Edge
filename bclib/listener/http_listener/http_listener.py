@@ -33,7 +33,7 @@ class HttpListener:
         from aiohttp import web
         from multidict import MultiDict
 
-        async def on_request_receive_async(self, request: web.Request):
+        async def on_request_receive_async(request: 'web.Request'):
             cms_object = await self.create_cms_async(request)
             msg = Message(str(uuid.uuid4()), MessageType.AD_HOC,
                           json.dumps(cms_object).encode())
@@ -83,7 +83,7 @@ class HttpListener:
             print("Development Edge server stopped.")
 
     @staticmethod
-    async def create_cms_async(request: web.Request) -> dict:
+    async def create_cms_async(request: 'web.Request') -> dict:
         cms_object = dict()
         HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
                                   HttpBaseDataName.METHODE, request.method.lower())
@@ -107,7 +107,7 @@ class HttpListener:
         return {"cms": cms_object}
 
     @staticmethod
-    async def __add_body_async(cms_object: dict, request: web.Request):
+    async def __add_body_async(cms_object: dict, request: 'web.Request'):
         content_len_str = request.headers.get('Content-Length')
         if content_len_str and request.can_read_body:
             content_len = int(content_len_str)
@@ -136,7 +136,7 @@ class HttpListener:
                             cms_object, HttpBaseDataType.FORM, key, value[0] if len(value) == 1 else value)
 
     @staticmethod
-    def __add_server_data(cms_object: dict, request: web.Request):
+    def __add_server_data(cms_object: dict, request: 'web.Request'):
         HttpListener._id += 1
         now = datetime.datetime.now()
         HttpListener.__add_header(cms_object, HttpBaseDataType.CMS,

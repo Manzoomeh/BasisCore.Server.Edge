@@ -10,7 +10,11 @@ if "options" not in dir():
 app = edge.from_options(options)
 
 
-@app.web_action(app.callback(lambda x: x.url.endswith("app")))
+async def check_async(context: edge.RequestContext):
+    return context.url.endswith("app")
+
+
+@app.web_action(app.callback(check_async))
 def process_web_action(context: edge.WebContext):
     return "result from process_web_action"
 

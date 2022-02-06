@@ -10,7 +10,7 @@ class Between(Predicate):
         self.__min_value = min_value
         self.__max_value = max_value
 
-    def check(self, context: Context) -> bool:
+    async def check_async(self, context: Context) -> bool:
         try:
             value = eval(self.exprossion, {}, {"context": context})
             return self.__min_value < int(value) < self.__max_value

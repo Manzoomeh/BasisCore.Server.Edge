@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 import multiprocessing
 
-from bclib.dispatcher import Dispatcher, IDispatcher, SocketDispatcher, DevServerDispatcher
+from bclib.dispatcher import RoutingDispatcher, IDispatcher, SocketDispatcher, DevServerDispatcher
 from bclib.context import Context, WebContext, SocketContext, ClientSourceContext, ClientSourceMemberContext, RabbitContext, RESTfulContext, RequestContext, MergeType, ServerSourceContext, ServerSourceMemberContext, SourceContext, SourceMemberContext
 from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes, HttpHeaders
 from bclib.listener import Message, MessageType, HttpBaseDataType, HttpBaseDataName
@@ -37,10 +37,10 @@ def __run_edge_server(file_path: str, file_name: str, options: dict()):
     exec(code, {"options": options})
 
 
-def from_options(options: dict) -> Dispatcher:
+def from_options(options: dict) -> RoutingDispatcher:
     if "__edge_multi_mode__" not in options:
         __print_splash(False)
-    ret_val: Dispatcher = None
+    ret_val: RoutingDispatcher = None
     if "server" in options:
         ret_val = DevServerDispatcher(options)
     else:

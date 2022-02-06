@@ -13,7 +13,7 @@ class CallbackInfo:
         result: Any = None
         for predicate in self.__predicates:
             try:
-                if predicate.check(context) is False:
+                if not (await predicate.check_async(context)):
                     break
             except ShortCircuitErr as ex:
                 result = context.generate_error_responce(ex)

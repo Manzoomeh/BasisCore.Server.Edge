@@ -2,7 +2,7 @@ import asyncio
 import json
 import re
 from struct import error
-from typing import Callable, Any
+from typing import Callable, Any, Coroutine
 from abc import abstractmethod
 
 from bclib.utility import DictEx
@@ -213,7 +213,7 @@ class RoutingDispatcher(Dispatcher):
         return HasValue(expression)
 
     @staticmethod
-    def callback(callback: 'Callable[[Context],bool]') -> Predicate:
+    def callback(callback: 'Callable[[Context],Coroutine[bool]]') -> Predicate:
         """Create Callback cheking predicate"""
 
         return Callback(callback)

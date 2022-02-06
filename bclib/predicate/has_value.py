@@ -9,7 +9,7 @@ class HasValue (Predicate):
     def __init__(self, expression: str) -> None:
         super().__init__(expression)
 
-    def check(self, context: Context) -> bool:
+    async def check_async(self, context: Context) -> bool:
         try:
             value = eval(self.exprossion, {}, {"context": context})
             return False if not value or value.isspace() else True

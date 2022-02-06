@@ -1,4 +1,3 @@
-from struct import error
 from types import FunctionType
 from bclib.context import Context
 from bclib.utility import DictEx
@@ -12,13 +11,13 @@ class Url (Predicate):
         super().__init__(expression)
         self.__validator: FunctionType = Url.__generate_validator(expression)
 
-    def check(self, context: Context) -> bool:
+    async def check_async(self, context: Context) -> bool:
         try:
             is_ok, url_parts = self.__validator(context.url)
             if is_ok and url_parts:
                 context.url_segments = DictEx(url_parts)
             return is_ok
-        except error as ex:
+        except Exception as ex:
             print("Error in check url predicate", ex)
             return False
 

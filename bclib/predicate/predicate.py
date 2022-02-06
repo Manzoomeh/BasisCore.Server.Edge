@@ -10,5 +10,5 @@ class Predicate(ABC):
         self.exprossion = expression
 
     @abstractmethod
-    def check(self, context: Context) -> bool:
+    async def check_async(self, context: Context) -> bool:
         """Applay cheking for predicate"""
