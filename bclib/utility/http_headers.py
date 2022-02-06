@@ -1,3 +1,9 @@
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from bclib.context import RequestContext
+
+
 class HttpHeaders:
     ACCESS_CONTROL_ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials"
     ACCESS_CONTROL_ALLOW_HEADERS = "Access-Control-Allow-Headers"
@@ -61,3 +67,9 @@ class HttpHeaders:
     X_ROBOTS_TAG = "X-Robots-Tag"
     X_UA_COMPATIBLE = "X-UA-Compatible"
     X_XSS_PROTECTION = "X-XSS-Protection"
+
+    @staticmethod
+    def add_cors_headers(context: 'RequestContext'):
+        context.add_header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+        context.add_header(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
+                           "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With")

@@ -5,16 +5,18 @@ import datetime
 import json
 import sys
 import uuid
-from typing import Callable, Coroutine
-from aiohttp import web
+from typing import Callable, Coroutine, TYPE_CHECKING
+
 from urllib.parse import unquote, parse_qs
-from multidict import MultiDict
 from ..endpoint import Endpoint
 from ..http_listener.http_base_data_name import HttpBaseDataName
 from ..http_listener.http_base_data_type import HttpBaseDataType
 
 from ..message_type import MessageType
 from ..message import Message
+
+if TYPE_CHECKING:
+    from aiohttp import web
 
 
 class HttpListener:
@@ -28,9 +30,37 @@ class HttpListener:
         loop.create_task(self.__server_task())
 
     async def __server_task(self):
+        from aiohttp import web
+        from multidict import MultiDict
+
+        async def on_request_receive_async(self, request: web.Request):
+            cms_object = await self.create_cms_async(request)
+            msg = Message(str(uuid.uuid4()), MessageType.AD_HOC,
+                          json.dumps(cms_object).encode())
+            result = await self.on_message_receive_async(msg)
+            cms: dict = json.loads(result.buffer.decode("utf-8"))
+            headercode: str = cms[HttpBaseDataType.CMS][HttpBaseDataType.WEB_SERVER]["headercode"]
+            mime = cms[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["mime"]
+            headers: MultiDict = None
+            if HttpBaseDataName.HTTP in cms[HttpBaseDataType.CMS]:
+                http: dict = cms[HttpBaseDataType.CMS][HttpBaseDataName.HTTP]
+                if http:
+                    headers = MultiDict()
+                    for key, value in http.items():
+                        if isinstance(value, list):
+                            for item in value:
+                                headers.add(key, item)
+                        else:
+                            headers.add(key, item)
+            return web.Response(
+                status=int(headercode.split(' ')[0]),
+                headers=headers,
+                content_type=mime,
+                text=cms[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT])
+
         app = web.Application()
         app.add_routes(
-            [web.route('*', '/{tail:.*}', self.on_request_receive_async)])
+            [web.route('*', '/{tail:.*}', on_request_receive_async)])
         runner = web.AppRunner(app)
         await runner.setup()
         site = web.TCPSite(runner, self.__endpoint.url, self.__endpoint.port)
@@ -51,31 +81,6 @@ class HttpListener:
         except asyncio.CancelledError:
             await site.stop()
             print("Development Edge server stopped.")
-
-    async def on_request_receive_async(self, request: web.Request):
-        cms_object = await self.create_cms_async(request)
-        msg = Message(str(uuid.uuid4()), MessageType.AD_HOC,
-                      json.dumps(cms_object).encode())
-        result = await self.on_message_receive_async(msg)
-        cms: dict = json.loads(result.buffer.decode("utf-8"))
-        headercode: str = cms[HttpBaseDataType.CMS][HttpBaseDataType.WEB_SERVER]["headercode"]
-        mime = cms[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["mime"]
-        headers: MultiDict = None
-        if HttpBaseDataName.HTTP in cms[HttpBaseDataType.CMS]:
-            http: dict = cms[HttpBaseDataType.CMS][HttpBaseDataName.HTTP]
-            if http:
-                headers = MultiDict()
-                for key, value in http.items():
-                    if isinstance(value, list):
-                        for item in value:
-                            headers.add(key, item)
-                    else:
-                        headers.add(key, item)
-        return web.Response(
-            status=int(headercode.split(' ')[0]),
-            headers=headers,
-            content_type=mime,
-            text=cms[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT])
 
     @staticmethod
     async def create_cms_async(request: web.Request) -> dict:
