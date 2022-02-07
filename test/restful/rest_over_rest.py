@@ -24,10 +24,8 @@ def process_default_web_action(context: edge.RESTfulContext):
 @app.restful_action()
 async def process_default_web_action_async(context: edge.RESTfulContext):
     api = context.open_restful_connection("rest_demo")
-    print("1", asyncio.get_running_loop())
     data = await api.post_async(params={"name": "ali"})
     await asyncio.sleep(2)
-    print("2")
     return {"data": "result from process_default_web_action", "param": data}
 
 

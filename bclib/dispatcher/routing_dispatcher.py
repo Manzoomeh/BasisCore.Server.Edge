@@ -131,10 +131,10 @@ class RoutingDispatcher(Dispatcher):
                 f"Configured context type '{context_type}' not found for '{url}'")
         return ret_val
 
-    def run_in_background(self, callback: Callable, *args: Any) -> Any:
+    def run_in_background(self, callback: Callable, *args: Any) -> asyncio.Future:
         """helper for run function in background thread"""
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return loop.run_in_executor(None, callback, *args)
 
     @abstractmethod

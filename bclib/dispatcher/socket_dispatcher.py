@@ -31,8 +31,8 @@ class SocketDispatcher(RoutingDispatcher):
         self.__listener.initialize_task(loop)
         loop.run_forever()
         tasks = asyncio.all_tasks(loop=loop)
-        for t in tasks:
-            t.cancel()
+        for task in tasks:
+            task.cancel()
         group = asyncio.gather(*tasks, return_exceptions=True)
         loop.run_until_complete(group)
         loop.close()

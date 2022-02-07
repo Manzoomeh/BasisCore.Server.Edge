@@ -37,7 +37,7 @@ class RabbitSignaller(SignalerBase):
                 queue=queue_name, on_message_callback=on_rabbit_message_received, auto_ack=True)
 
             print(f'Waiting for messages from {param.host}:{queue_name}.')
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             loop.run_in_executor(None, channel.start_consuming)
         except Exception as ex:
             print(f"Error in config rabbit-mq ({ex})")
