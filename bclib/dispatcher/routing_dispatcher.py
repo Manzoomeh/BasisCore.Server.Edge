@@ -2,18 +2,19 @@ import asyncio
 import json
 import re
 from struct import error
-from typing import Callable, Any, Coroutine
+from typing import Callable, Any
 from abc import abstractmethod
 
 from bclib.utility import DictEx
 
 from bclib.context import ClientSourceContext, RESTfulContext, WebContext, RequestContext, Context, SocketContext, ServerSourceContext
 from bclib.listener import Message, MessageType, HttpBaseDataType
+
+from ..dispatcher.dispatcher_helper import DispatcherHelper
 from ..dispatcher.dispatcher import Dispatcher
-from bclib.predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue, Callback
 
 
-class RoutingDispatcher(Dispatcher):
+class RoutingDispatcher(Dispatcher, DispatcherHelper):
 
     def __init__(self, options: dict):
         super().__init__(options)
@@ -145,75 +146,3 @@ class RoutingDispatcher(Dispatcher):
         """Cache result of function for seconds of time or until signal by key for clear"""
 
         return self.cache_manager.cache_decorator(seconds, key)
-
-    @staticmethod
-    def in_list(expression: str, *items) -> Predicate:
-        """Create list cheking predicate"""
-
-        return InList(expression,  *items)
-
-    @staticmethod
-    def equal(expression: str, value: Any) -> Predicate:
-        """Create equality cheking predicate"""
-
-        return Equal(expression, value)
-
-    @staticmethod
-    def url(pattern: str) -> Predicate:
-        """Create url cheking predicate"""
-
-        return Url(pattern)
-
-    @staticmethod
-    def between(expression: str, min_value: int, max_value: int) -> Predicate:
-        """Create between cheking predicate"""
-
-        return Between(expression, min_value, max_value)
-
-    @staticmethod
-    def not_equal(expression: str, value: Any) -> Predicate:
-        """Create not equality cheking predicate"""
-
-        return NotEqual(expression, value)
-
-    @staticmethod
-    def greater_than(expression: str, value: int) -> Predicate:
-        """Create not greater than cheking predicate"""
-
-        return GreaterThan(expression, value)
-
-    @staticmethod
-    def less_than(expression: str, value: int) -> Predicate:
-        """Create not less than cheking predicate"""
-
-        return LessThan(expression, value)
-
-    @staticmethod
-    def less_than_equal(expression: str, value: int) -> Predicate:
-        """Create not less than and equal cheking predicate"""
-
-        return LessThanEqual(expression, value)
-
-    @staticmethod
-    def greater_than_equal(expression: str, value: int) -> Predicate:
-        """Create not less than and equal cheking predicate"""
-
-        return GreaterThanEqual(expression, value)
-
-    @staticmethod
-    def match(expression: str, value: str) -> Predicate:
-        """Create regex matching cheking predicate"""
-
-        return Match(expression, value)
-
-    @staticmethod
-    def has_value(expression: str) -> Predicate:
-        """Create has value cheking predicate"""
-
-        return HasValue(expression)
-
-    @staticmethod
-    def callback(callback: 'Callable[[Context],Coroutine[bool]]') -> Predicate:
-        """Create Callback cheking predicate"""
-
-        return Callback(callback)

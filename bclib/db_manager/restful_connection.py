@@ -27,5 +27,5 @@ class RESTfulConnection(Db):
             self.__api_url, segment)
         import aiohttp
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, params=params) as response:
+            async with session.post(url, json=params) as response:
                 return await response.json()

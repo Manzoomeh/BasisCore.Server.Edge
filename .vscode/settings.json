@@ -6,6 +6,8 @@
     "bclib",
     "dbsource",
     "dmnid",
+    "idispatcher",
+    "ilogger",
     "INET",
     "iscoroutinefunction",
     "ODBC",

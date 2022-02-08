@@ -31,7 +31,7 @@ def generate_data() -> list:
 
 
 @app.server_source_action()
-@ app.client_source_action(
+@app.client_source_action(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
 def load_source(context: edge.SourceContext) -> Any:

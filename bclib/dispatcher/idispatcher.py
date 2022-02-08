@@ -39,3 +39,6 @@ class IDispatcher(ABC):
 
     def run_in_background(self, callback: Callable, *args: Any) -> Any:
         """helper for run function in background thread"""
+
+    def log_async(self, **kwargs: 'dict[str,Any]'):
+        """log params bt internal precess"""

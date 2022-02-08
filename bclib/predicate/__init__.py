@@ -11,3 +11,5 @@ from bclib.predicate.greater_than_equal import GreaterThanEqual
 from bclib.predicate.match import Match
 from bclib.predicate.has_value import HasValue
 from bclib.predicate.callback import Callback
+from bclib.predicate.all import All
+from bclib.predicate.any import Any

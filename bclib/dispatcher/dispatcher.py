@@ -5,14 +5,15 @@ from abc import ABC
 from typing import Callable, Any
 from functools import wraps
 
+from bclib.logger import ILogger, LoggerFactory
 from bclib.cache import create_chaching
 from bclib.listener import RabbitBusListener
 from bclib.predicate import Predicate
 from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext
 from bclib.db_manager import DbManager
 from bclib.utility import DictEx
-from ..dispatcher.callback_info import CallbackInfo
 from bclib.exception import HandlerNotFoundErr
+from ..dispatcher.callback_info import CallbackInfo
 
 
 class Dispatcher(ABC):
@@ -24,6 +25,7 @@ class Dispatcher(ABC):
         cache_options = self.options.cache if "cache" in self.options else None
         self.cache_manager = create_chaching(cache_options)
         self.db_manager = DbManager(self.options)
+        self.__logger: ILogger = LoggerFactory.create(self.options)
         self.__rabbit_dispatcher: 'list[RabbitBusListener]' = list()
         if "router" in self.options and "rabbit" in self.options.router:
             for setting in self.options.router.rabbit:
@@ -33,17 +35,15 @@ class Dispatcher(ABC):
     def socket_action(self, * predicates: (Predicate)):
         """Decorator for determine Socket action"""
 
-        def _decorator(socket_action_handler: 'Callable[[SocketContext],None]'):
+        def _decorator(socket_action_handler: 'Callable[[SocketContext],bool]'):
 
             @wraps(socket_action_handler)
             async def non_async_wrapper(context: SocketContext):
-                socket_action_handler(context)
-                return True
+                return socket_action_handler(context)
 
             @wraps(socket_action_handler)
             async def async_wrapper(context: SocketContext):
-                await socket_action_handler(context)
-                return True
+                return await socket_action_handler(context)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 socket_action_handler) else non_async_wrapper
@@ -274,16 +274,15 @@ class Dispatcher(ABC):
     def rabbit_action(self, * predicates: (Predicate)):
         """Decorator for determine rabbit-mq message request action"""
 
-        def _decorator(rabbit_action_handler: 'Callable[[RabbitContext], None]'):
+        def _decorator(rabbit_action_handler: 'Callable[[RabbitContext], bool]'):
+
             @wraps(rabbit_action_handler)
             async def non_async_wrapper(context: RabbitContext):
-                rabbit_action_handler(context)
-                return True
+                return rabbit_action_handler(context)
 
             @wraps(rabbit_action_handler)
             async def async_wrapper(context: RabbitContext):
-                rabbit_action_handler(context)
-                return True
+                return await rabbit_action_handler(context)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 rabbit_action_handler) else non_async_wrapper
@@ -326,3 +325,7 @@ class Dispatcher(ABC):
     def initialize_task(self, loop: asyncio.AbstractEventLoop):
         for dispacher in self.__rabbit_dispatcher:
             dispacher.initialize_task(loop)
+
+    async def log_async(self, **kwargs):
+        """log params bt internal precess"""
+        await self.__logger.log_async(**kwargs)
