@@ -1,5 +1,4 @@
 import asyncio
-import signal
 from ..dispatcher.socket_dispatcher import RoutingDispatcher
 from bclib.listener import Endpoint,  Message, HttpListener
 
@@ -18,16 +17,6 @@ class DevServerDispatcher(RoutingDispatcher):
         ret_val.set_result(None)
         return ret_val
 
-    def listening(self):
-        loop = asyncio.get_event_loop()
-        for sig in (signal.SIGTERM, signal.SIGINT):
-            signal.signal(sig, lambda sig, _: loop.stop())
-        super().initialize_task(loop)
-        self.__listener.initialize_task(loop)
-        loop.run_forever()
-        tasks = asyncio.all_tasks(loop=loop)
-        for t in tasks:
-            t.cancel()
-        group = asyncio.gather(*tasks, return_exceptions=True)
-        loop.run_until_complete(group)
-        loop.close()
+    def initialize_task(self):
+        super().initialize_task()
+        self.__listener.initialize_task(self.event_loop)

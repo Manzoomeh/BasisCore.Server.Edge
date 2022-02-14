@@ -1,6 +1,7 @@
 """Dispatcher base class module"""
 from abc import ABC, abstractmethod
-from typing import Callable, Any, TYPE_CHECKING
+import asyncio
+from typing import Callable, Any, TYPE_CHECKING, Coroutine
 
 from bclib.db_manager import DbManager
 from bclib.cache import CacheManager
@@ -13,6 +14,11 @@ if TYPE_CHECKING:
 
 class IDispatcher(ABC):
     """Dispatcher base class with core functionality for manage cache and background process"""
+
+    @property
+    @abstractmethod
+    def event_loop(self) -> asyncio.AbstractEventLoop:
+        pass
 
     @property
     @abstractmethod
@@ -41,4 +47,7 @@ class IDispatcher(ABC):
         """helper for run function in background thread"""
 
     def log_async(self, **kwargs: 'dict[str,Any]'):
-        """log params bt internal precess"""
+        """log params"""
+
+    def log(self, **kwargs: 'dict[str,Any]') -> Coroutine:
+        """log params in background precess"""

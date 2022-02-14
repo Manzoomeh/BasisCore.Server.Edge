@@ -5,8 +5,13 @@ options = {
     "server": "localhost:8080",
     "router": "restful",
     "logger": {
-        "type": "schema",
-        "url": "http://localhost:8080/log-schema"
+        "type": "schema.rabbit",
+        "url": "http://localhost:8080/log-schema",
+        "connection":
+        {
+            "url": "amqp://guest:guest@localhost:5672",
+            "queue": "hello"
+        }
     }
 }
 
@@ -72,13 +77,26 @@ def save_schema(context: edge.RESTfulContext):
     print("must be save", context.body.schema)
 
 
-@app.restful_action()
-async def process_restful_request(context: edge.RESTfulContext):
-    print("process_restful_request")
+@app.restful_action(app.url("async"))
+def process_restful_request_with_log_in_background(context: edge.RESTfulContext):
+    print("process_restful_request_with_log_in_background")
     data_1 = 12
     data_2 = "ok"
+    print("befor log")
+    context.dispatcher.log(**locals(), data_3="333", schema_id=1161)
+    print("after log")
+    return {"result": "ok from async"}
+
+
+@app.restful_action()
+async def process_restful_request_with_log_and_wait(context: edge.RESTfulContext):
+    print("process_restful_request_with_log_and_wait")
+    data_1 = 12
+    data_2 = "ok"
+    print("befor log")
     await context.dispatcher.log_async(**locals(), data_3="333", schema_id=1161)
-    return {"result": "ok"}
+    print("after log")
+    return {"result": "ok from sync"}
 
 
 app.listening()

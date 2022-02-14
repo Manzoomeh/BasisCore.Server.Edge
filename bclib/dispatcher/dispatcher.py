@@ -2,7 +2,8 @@
 import asyncio
 import inspect
 from abc import ABC
-from typing import Callable, Any
+import signal
+from typing import Callable, Any, Coroutine
 from functools import wraps
 
 from bclib.logger import ILogger, LoggerFactory
@@ -23,6 +24,7 @@ class Dispatcher(ABC):
         self.options = DictEx(options)
         self.__look_up: 'dict[str, list[CallbackInfo]]' = dict()
         cache_options = self.options.cache if "cache" in self.options else None
+        self.event_loop = asyncio.get_event_loop()
         self.cache_manager = create_chaching(cache_options)
         self.db_manager = DbManager(self.options)
         self.__logger: ILogger = LoggerFactory.create(self.options)
@@ -322,10 +324,28 @@ class Dispatcher(ABC):
             result = context.generate_error_responce(ex)
         return result
 
-    def initialize_task(self, loop: asyncio.AbstractEventLoop):
+    def initialize_task(self):
         for dispacher in self.__rabbit_dispatcher:
-            dispacher.initialize_task(loop)
+            dispacher.initialize_task(self.event_loop)
+
+    def listening(self):
+        """Start listening to request for process"""
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            signal.signal(sig, lambda sig, _: self.event_loop.stop())
+        self.initialize_task()
+        self.event_loop.run_forever()
+        tasks = asyncio.all_tasks(loop=self.event_loop)
+        for task in tasks:
+            task.cancel()
+        group = asyncio.gather(*tasks, return_exceptions=True)
+        self.event_loop.run_until_complete(group)
+        self.event_loop.close()
 
     async def log_async(self, **kwargs):
-        """log params bt internal precess"""
+        """log params"""
         await self.__logger.log_async(**kwargs)
+
+    def log(self, **kwargs) -> Coroutine:
+        """log params in background precess"""
+        return self.event_loop.create_task(
+            self.__logger.log_async(**kwargs))
