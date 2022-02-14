@@ -7,6 +7,7 @@ options = {
     "logger": {
         "type": "schema.rabbit",
         "url": "http://localhost:8080/log-schema",
+        # "get_url":"http://localhost:8080/log-schema",
         "connection":
         {
             "url": "amqp://guest:guest@localhost:5672",

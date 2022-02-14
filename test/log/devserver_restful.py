@@ -7,6 +7,8 @@ options = {
     "logger": {
         "type": "schema.restful",
         "url": "http://localhost:8080/log-schema"
+        # "get_url":"http://localhost:8080/log-schema",
+        # "post_url":"http://localhost:8080/log-schema",
     }
 }
 
