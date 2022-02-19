@@ -81,7 +81,8 @@ def process_restful_request_with_log_in_background(context: edge.RESTfulContext)
     data_1 = 12
     data_2 = "ok"
     print("befor log")
-    context.dispatcher.log(**locals(), data_3="333", schema_id=1161)
+    context.dispatcher.log_in_background(
+        **locals(), data_3="333", schema_id=1161)
     print("after log")
     return {"result": "ok from async"}
 

@@ -357,7 +357,7 @@ class Dispatcher(ABC):
         """log params"""
         await self.__logger.log_async(**kwargs)
 
-    def log(self, **kwargs) -> Coroutine:
+    def log_in_background(self, **kwargs) -> Coroutine:
         """log params in background precess"""
         return self.event_loop.create_task(
             self.__logger.log_async(**kwargs))

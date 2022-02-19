@@ -49,5 +49,5 @@ class IDispatcher(ABC):
     def log_async(self, **kwargs: 'dict[str,Any]'):
         """log params"""
 
-    def log(self, **kwargs: 'dict[str,Any]') -> Coroutine:
+    def log_in_background(self, **kwargs: 'dict[str,Any]') -> Coroutine:
         """log params in background precess"""
