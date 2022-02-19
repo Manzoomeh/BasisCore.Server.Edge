@@ -72,6 +72,7 @@ def get_schema_by_id(context: edge.RESTfulContext):
 @app.restful_action(app.post("log-schema"))
 def save_schema(context: edge.RESTfulContext):
     print("must be save", context.body.schema)
+    return True
 
 
 @app.restful_action(app.url("async"))

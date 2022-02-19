@@ -62,11 +62,13 @@ class Dispatcher(ABC):
 
             @wraps(restful_action_handler)
             async def non_async_wrapper(context: RESTfulContext):
-                return context.generate_responce(restful_action_handler(context))
+                action_result = restful_action_handler(context)
+                return None if action_result is None else context.generate_responce(action_result)
 
             @wraps(restful_action_handler)
             async def async_wrapper(context: RESTfulContext):
-                return context.generate_responce(await restful_action_handler(context))
+                action_result = await restful_action_handler(context)
+                return None if action_result is None else context.generate_responce(action_result)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 restful_action_handler) else non_async_wrapper
@@ -83,11 +85,13 @@ class Dispatcher(ABC):
 
             @wraps(web_action_handler)
             async def non_async_wrapper(context: WebContext):
-                return context.generate_responce(web_action_handler(context))
+                action_result = web_action_handler(context)
+                return None if action_result is None else context.generate_responce(action_result)
 
             @wraps(web_action_handler)
             async def async_wrapper(context: WebContext):
-                return context.generate_responce(await web_action_handler(context))
+                action_result = await web_action_handler(context)
+                return None if action_result is None else context.generate_responce(action_result)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 web_action_handler) else non_async_wrapper
@@ -120,13 +124,15 @@ class Dispatcher(ABC):
                             "data": dispath_result
                         }
                         result_set.append(result)
-                ret_val = {
-                    "setting": {
-                        "keepalive": False,
-                    },
-                    "sources": result_set
-                }
-                return context.generate_responce(ret_val)
+                    ret_val = {
+                        "setting": {
+                            "keepalive": False,
+                        },
+                        "sources": result_set
+                    }
+                    return context.generate_responce(ret_val)
+                else:
+                    return None
 
             @wraps(client_source_action_handler)
             async def async_wrapper(context: ClientSourceContext):
@@ -147,13 +153,15 @@ class Dispatcher(ABC):
                             "data": dispath_result
                         }
                         result_set.append(result)
-                ret_val = {
-                    "setting": {
-                        "keepalive": False,
-                    },
-                    "sources": result_set
-                }
-                return context.generate_responce(ret_val)
+                    ret_val = {
+                        "setting": {
+                            "keepalive": False,
+                        },
+                        "sources": result_set
+                    }
+                    return context.generate_responce(ret_val)
+                else:
+                    return None
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 client_source_action_handler) else non_async_wrapper
@@ -208,13 +216,15 @@ class Dispatcher(ABC):
                             "data": dispath_result
                         }
                         result_set.append(result)
-                ret_val = {
-                    "setting": {
-                        "keepalive": False,
-                    },
-                    "sources": result_set
-                }
-                return context.generate_responce(ret_val)
+                    ret_val = {
+                        "setting": {
+                            "keepalive": False,
+                        },
+                        "sources": result_set
+                    }
+                    return context.generate_responce(ret_val)
+                else:
+                    return None
 
             @wraps(server_source_action_handler)
             async def async_wrapper(context: ServerSourceContext):
@@ -235,13 +245,15 @@ class Dispatcher(ABC):
                             "data": dispath_result
                         }
                         result_set.append(result)
-                ret_val = {
-                    "setting": {
-                        "keepalive": False,
-                    },
-                    "sources": result_set
-                }
-                return context.generate_responce(ret_val)
+                    ret_val = {
+                        "setting": {
+                            "keepalive": False,
+                        },
+                        "sources": result_set
+                    }
+                    return context.generate_responce(ret_val)
+                else:
+                    return None
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 server_source_action_handler) else non_async_wrapper
