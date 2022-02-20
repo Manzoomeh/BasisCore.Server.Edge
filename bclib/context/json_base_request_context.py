@@ -16,15 +16,15 @@ class JsonBaseRequestContext(RequestContext):
         super().__init__(cms_object, dispatcher)
         self.mime = HttpMimeTypes.JSON
 
-    def generate_error_responce(self,  exception: Exception) -> dict:
-        """Generate error responce from process result"""
+    def generate_error_response(self,  exception: Exception) -> dict:
+        """Generate error response from process result"""
         error_object = self._generate_error_object(exception)
-        return self.generate_responce(error_object)
+        return self.generate_response(error_object)
 
-    def generate_responce(self, result: dict) -> dict:
-        """Generate responce from process result"""
+    def generate_response(self, result: dict) -> dict:
+        """Generate response from process result"""
 
-        ret_val = super().generate_responce(result)
+        ret_val = super().generate_response(result)
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT] = json.dumps(
             result)
         return ret_val

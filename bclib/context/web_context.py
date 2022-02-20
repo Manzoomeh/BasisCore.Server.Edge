@@ -14,7 +14,7 @@ class WebContext(RequestContext):
         self.process_async = True
         self.mime = HttpMimeTypes.HTML
 
-    def generate_responce(self, result: Any) -> dict:
-        ret_val = super().generate_responce(result)
+    def generate_response(self, result: Any) -> dict:
+        ret_val = super().generate_response(result)
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT] = result
         return ret_val

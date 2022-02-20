@@ -16,7 +16,7 @@ class CallbackInfo:
                 if not (await predicate.check_async(context)):
                     break
             except ShortCircuitErr as ex:
-                result = context.generate_error_responce(ex)
+                result = context.generate_error_response(ex)
                 break
         else:
             result = await self.__async_callback(context)

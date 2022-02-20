@@ -1,4 +1,3 @@
-
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -24,5 +23,5 @@ class ServerSourceContext(Context):
         self.command = parser.get_dict_ex()
         self.process_async = True
 
-    def generate_responce(self, result: Any) -> dict:
+    def generate_response(self, result: Any) -> dict:
         return result

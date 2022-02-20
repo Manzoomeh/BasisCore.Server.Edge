@@ -32,14 +32,14 @@ class RequestContext(Context):
         else:
             self.__headers[key].append(value)
 
-    def generate_error_responce(self, exception: Exception) -> dict:
-        """Generate error responce from process result"""
+    def generate_error_response(self, exception: Exception) -> dict:
+        """Generate error response from process result"""
         error_object = self._generate_error_object(exception)
         content = f"{error_object['errorMessage']} (Error Code: {error_object['errorCode']})"
-        return self.generate_responce(content)
+        return self.generate_response(content)
 
-    def generate_responce(self, result: Any) -> dict:
-        """Generate responce from process result"""
+    def generate_response(self, result: Any) -> dict:
+        """Generate response from process result"""
 
         ret_val = self.cms
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER] = {

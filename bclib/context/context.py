@@ -35,8 +35,8 @@ class Context(ABC):
     def open_rabbit_connection(self, key: str) -> RabbitConnection:
         return self.dispatcher.db_manager.open_rabbit_connection(key)
 
-    def generate_error_responce(self, exception: Exception) -> dict:
-        """Generate error responce from process result"""
+    def generate_error_response(self, exception: Exception) -> dict:
+        """Generate error response from process result"""
         return self._generate_error_object(exception)
 
     def _generate_error_object(self, exception: Exception) -> dict:

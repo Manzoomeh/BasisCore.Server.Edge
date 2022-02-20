@@ -63,12 +63,12 @@ class Dispatcher(ABC):
             @wraps(restful_action_handler)
             async def non_async_wrapper(context: RESTfulContext):
                 action_result = restful_action_handler(context)
-                return None if action_result is None else context.generate_responce(action_result)
+                return None if action_result is None else context.generate_response(action_result)
 
             @wraps(restful_action_handler)
             async def async_wrapper(context: RESTfulContext):
                 action_result = await restful_action_handler(context)
-                return None if action_result is None else context.generate_responce(action_result)
+                return None if action_result is None else context.generate_response(action_result)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 restful_action_handler) else non_async_wrapper
@@ -86,12 +86,12 @@ class Dispatcher(ABC):
             @wraps(web_action_handler)
             async def non_async_wrapper(context: WebContext):
                 action_result = web_action_handler(context)
-                return None if action_result is None else context.generate_responce(action_result)
+                return None if action_result is None else context.generate_response(action_result)
 
             @wraps(web_action_handler)
             async def async_wrapper(context: WebContext):
                 action_result = await web_action_handler(context)
-                return None if action_result is None else context.generate_responce(action_result)
+                return None if action_result is None else context.generate_response(action_result)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 web_action_handler) else non_async_wrapper
@@ -130,7 +130,7 @@ class Dispatcher(ABC):
                         },
                         "sources": result_set
                     }
-                    return context.generate_responce(ret_val)
+                    return context.generate_response(ret_val)
                 else:
                     return None
 
@@ -159,7 +159,7 @@ class Dispatcher(ABC):
                         },
                         "sources": result_set
                     }
-                    return context.generate_responce(ret_val)
+                    return context.generate_response(ret_val)
                 else:
                     return None
 
@@ -222,7 +222,7 @@ class Dispatcher(ABC):
                         },
                         "sources": result_set
                     }
-                    return context.generate_responce(ret_val)
+                    return context.generate_response(ret_val)
                 else:
                     return None
 
@@ -251,7 +251,7 @@ class Dispatcher(ABC):
                         },
                         "sources": result_set
                     }
-                    return context.generate_responce(ret_val)
+                    return context.generate_response(ret_val)
                 else:
                     return None
 
@@ -330,10 +330,10 @@ class Dispatcher(ABC):
                 if result is not None:
                     break
             else:
-                result = context.generate_error_responce(
+                result = context.generate_error_response(
                     HandlerNotFoundErr(name))
         except Exception as ex:
-            result = context.generate_error_responce(ex)
+            result = context.generate_error_response(ex)
         return result
 
     def initialize_task(self):
