@@ -1,5 +1,5 @@
-from abc import ABC
-from typing import TYPE_CHECKING
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Tuple
 
 from bclib.exception import ShortCircuitErr
 
@@ -37,14 +37,20 @@ class Context(ABC):
 
     def generate_error_response(self, exception: Exception) -> dict:
         """Generate error response from process result"""
-        return self._generate_error_object(exception)
 
-    def _generate_error_object(self, exception: Exception) -> dict:
+        error_object, _ = self._generate_error_object(exception)
+        return error_object
+
+    def _generate_error_object(self, exception: Exception) -> 'Tuple[dict, HttpStatusCodes]':
         """Generate error object from exception object"""
         error_code = None
+        status_code = HttpStatusCodes.INTERNAL_SERVER_ERROR
         if isinstance(exception, ShortCircuitErr):
-            self.status_code = exception.status_code
+            status_code = exception.status_code
             error_code = exception.error_code
-        else:
-            self.status_code = HttpStatusCodes.INTERNAL_SERVER_ERROR
-        return {"errorCode": error_code, "errorMessage": str(exception)}
+        error_object = {
+            "errorCode": error_code,
+            "errorMessage": str(exception)
+        }
+
+        return (error_object, status_code)

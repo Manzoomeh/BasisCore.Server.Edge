@@ -18,7 +18,7 @@ class JsonBaseRequestContext(RequestContext):
 
     def generate_error_response(self,  exception: Exception) -> dict:
         """Generate error response from process result"""
-        error_object = self._generate_error_object(exception)
+        error_object, self.status_code = self._generate_error_object(exception)
         return self.generate_response(error_object)
 
     def generate_response(self, result: dict) -> dict:

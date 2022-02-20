@@ -23,7 +23,7 @@ def generate_data() -> list:
     return ret_val
 
 
-def check_id(context: edge.RESTfulContext):
+async def check_id(context: edge.RESTfulContext):
     id = int(context.url_segments.id)
     if(id < 0 or id > DATA_COUNT):
         raise edge.UnauthorizedErr(

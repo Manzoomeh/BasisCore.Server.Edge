@@ -10,13 +10,17 @@ if "options" not in dir():
 app = edge.from_options(options)
 
 
-def check_url(context: edge.WebContext) -> bool:
+async def check_url(context: edge.WebContext) -> bool:
     if context.url.endswith('error'):
         raise edge.UnauthorizedErr("Custom Unauthorize message")
     return True
 
 
-@app.web_action(app.callback(lambda x: x.url.startswith('app')), app.callback(check_url))
+async def simple_check_url(context: edge.WebContext) -> bool:
+    return context.url.startswith('app')
+
+
+@app.web_action(app.callback(simple_check_url), app.callback(check_url))
 def process_web_action(context: edge.WebContext):
     return "result from process_web_action"
 
