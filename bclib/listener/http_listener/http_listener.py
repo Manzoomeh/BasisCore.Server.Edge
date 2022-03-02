@@ -109,21 +109,22 @@ class HttpListener:
     @staticmethod
     async def __add_body_async(cms_object: dict, request: 'web.Request'):
         content_len_str = request.headers.get('Content-Length')
-        if content_len_str and request.can_read_body:
-            content_len = int(content_len_str)
+        if content_len_str or request.can_read_body:
             raw_body = await request.read()
             body = raw_body.decode('utf-8')
             HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
                                       HttpBaseDataName.BODY, body)
             content_type: str = request.headers.get(
                 "content-type")
-            if content_type and content_type != "application/json":
+            if content_type and content_type.index("application/json") < 0:
                 if content_type.find("multipart/form-data") > -1:
                     _, content_type_value_params = cgi.parse_header(
                         content_type)
                     content_type_value_params['boundary'] = bytes(
                         content_type_value_params['boundary'], "utf-8")
-                    content_type_value_params['CONTENT-LENGTH'] = content_len
+                    if content_len_str is not None:
+                        content_type_value_params['CONTENT-LENGTH'] = int(
+                            content_len_str)
                     with io.BytesIO(raw_body) as stream:
                         fields = cgi.parse_multipart(
                             stream, content_type_value_params)
