@@ -116,8 +116,8 @@ class HttpListener:
                                       HttpBaseDataName.BODY, body)
             content_type: str = request.headers.get(
                 "content-type")
-            if content_type and content_type.index("application/json") < 0:
-                if content_type.find("multipart/form-data") > -1:
+            if content_type and content_type.find("application/json") < 0:
+                if content_type.find("multipart/form-data") >= 0:
                     _, content_type_value_params = cgi.parse_header(
                         content_type)
                     content_type_value_params['boundary'] = bytes(

@@ -2,12 +2,13 @@ class DictEx(dict):
     """Extended version of dict class for dot.notation access to attributes"""
 
     def __init__(self, *args, **kwargs):
+        super().__init__()
         for arg in args:
             if isinstance(arg, dict):
                 DictEx.fill_from_dic(self, arg)
 
-    def has(self, property: str) -> bool:
-        return property in self
+    def has(self, key: str) -> bool:
+        return key in self
 
     @classmethod
     def create(cls, data: dict):
