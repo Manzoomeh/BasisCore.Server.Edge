@@ -1,3 +1,4 @@
+import asyncio
 from bclib import parser
 
 js = {
@@ -184,17 +185,20 @@ js = {
         }
     ]
 }
-for action_type in parser.UserActionTypes:
-    print(action_type.value)
+# for action_type in parser.UserActionTypes:
+#     print(action_type.value)
 
-my_object = parser.ParseAnswer(js)
-print(my_object.get_actions())
-print(my_object.get_actions(prp_id=12345))
-print('f', my_object.get_actions(predicate=lambda x: x.prp_id ==
-#       12345 or x.action == parser.UserActionTypes.DELETED))
+
+async def f():
+    my_object = parser.ParseAnswer(js)
+    print(await my_object.get_actions_async())
+    print(await my_object.get_actions_async(prp_id=12345))
+# print('f', await my_object.get_actions_async(predicate=lambda x: x.prp_id ==12345 or x.action == parser.UserActionTypes.DELETED))
 # print(my_object.get_actions(prp_id=[1000,12345],))
 # print(my_object.get_actions(action=[parser.UserActionTypes.DELETED]))
 # print(my_object.get_actions(action=[parser.UserActionTypes.DELETED, parser.UserActionTypes.ADDED]))
 # print(my_object.get_actions(action=[
 #       parser.UserActionTypes.EDITED, parser.UserActionTypes.ADDED], part=[1, 2]))
 # print(my_object.get_actions(prp_id=12344, action=parser.UserActionTypes.EDITED, part=2))
+
+asyncio.run(f())
