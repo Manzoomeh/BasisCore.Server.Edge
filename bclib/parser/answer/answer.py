@@ -1,7 +1,6 @@
 import json
 from typing import Any, Callable
-from db_manager import RESTfulConnection
-from bclib import edge
+from bclib import edge, db_manager
 from .user_action_types import UserActionTypes
 from .user_action import UserAction
 
@@ -13,7 +12,8 @@ class Answer:
     def __init__(self, data: 'str|Any', api_url: 'str' = None):
         self.json = json.loads(data) if isinstance(data, str) else data
         self.__answer_list: 'list[UserAction]' = None
-        self.__api_connection = RESTfulConnection(api_url) if api_url else None
+        self.__api_connection = db_manager.RESTfulConnection(
+            api_url) if api_url else None
 
     async def __fill_answer_list_async(self):
         self.__answer_list = list()
@@ -24,7 +24,6 @@ class Answer:
                         if 'parts' in actions.keys():
                             for parts in actions['parts']:
                                 for values in parts['values']:
-                                    print(actions, parts)
                                     prp_id = data['propId']
                                     prp_value_id = actions['id'] if 'id' in actions.keys(
                                     ) else None
