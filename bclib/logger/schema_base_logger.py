@@ -9,6 +9,7 @@ class SchemaBaseLogger(ILogger):
 
     def __init__(self, options: DictEx) -> None:
         super().__init__()
+        self.options = options
         if options.has("url"):
             self.__get_url = options.url
         elif options.has("get_url"):
