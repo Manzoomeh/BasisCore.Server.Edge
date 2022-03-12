@@ -1,4 +1,4 @@
-import edge
+from bclib import edge
 from datetime import datetime
 
 

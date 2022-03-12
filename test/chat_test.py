@@ -1,7 +1,7 @@
 import json
 import datetime
 import xml.etree.ElementTree
-import edge
+from bclib import edge
 
 
 options = {
