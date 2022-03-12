@@ -23,15 +23,7 @@ class Client:
 
     async def update_async(self, message: edge.DictEx):
         command = xml.etree.ElementTree.fromstring(message.command)
-        if self.user_name == None:
-            self.user_name = command.get('user-name')
-            if(self.user_name == "."):
-                self.close_async(True)
-            else:
-                await ChatRoom.send_to_all_message_async(
-                    None, f'{self.user_name} Connected!', 'system')
-                print(f'{self.user_name} with id {self.session_id} connected')
-        else:
+        if self.user_name:
             user_message = command.get("message")
             if user_message == 'end':
                 self.close_async(True)
@@ -39,9 +31,17 @@ class Client:
                 print(f'{self.user_name} Say: {user_message}')
                 await ChatRoom.send_to_all_message_async(
                     self.user_name, user_message, 'user')
+        else:
+            self.user_name = command.get('user-name')
+            if self.user_name == ".":
+                self.close_async(True)
+            else:
+                await ChatRoom.send_to_all_message_async(
+                    None, f'{self.user_name} Connected!', 'system')
+                print(f'{self.user_name} with id {self.session_id} connected')
 
     async def close_async(self, from_server):
-        if from_server == True:
+        if from_server:
             await app.send_message_async(edge.Message.create_disconnect(self.session_id))
 
         await ChatRoom.send_to_all_message_async(
@@ -86,6 +86,7 @@ class ChatRoom:
         elif message.type == edge.MessageType.AD_HOC:
             if message.session_id in ChatRoom.__sessions:
                 print("adhoc message receive!")
+
 ########
 # Socket
 ########
@@ -108,7 +109,7 @@ async def process_all_other_message_async(context: edge.SocketContext):
 # Web
 #####
 @app.web_action()
-def process_web_message(context: edge.WebContext):
+def process_web_message(_: edge.WebContext):
     return """
             <style>
             td {
