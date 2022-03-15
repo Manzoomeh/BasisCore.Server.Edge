@@ -1,4 +1,5 @@
-from abc import ABC, abstractmethod
+from abc import ABC
+import traceback
 from typing import TYPE_CHECKING, Tuple
 
 from bclib.exception import ShortCircuitErr
@@ -50,7 +51,8 @@ class Context(ABC):
             error_code = exception.error_code
         error_object = {
             "errorCode": error_code,
-            "errorMessage": str(exception)
+            "errorMessage": str(exception),
+            "error": traceback.format_exc()
         }
 
         return (error_object, status_code)

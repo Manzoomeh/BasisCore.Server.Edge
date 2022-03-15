@@ -3,6 +3,7 @@ import asyncio
 import inspect
 from abc import ABC
 import signal
+import traceback
 from typing import Callable, Any, Coroutine
 from functools import wraps
 
@@ -28,6 +29,10 @@ class Dispatcher(ABC):
         self.cache_manager = create_chaching(cache_options)
         self.db_manager = DbManager(self.options)
         self.__logger: ILogger = LoggerFactory.create(self.options)
+        self.log_error: bool = self.options.log_error if self.options.has(
+            "log_error") else False
+        self.log_request: bool = self.options.log_request if self.options.has(
+            "log_request") else True
         self.__rabbit_dispatcher: 'list[RabbitBusListener]' = list()
         if "router" in self.options and "rabbit" in self.options.router:
             for setting in self.options.router.rabbit:
@@ -333,6 +338,8 @@ class Dispatcher(ABC):
                 result = context.generate_error_response(
                     HandlerNotFoundErr(name))
         except Exception as ex:
+            if self.log_error:
+                traceback.print_exc()
             result = context.generate_error_response(ex)
         return result
 

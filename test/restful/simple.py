@@ -3,7 +3,8 @@ from bclib import edge
 
 options = {
     "server": "localhost:8080",
-    "router": "restful"
+    "router": "restful",
+    "log_request": False
 }
 
 app = edge.from_options(options)

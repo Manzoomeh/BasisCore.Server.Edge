@@ -17,6 +17,16 @@ class IDispatcher(ABC):
 
     @property
     @abstractmethod
+    def log_error(self) -> bool:
+        pass
+
+    @property
+    @abstractmethod
+    def log_request(self) -> bool:
+        pass
+
+    @property
+    @abstractmethod
     def event_loop(self) -> asyncio.AbstractEventLoop:
         pass
 

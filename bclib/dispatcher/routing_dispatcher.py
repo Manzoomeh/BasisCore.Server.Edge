@@ -111,9 +111,9 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
                 url = req["full-url"]
         context_type = self.__context_type_detector(
             url) if message.type == MessageType.AD_HOC else "socket"
-
-        print(
-            f"({context_type}::{message.type.name}){f' : {request_id} {method} {url} ' if cms_object else ''}")
+        if self.log_request:
+            print(
+                f"({context_type}::{message.type.name}){f' : {request_id} {method} {url} ' if cms_object else ''}")
 
         if context_type == "client_source":
             ret_val = ClientSourceContext(cms_object, self)
