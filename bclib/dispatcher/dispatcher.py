@@ -335,8 +335,10 @@ class Dispatcher(ABC):
                 if result is not None:
                     break
             else:
-                result = context.generate_error_response(
-                    HandlerNotFoundErr(name))
+                ex = HandlerNotFoundErr(name)
+                if self.log_error:
+                    print(str(ex))
+                result = context.generate_error_response(ex)
         except Exception as ex:
             if self.log_error:
                 traceback.print_exc()
