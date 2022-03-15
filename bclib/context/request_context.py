@@ -36,7 +36,7 @@ class RequestContext(Context):
         """Generate error response from process result"""
         error_object, self.status_code = self._generate_error_object(exception)
         content = f"{error_object['errorMessage']} (Error Code: {error_object['errorCode']})"
-        if self.dispatcher.log_error:
+        if 'error' in error_object:
             error = error_object["error"].replace("\n", "</br>")
             content += f"<hr/>{error}"
         return self.generate_response(content)

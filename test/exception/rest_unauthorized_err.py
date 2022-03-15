@@ -1,9 +1,10 @@
-import edge
+from bclib import edge
 
 
 options = {
     "server": "localhost:8080",
-    "router": "restful"
+    "router": "restful",
+    "log_error": True
 }
 
 app = edge.from_options(options)
