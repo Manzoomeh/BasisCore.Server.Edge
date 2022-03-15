@@ -22,8 +22,8 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
             if 'defaultRouter' in self.options and isinstance(self.options.defaultRouter, str)\
             else None
 
-        if 'router' in self.options:
-            router = self.options["router"]
+        if self.options.has('router'):
+            router = self.options.router
             if isinstance(router, str):
                 self.__context_type_detector: 'Callable[[str],str]' = lambda _: router
             elif isinstance(router, DictEx):
@@ -41,7 +41,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
         """create router lookup dictionary"""
 
         route_dict = dict()
-        for key, values in self.options["router"].items():
+        for key, values in self.options.router.items():
             if key != 'rabbit'.strip():
                 if '*' in values:
                     route_dict['*'] = key
@@ -109,8 +109,13 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
                 request_id = req['request-id']
                 method = req['methode']
                 url = req["full-url"]
-        context_type = self.__context_type_detector(
-            url) if message.type == MessageType.AD_HOC else "socket"
+        if message.type == MessageType.AD_HOC:
+            if url or self.__default_router is None:
+                context_type = self.__context_type_detector(url)
+            else:
+                context_type = self.__default_router
+        else:
+            context_type = "socket"
         if self.log_request:
             print(
                 f"({context_type}::{message.type.name}){f' : {request_id} {method} {url} ' if cms_object else ''}")
