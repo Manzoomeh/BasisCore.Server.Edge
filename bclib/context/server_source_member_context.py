@@ -17,3 +17,4 @@ class ServerSourceMemberContext(Context):
         self.key_field_name: str = None
         self.status_field_name: str = None
         self.merge_type: MergeType = MergeType.REPLACE
+        self.column_names: 'list[str]' = None

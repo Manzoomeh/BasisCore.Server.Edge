@@ -42,3 +42,8 @@ class SourceMemberContext(ABC):
     @abstractmethod
     def merge_type(self) -> MergeType:
         pass
+
+    @property
+    @abstractmethod
+    def column_names(self) -> 'list[str]':
+        pass

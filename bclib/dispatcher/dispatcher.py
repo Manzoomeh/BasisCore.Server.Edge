@@ -124,7 +124,8 @@ class Dispatcher(ABC):
                                 "tableName": member_context.table_name,
                                 "keyFieldName": member_context.key_field_name,
                                 "statusFieldName": member_context.status_field_name,
-                                "mergeType": member_context.merge_type.value
+                                "mergeType": member_context.merge_type.value,
+                                "columnNames": member_context.column_names,
                             },
                             "data": dispath_result
                         }
@@ -153,7 +154,8 @@ class Dispatcher(ABC):
                                 "tableName": member_context.table_name,
                                 "keyFieldName": member_context.key_field_name,
                                 "statusFieldName": member_context.status_field_name,
-                                "mergeType": member_context.merge_type.value
+                                "mergeType": member_context.merge_type.value,
+                                "columnNames": member_context.column_names,
                             },
                             "data": dispath_result
                         }
@@ -216,7 +218,8 @@ class Dispatcher(ABC):
                                 "tableName": member_context.table_name,
                                 "keyFieldName": member_context.key_field_name,
                                 "statusFieldName": member_context.status_field_name,
-                                "mergeType": member_context.merge_type.value
+                                "mergeType": member_context.merge_type.value,
+                                "columnNames": member_context.column_names,
                             },
                             "data": dispath_result
                         }
@@ -245,7 +248,8 @@ class Dispatcher(ABC):
                                 "tableName": member_context.table_name,
                                 "keyFieldName": member_context.key_field_name,
                                 "statusFieldName": member_context.status_field_name,
-                                "mergeType": member_context.merge_type.value
+                                "mergeType": member_context.merge_type.value,
+                                "columnNames": member_context.column_names,
                             },
                             "data": dispath_result
                         }
