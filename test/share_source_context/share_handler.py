@@ -1,5 +1,5 @@
 from typing import Any
-import edge
+from bclib import edge
 
 
 options = {

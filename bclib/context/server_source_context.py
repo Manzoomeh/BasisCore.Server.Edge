@@ -18,8 +18,7 @@ class ServerSourceContext(Context):
         self.dmn_id = cms_object["dmnid"] if "dmnid" in cms_object else None
         self.params = DictEx(
             cms_object["params"]) if "params" in cms_object else None
-        html = self.raw_command
-        parser.feed(html)
+        parser.feed(self.raw_command)
         self.command = parser.get_dict_ex()
         self.process_async = True
 

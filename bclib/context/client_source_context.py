@@ -14,8 +14,10 @@ class ClientSourceContext(JsonBaseRequestContext):
     def __init__(self, cms_object: dict, dispatcher: 'dispatcher.IDispatcher') -> None:
         super().__init__(cms_object, dispatcher)
         parser = HtmlParserEx()
-        html = self.cms.form.command
-        parser.feed(html)
+        self.raw_command = self.cms.form.command
+        self.dmn_id = self.cms.form.dmnid if self.cms.form.has(
+            'dmnid') else None
+        parser.feed(self.raw_command)
         self.command = parser.get_dict_ex()
         self.params: DictEx = None
         if "params" in self.command:
