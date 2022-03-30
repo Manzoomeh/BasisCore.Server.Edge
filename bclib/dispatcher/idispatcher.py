@@ -53,7 +53,7 @@ class IDispatcher(ABC):
     async def send_message_async(self, message: Message) -> None:
         """Send message to endpoint"""
 
-    def run_in_background(self, callback: Callable, *args: Any) -> Any:
+    def run_in_background(self, callback: Callable, *args: Any) -> asyncio.Future:
         """helper for run function in background thread"""
 
     def log_async(self, **kwargs: 'dict[str,Any]'):

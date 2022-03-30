@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.basiscore.net/_js/basiscore-2.4.17.min.js"></script>
+    <title>Callback Command - Simple</title>
+</head>
+
+<body>
+
+    <basis core='dbsource' source='simple' name='user' run="atclient">
+        <member name='list' />
+    </basis>
+
+
+    <Basis core="print" dataMemberName="user.list" run="atclient">
+        <layout>
+            <script type="text/template">
+            <table>
+                <thead>
+                    <tr>
+                        <td>Id</td>
+                        <td>Name</td>
+                        <td>Age</td>
+                    </tr>
+                </thead>
+                <tbody>@child</tbody>
+                <tfoot></tfoot>
+            </table></script>
+        </layout>
+        <face>
+            <script type="text/template">
+            <tr>
+                <td>@id@</td>
+                <td>@name@</td>
+                <td>@age@</td>
+            </tr>
+        </script>
+        </face>
+    </Basis>
+
+
+    <script>
+        var host = {
+            dbLibPath: 'https://cdn.basiscore.net/_js/alasql.min.js',
+            settings: {
+                'connection.websocket.simple': "ws://127.0.0.1:1030",
+                'default.dmnid': 2668
+            },
+
+        }
+
+
+
+    </script>
+</body>
+
+</html>

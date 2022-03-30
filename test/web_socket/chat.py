@@ -2,6 +2,7 @@ import json
 import datetime
 import xml.etree.ElementTree
 from bclib import edge
+import os
 
 
 options = {
@@ -110,154 +111,10 @@ async def process_all_other_message_async(context: edge.SocketContext):
 #####
 @app.web_action()
 def process_web_message(_: edge.WebContext):
-    return """
-            <style>
-            td {
-                border-color: black;
-                border-width: 1px;
-                border-style: solid;
-            }
-
-            .owner {
-                color: green;
-            }
-            .time {
-                font-size: smaller;
-                color: lightcoral;
-                font-weight: normal;
-            }
-            .sys-message {
-                font-style: italic;
-                font-weight: bold;
-                color: gray;
-            }
-            [data-message-list] {
-                list-style: none;
-                padding: 0px;
-            }
-            </style>
-            <script>
-            var host = {
-                Debug: false,
-                DbLibPath: "https://cdn.basiscore.net/_js/alasql.min.js",
-                Settings: {
-                "connection.websocket.simplechat": "ws://127.0.0.1:1030/chat",
-
-                "default.source.verb": "get",
-                "default.call.verb": "get",
-                "default.viewCommand.groupColumn": "prpid",
-                "default.binding.regex": "\\{##([^#]*)##\\}",
-                },
-            };
-            </script>
-       
-            <div>
-            <div style="display: none" data-code>
-                <basis
-                core="print"
-                run="atclient"
-                renderto="[data-app]"
-                if="!{##app.local##}"
-                >
-                <layout>
-                    <script type="text/template">
-                    <label>UserName</label>
-                    <input id="user-name" />
-                    <input type="button" onclick="TryLoginAsync()" value="login" />
-                    </script>
-                </layout>
-                </basis>
-                <basis
-                core="print"
-                run="atclient"
-                renderto="[data-app]"
-                if="{##app.local##}"
-                >
-                <layout>
-                    <script type="text/template">
-
-                    <div>
-                        <div style="overflow-y:scroll;height:200px">
-                            <ul data-message-list></ul>
-                        </div>
-
-                        <input id="message" />
-                        <input type="button" onclick="TrySendMessageAsync()" value="Send" />
-                        <input type="button" onclick="TryLogoutAsync()" value="Logout {##app.local.user-name##}" />
-                    </div>
-                    </script>
-                </layout>
-                </basis>
-
-                <basis
-                core="dbsource"
-                source="simplechat"
-                name="chat"
-                run="atclient"
-                renderto="*"
-                user-name="{##app.local.user-name|(.)##}"
-                if="{##app.local##}"
-                >
-                <member name="message" />
-                </basis>
-                <Basis
-                core="print"
-                datamembername="chat.message"
-                run="atclient"
-                renderto="[data-message-list]"
-                if="{##app.local##}"
-                >
-                <layout>
-                    <script type="text/template">
-                    @child
-                    </script>
-                </layout>
-                <face filter="type ='user'">
-                    <script type="text/template">
-                    <li class="user-message">
-                        <span class="time">@time</span>
-                        <span class="owner">@owner</span>:
-                        <span class="message">@message</span>
-                    </li>
-                    </script>
-                </face>
-                <face filter="type ='system'">
-                    <script type="text/template">
-                    <li class="sys-message">
-                        <span class="time">@time</span>
-                        <span class="message">@message</span>
-                    </li>
-                    </script>
-                </face>
-                </Basis>
-            </div>
-            </div>
-            <div data-app></div>
-
-            <script src="https://cdn.basiscore.net/_js/basiscore-1.6.min.js"></script>
-            <script>
-            async function TryLoginAsync() {
-                var userName = document.getElementById("user-name").value;
-                await $bc().AddObjectAsync({ "user-name": userName }, "app.local");
-                await $bc().RenderAsync("[data-code]");
-            }
-
-            async function TrySendMessageAsync() {
-                var input = document.getElementById("message");
-                var message = document.getElementById("message").value;
-                var element = document.querySelector('basis[core="dbsource"]');
-                element.setAttribute("message", message);
-                await $bc().GetCommand(element).UpdateAsync();
-                element.removeAttribute("message");
-                input.value = "";
-            }
-
-            async function TryLogoutAsync() {
-                $bc().TryRemoveDataSource("app.local");
-                await $bc().RenderAsync("[data-code]");
-            }
-            </script>
-        """
+    path = os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), "chat.html")
+    with open(path, "r", encoding="utf-8") as file:
+        return file.read()
 
 
 app.listening()

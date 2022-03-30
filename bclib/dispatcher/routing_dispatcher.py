@@ -1,8 +1,9 @@
 import asyncio
+import inspect
 import json
 import re
 from struct import error
-from typing import Callable, Any
+from typing import Callable, Any, Coroutine
 from abc import abstractmethod
 
 from bclib.utility import DictEx
@@ -137,11 +138,13 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
                 f"Configured context type '{context_type}' not found for '{url}'")
         return ret_val
 
-    def run_in_background(self, callback: Callable, *args: Any) -> asyncio.Future:
+    def run_in_background(self, callback: 'Callable|Coroutine', *args: Any) -> asyncio.Future:
         """helper for run function in background thread"""
 
-        loop = asyncio.get_running_loop()
-        return loop.run_in_executor(None, callback, *args)
+        if inspect.iscoroutinefunction(callback):
+            return self.event_loop.create_task(callback(*args))
+        else:
+            return self.event_loop.run_in_executor(None, callback, *args)
 
     @abstractmethod
     async def send_message_async(self, message: MessageType) -> bool:
