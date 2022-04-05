@@ -51,7 +51,7 @@ class HttpListener:
                             for item in value:
                                 headers.add(key, item)
                         else:
-                            headers.add(key, item)
+                            headers.add(key, value)
             return web.Response(
                 status=int(headercode.split(' ')[0]),
                 headers=headers,
