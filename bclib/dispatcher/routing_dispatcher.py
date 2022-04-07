@@ -22,7 +22,8 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
         self.__default_router = self.options.defaultRouter\
             if 'defaultRouter' in self.options and isinstance(self.options.defaultRouter, str)\
             else None
-
+        self.name = self.options["name"] if self.options.has("name") else None
+        self.__log_name = f"{self.name}: " if self.name else ''
         if self.options.has('router'):
             router = self.options.router
             if isinstance(router, str):
@@ -119,7 +120,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
             context_type = "socket"
         if self.log_request:
             print(
-                f"({context_type}::{message.type.name}){f' : {request_id} {method} {url} ' if cms_object else ''}")
+                f"{self.__log_name}({context_type}::{message.type.name}){f' - {request_id} {method} {url} ' if cms_object else ''}")
 
         if context_type == "client_source":
             ret_val = ClientSourceContext(cms_object, self)

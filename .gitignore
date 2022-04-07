@@ -2,7 +2,7 @@
 app-env*
 __pycache__
 .rar
-qam_*.py
+qam_*
 #package part folder
 .eggs
 bclib.egg-info
