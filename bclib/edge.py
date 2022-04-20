@@ -49,7 +49,7 @@ def from_options(options: dict) -> RoutingDispatcher:
     # Long options
     long_options = ["Name =", "Multi"]
     try:
-        arguments, _ = getopt.getopt(
+        arguments, _ = getopt.gnu_getopt(
             argumentList, short_options, long_options)
         for current_argument, current_value in arguments:
             if current_argument in ("-n", "--Name"):
