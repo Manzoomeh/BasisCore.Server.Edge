@@ -45,21 +45,21 @@ class RequestContext(Context):
         """Generate response from process result"""
 
         ret_val = self.cms
-        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER] = {
-            "index": self.response_type.value,
-            "headercode": self.status_code.value,
-            "mime": self.mime
-        }
+        if HttpBaseDataType.CMS not in ret_val:
+            ret_val[HttpBaseDataType.CMS] = {}
+        if HttpBaseDataName.WEB_SERVER not in ret_val[HttpBaseDataType.CMS]:
+            ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER] = DictEx()
+        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["index"] = self.response_type.value
+        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["headercode"] = self.status_code.value
+        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["mime"] = self.mime
         if self.__headers is not None:
             RequestContext.__add_user_defined_headers(ret_val, self.__headers)
         return ret_val
 
-    @staticmethod
+    @ staticmethod
     def __add_user_defined_headers(response: dict, headers: dict) -> None:
         """Adding user defined header to response"""
 
-        if HttpBaseDataType.CMS not in response:
-            response[HttpBaseDataType.CMS] = {}
         if HttpBaseDataName.HTTP not in response[HttpBaseDataType.CMS]:
             response[HttpBaseDataType.CMS][HttpBaseDataName.HTTP] = {}
         http = response[HttpBaseDataType.CMS][HttpBaseDataName.HTTP]
