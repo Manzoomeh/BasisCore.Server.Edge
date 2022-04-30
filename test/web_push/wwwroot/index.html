@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/basiscore.js"></script>
+    <title>Push base source - Simple</title>
+</head>
+
+<body>
+
+    <basis core='dbsource' source='simple' name='stream' run="atclient">
+        <member name='time' />
+    </basis>
+    <basis core='dbsource' source='simple1' name='stream1' run="atclient">
+        <member name='time2' />
+    </basis>
+
+    <basis core="callback" run="atclient" triggers="stream.time stream1.time2"></basis>
+    <div id="permission-dlg" style="display: none">
+        Active Notification and push api?
+        <button id="permission-btn">Yes</button>
+    </div>
+    <div>
+        <br />
+        Time is : [##stream.time.hh|(00)##]:[##stream.time.mm|(00)##]:[##stream.time.ss|(00)##].[##stream.time.ms|(0000)##]
+    </div>
+    <script>
+        var host = {
+            serviceWorker: true,
+            push: {
+                applicationServerKey: "___PUBLIK_KEY___",
+                url: "http://localhost:1564/api/push/add-subscriber",
+                permissionDlg: "#permission-dlg",
+                permissionSubmit: "#permission-btn",
+                params: { client: "qam-1" }
+            },
+            settings: {
+                'connection.push.simple': "test",
+                'connection.push.simple1': "test1",
+                'default.dmnid': 2668
+            },
+
+        }
+
+    </script>
+</body>
+
+</html>
