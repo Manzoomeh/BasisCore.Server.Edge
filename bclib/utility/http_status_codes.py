@@ -1,8 +1,4 @@
-
-from enum import Enum
-
-
-class HttpStatusCodes(Enum):
+class HttpStatusCodes:
     CONTINUE = "100 Continue"
     SWITCHING_PROTOCOLS = "101 Switching protocols"
     PROCESSING = "102 Processing"

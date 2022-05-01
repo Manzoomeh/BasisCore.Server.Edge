@@ -19,7 +19,7 @@ class RequestContext(Context):
         self.form: DictEx = self.cms.form
         self.__headers: dict = None
         self.response_type: ResponseTypes = ResponseTypes.RENDERED
-        self.status_code: HttpStatusCodes = HttpStatusCodes.OK
+        self.status_code: str = HttpStatusCodes.OK
         self.mime = HttpMimeTypes.HTML
 
     def add_header(self, key: str, value: str) -> None:
@@ -50,7 +50,7 @@ class RequestContext(Context):
         if HttpBaseDataName.WEB_SERVER not in ret_val[HttpBaseDataType.CMS]:
             ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER] = DictEx()
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["index"] = self.response_type.value
-        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["headercode"] = self.status_code.value
+        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["headercode"] = self.status_code
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["mime"] = self.mime
         if self.__headers is not None:
             RequestContext.__add_user_defined_headers(ret_val, self.__headers)

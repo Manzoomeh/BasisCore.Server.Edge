@@ -42,7 +42,7 @@ class Context(ABC):
         error_object, _ = self._generate_error_object(exception)
         return error_object
 
-    def _generate_error_object(self, exception: Exception) -> 'Tuple[dict, HttpStatusCodes]':
+    def _generate_error_object(self, exception: Exception) -> 'Tuple[dict, str]':
         """Generate error object from exception object"""
         error_code = None
         status_code = HttpStatusCodes.INTERNAL_SERVER_ERROR
