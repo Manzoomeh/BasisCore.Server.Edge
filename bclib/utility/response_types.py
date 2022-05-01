@@ -1,7 +1,4 @@
-from enum import Enum
-
-
-class ResponseTypes(Enum):
+class ResponseTypes:
     RENDERABLE = "1"
     STATIC_FILE = "2"
     PROXY = "3"

@@ -18,7 +18,7 @@ class RequestContext(Context):
         self.query: DictEx = self.cms.query
         self.form: DictEx = self.cms.form
         self.__headers: dict = None
-        self.response_type: ResponseTypes = ResponseTypes.RENDERED
+        self.response_type: str = ResponseTypes.RENDERED
         self.status_code: str = HttpStatusCodes.OK
         self.mime = HttpMimeTypes.HTML
 
@@ -49,7 +49,7 @@ class RequestContext(Context):
             ret_val[HttpBaseDataType.CMS] = {}
         if HttpBaseDataName.WEB_SERVER not in ret_val[HttpBaseDataType.CMS]:
             ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER] = DictEx()
-        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["index"] = self.response_type.value
+        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["index"] = self.response_type
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["headercode"] = self.status_code
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["mime"] = self.mime
         if self.__headers is not None:
