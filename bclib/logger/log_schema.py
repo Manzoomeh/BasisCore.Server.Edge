@@ -3,7 +3,7 @@ from typing import Any
 
 class LogSchema:
     def __init__(self, schema: 'dict[str,Any]') -> None:
-        self.schema_id = schema["schemaId"]
+        self.schema_name = schema["schemaName"]
         self.schema_version = schema["schemaVersion"]
         self.lid = schema["lid"]
         self.properties: 'dict[str,(int,str)]' = dict([
@@ -40,7 +40,7 @@ class LogSchema:
                     ]
                 })
         return {
-            "schemaId": self.schema_id,
+            "schemaName": self.schema_name,
             "schemaVersion": self.schema_version,
             "lid": self.lid,
             "properties": properties
