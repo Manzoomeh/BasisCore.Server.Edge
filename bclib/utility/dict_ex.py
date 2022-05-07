@@ -1,3 +1,6 @@
+import copy
+
+
 class DictEx(dict):
     """Extended version of dict class for dot.notation access to attributes"""
 
@@ -45,3 +48,9 @@ class DictEx(dict):
         return ret_val_list
 
     __getattr__ = dict.get
+
+    def __deepcopy__(self, memo=None):
+        return DictEx(copy.deepcopy(dict(self), memo=memo))
+
+    def __copy__(self):
+        return DictEx(copy.copy(dict(self)))
