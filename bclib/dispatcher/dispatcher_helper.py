@@ -82,27 +82,33 @@ class DispatcherHelper:
 
     @staticmethod
     def is_post() -> Predicate:
-        """create http post request cheking predicate"""
+        """create http POST request cheking predicate"""
 
         return Equal("context.cms.request.methode", "post")
 
     @staticmethod
     def is_get() -> Predicate:
-        """create http get request cheking predicate"""
+        """create http GET request cheking predicate"""
 
         return Equal("context.cms.request.methode", "get")
 
     @staticmethod
     def is_put() -> Predicate:
-        """create http put request cheking predicate"""
+        """create http PUT request cheking predicate"""
 
         return Equal("context.cms.request.methode", "put")
 
     @staticmethod
     def is_delete() -> Predicate:
-        """create http delete request cheking predicate"""
+        """create http DELETE request cheking predicate"""
 
         return Equal("context.cms.request.methode", "delete")
+
+    @staticmethod
+    def is_options() -> Predicate:
+        """create http OPTIONS request cheking predicate"""
+
+        return Equal("context.cms.request.methode", "options")
 
     @staticmethod
     def all(*predicates: 'Predicate') -> Predicate:
@@ -118,24 +124,30 @@ class DispatcherHelper:
 
     @staticmethod
     def post(url: str) -> Predicate:
-        """create http post request cheking predicate"""
+        """create http POST request cheking predicate"""
 
         return All(DispatcherHelper.url(url), DispatcherHelper.is_post())
 
     @staticmethod
     def get(url: str) -> Predicate:
-        """create http get request cheking predicate"""
+        """create http GET request cheking predicate"""
 
         return All(DispatcherHelper.url(url), DispatcherHelper.is_get())
 
     @staticmethod
     def put(url: str) -> Predicate:
-        """create http put request cheking predicate"""
+        """create http PUT request cheking predicate"""
 
         return All(DispatcherHelper.url(url), DispatcherHelper.is_put())
 
     @staticmethod
     def delete(url: str) -> Predicate:
-        """create http delete request cheking predicate"""
+        """create http DELETE request cheking predicate"""
 
         return All(DispatcherHelper.url(url), DispatcherHelper.is_delete())
+
+    @staticmethod
+    def options(url: str) -> Predicate:
+        """create http OPTIONS request cheking predicate"""
+
+        return All(DispatcherHelper.url(url), DispatcherHelper.is_options())
