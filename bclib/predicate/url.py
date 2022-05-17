@@ -45,14 +45,14 @@ class Url (Predicate):
                 where_part_list.append(
                     f"url_parts[{index}].lower() == '{value.lower()}'")
             segment_list.append(name)
-            if len(where_part_list) == 0:
-                if len(return_dict_property_names) == 0:
-                    where_part_list.append("True")
-                else:
-                    where_part_list.append(
-                        f"len(url_parts) == {len(return_dict_property_names)}")
-                    if len(return_dict_property_names) == 1:
-                        where_part_list.append("len(url_parts[0]) > 0")
+        if len(where_part_list) == 0:
+            if len(return_dict_property_names) == 0:
+                where_part_list.append("True")
+            else:
+                where_part_list.append(
+                    f"len(url_parts) == {len(return_dict_property_names)}")
+                if len(return_dict_property_names) == 1:
+                    where_part_list.append("len(url_parts[0]) > 0")
 
         if len(return_dict_property_names) > 0:
             body = f"""
