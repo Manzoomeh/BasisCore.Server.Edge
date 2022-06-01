@@ -56,7 +56,7 @@ class InMemoryCacheManager(SignalBaseCacheManager):
     def get_cache(self, key: str) -> list:
         """Get key related cached data"""
 
-        return [function.cache for function in self.__cache_list[key]]
+        return [function.cache for function in self.__cache_list[key]] if key in self.__cache_list else None
 
     def update_cache(self, key: str, data: any) -> bool:
         """Update key related cached data"""
