@@ -1,7 +1,7 @@
 """Main module of bclib.wrapper for all exist module that need in basic coding"""
 
-from bclib.dispatcher import RoutingDispatcher, IDispatcher, SocketDispatcher, DevServerDispatcher
-from bclib.context import Context, WebContext, SocketContext, ClientSourceContext, ClientSourceMemberContext, RabbitContext, RESTfulContext, RequestContext, MergeType, ServerSourceContext, ServerSourceMemberContext, SourceContext, SourceMemberContext
+from bclib.dispatcher import RoutingDispatcher, IDispatcher, SocketDispatcher, DevServerDispatcher, NamedPipeDispatcher
+from bclib.context import Context, WebContext, SocketContext, ClientSourceContext, ClientSourceMemberContext, RabbitContext, RESTfulContext, RequestContext, MergeType, ServerSourceContext, ServerSourceMemberContext, SourceContext, SourceMemberContext, NamedPipeContext
 from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes, HttpHeaders
 from bclib.listener import Message, MessageType, HttpBaseDataType, HttpBaseDataName
 from bclib.predicate import Predicate
@@ -64,6 +64,8 @@ def from_options(options: dict) -> RoutingDispatcher:
     ret_val: RoutingDispatcher = None
     if "server" in options:
         ret_val = DevServerDispatcher(options)
+    if "named_pipe" in options:
+        ret_val = NamedPipeDispatcher(options)
     else:
         ret_val = SocketDispatcher(options)
     return ret_val

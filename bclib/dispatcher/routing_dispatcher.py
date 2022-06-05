@@ -8,7 +8,7 @@ from abc import abstractmethod
 
 from bclib.utility import DictEx
 
-from bclib.context import ClientSourceContext, RESTfulContext, WebContext, RequestContext, Context, SocketContext, ServerSourceContext
+from bclib.context import ClientSourceContext, RESTfulContext, WebContext, RequestContext, Context, SocketContext, ServerSourceContext, NamedPipeContext
 from bclib.listener import Message, MessageType, HttpBaseDataType
 
 from ..dispatcher.dispatcher_helper import DispatcherHelper
@@ -132,6 +132,8 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
             ret_val = WebContext(cms_object, self)
         elif context_type == "socket":
             ret_val = SocketContext(cms_object, self, message, message_json)
+        elif context_type == "named_pipe":
+            ret_val = NamedPipeContext(message_json, message_string, self)
         elif context_type is None:
             raise Exception(f"No context found for '{url}'")
         else:

@@ -11,3 +11,4 @@ from bclib.context.server_source_context import ServerSourceContext
 from bclib.context.server_source_member_context import ServerSourceMemberContext
 from bclib.context.source_context import SourceContext
 from bclib.context.source_member_context import SourceMemberContext
+from context.named_pipe_context import NamedPipeContext

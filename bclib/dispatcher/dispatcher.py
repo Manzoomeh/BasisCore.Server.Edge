@@ -11,7 +11,7 @@ from bclib.logger import ILogger, LoggerFactory
 from bclib.cache import create_chaching
 from bclib.listener import RabbitBusListener
 from bclib.predicate import Predicate
-from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext
+from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext, NamedPipeContext
 from bclib.db_manager import DbManager
 from bclib.utility import DictEx
 from bclib.exception import HandlerNotFoundErr
@@ -314,6 +314,28 @@ class Dispatcher(ABC):
                 .append(CallbackInfo([*predicates], wrapper))
 
             return rabbit_action_handler
+        return _decorator
+
+    def named_pipe_action(self, * predicates: (Predicate)):
+        """Decorator for determine named pipe message request action"""
+
+        def _decorator(named_pipe_action_handler: 'Callable[[RabbitContext], bool]'):
+
+            @wraps(named_pipe_action_handler)
+            async def non_async_wrapper(context: NamedPipeContext):
+                return named_pipe_action_handler(context)
+
+            @wraps(named_pipe_action_handler)
+            async def async_wrapper(context: NamedPipeContext):
+                return await named_pipe_action_handler(context)
+
+            wrapper = async_wrapper if inspect.iscoroutinefunction(
+                named_pipe_action_handler) else non_async_wrapper
+
+            self._get_context_lookup(NamedPipeContext.__name__)\
+                .append(CallbackInfo([*predicates], wrapper))
+
+            return named_pipe_action_handler
         return _decorator
 
     def _get_context_lookup(self, key: str) -> 'list[CallbackInfo]':
