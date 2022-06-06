@@ -2,7 +2,7 @@
 
 from bclib.dispatcher import RoutingDispatcher, IDispatcher, SocketDispatcher, DevServerDispatcher, NamedPipeDispatcher
 from bclib.context import Context, WebContext, SocketContext, ClientSourceContext, ClientSourceMemberContext, RabbitContext, RESTfulContext, RequestContext, MergeType, ServerSourceContext, ServerSourceMemberContext, SourceContext, SourceMemberContext, NamedPipeContext
-from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes, HttpHeaders
+from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes, HttpHeaders, NamedPipeHelper
 from bclib.listener import Message, MessageType, HttpBaseDataType, HttpBaseDataName
 from bclib.predicate import Predicate
 from bclib.exception import ShortCircuitErr, UnauthorizedErr, HandlerNotFoundErr, InternalServerErr, NotFoundErr
@@ -64,7 +64,7 @@ def from_options(options: dict) -> RoutingDispatcher:
     ret_val: RoutingDispatcher = None
     if "server" in options:
         ret_val = DevServerDispatcher(options)
-    if "named_pipe" in options:
+    elif "named_pipe" in options:
         ret_val = NamedPipeDispatcher(options)
     else:
         ret_val = SocketDispatcher(options)

@@ -1,4 +1,7 @@
+import asyncio
 from bclib.utility import DictEx
+from ..db_manager.named_pipe.named_pipe_connection import NamedPipeConnection
+from ..db_manager.named_pipe.inamed_pipe_connection import INamedPipeConnection
 from ..db_manager.rabbit_connection import RabbitConnection
 from ..db_manager.db import Db
 from ..db_manager.mongo_db import MongoDb
@@ -9,8 +12,9 @@ from ..db_manager.restful_connection import RESTfulConnection
 
 class DbManager:
 
-    def __init__(self, options: DictEx) -> None:
+    def __init__(self, options: DictEx, loop: asyncio.AbstractEventLoop) -> None:
         self._options = options
+        self._event_loop = loop
         self._connections: dict(str, list) = dict()
         settings = options.settings if "settings" in options else None
         if settings:
@@ -38,9 +42,12 @@ class DbManager:
             ret_val = RESTfulConnection(setting)
         elif db_type == "rabbit":
             ret_val = RabbitConnection(setting)
+        elif db_type == "named_pipe":
+            ret_val = NamedPipeConnection.get_connection(
+                setting, self._event_loop)
         else:
             print(
-                f"Data base of type '{db_type}' not supported in this vestion")
+                f"Data base of type '{db_type}' not supported in this version")
         return ret_val
 
     def open_sql_connection(self, key: str) -> SqlDb:
@@ -56,4 +63,7 @@ class DbManager:
         return self.open_connection(key)
 
     def open_rabbit_connection(self, key: str) -> RabbitConnection:
+        return self.open_connection(key)
+
+    def get_named_pipe_connection(self, key: str) -> INamedPipeConnection:
         return self.open_connection(key)

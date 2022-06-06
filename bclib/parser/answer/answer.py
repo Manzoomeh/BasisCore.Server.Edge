@@ -1,8 +1,9 @@
 import json
 from typing import Any, Callable
-from bclib import edge, db_manager
-from .user_action_types import UserActionTypes
-from .user_action import UserAction
+from bclib.db_manager import RESTfulConnection
+from bclib.utility import DictEx
+from ..answer.user_action_types import UserActionTypes
+from ..answer.user_action import UserAction
 
 
 class Answer:
@@ -12,7 +13,7 @@ class Answer:
     def __init__(self, data: 'str|Any', api_url: 'str' = None):
         self.json = json.loads(data) if isinstance(data, str) else data
         self.__answer_list: 'list[UserAction]' = None
-        self.__api_connection = db_manager.RESTfulConnection(
+        self.__api_connection = RESTfulConnection(
             api_url) if api_url else None
 
     async def __fill_answer_list_async(self):
@@ -97,7 +98,7 @@ class Answer:
     async def __try_set_data_type_async(self):
         if self.__api_connection:
             type_list = list()
-            questions_data = edge.DictEx(await self.__api_connection.post_async())
+            questions_data = DictEx(await self.__api_connection.post_async())
             for data in questions_data.sources:
                 for question in data.data:
                     for parts in question.questions:

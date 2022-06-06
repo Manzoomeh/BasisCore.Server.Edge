@@ -27,7 +27,7 @@ class Dispatcher(ABC):
         cache_options = self.options.cache if "cache" in self.options else None
         self.event_loop = asyncio.get_event_loop()
         self.cache_manager = create_chaching(cache_options)
-        self.db_manager = DbManager(self.options)
+        self.db_manager = DbManager(self.options, self.event_loop)
         self.__logger: ILogger = LoggerFactory.create(self.options)
         self.log_error: bool = self.options.log_error if self.options.has(
             "log_error") else False
@@ -274,7 +274,7 @@ class Dispatcher(ABC):
         return _decorator
 
     def server_source_member_action(self, *predicates: (Predicate)):
-        """Decorator for determine server source member action methode"""
+        """Decorator for determine server source member action method"""
 
         def _decorator(server_source_member_action_handler: 'Callable[[ServerSourceMemberContext], Any]'):
 

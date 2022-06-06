@@ -1,6 +1,6 @@
 import threading
-from bclib.dispatcher import RoutingDispatcher
-from ..listener import Message, WindowsNamedPipeListener
+from ..dispatcher.routing_dispatcher import RoutingDispatcher
+from bclib.listener import Message, WindowsNamedPipeListener
 
 
 class NamedPipeDispatcher(RoutingDispatcher):
