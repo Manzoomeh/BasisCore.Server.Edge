@@ -1,5 +1,6 @@
 """Main module of bclib.wrapper for all exist module that need in basic coding"""
 
+from re import T
 from bclib.dispatcher import RoutingDispatcher, IDispatcher, SocketDispatcher, DevServerDispatcher, NamedPipeDispatcher
 from bclib.context import Context, WebContext, SocketContext, ClientSourceContext, ClientSourceMemberContext, RabbitContext, RESTfulContext, RequestContext, MergeType, ServerSourceContext, ServerSourceMemberContext, SourceContext, SourceMemberContext, NamedPipeContext
 from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes, HttpHeaders, NamedPipeHelper
@@ -19,7 +20,7 @@ def from_config(option_file_path: str, file_name: str = "host.json"):
     from_options(options)
 
 
-def from_list(hosts: 'dict[str,list[str]]'):
+def from_list_(hosts: 'dict[str,list[str]]'):
     """Create related RoutingDispatcher obj from path list object"""
     import subprocess
     import asyncio
@@ -34,6 +35,44 @@ def from_list(hosts: 'dict[str,list[str]]'):
             print(f'{host} start runing from {args[1]}')
         except Exception as ex:
             print(ex)
+
+
+def from_list(hosts: 'dict[str,list[str]]'):
+    """Create related RoutingDispatcher obj from path list object"""
+    import asyncio
+
+    async def run_host_async(host_name: str, args: 'list[str]') -> None:
+        print(f'{host_name} start running from {args[1]}')
+        # try:
+        proc = await asyncio.create_subprocess_shell(" ".join(args))
+        # except Exception as ex:
+        #     print()
+        stdout, stderr = await proc.communicate()
+        print(f'[{host_name!r} exited with {proc.returncode}]')
+        if stdout:
+            print(f'[stdout]\n{stdout.decode()}')
+        if stderr:
+            print(f'[stderr]\n{stderr.decode()}')
+
+    __print_splash(True)
+    tasks = []
+    for host_name, args in hosts.items():
+        args.append(f"-n {host_name}")
+        args.append("-m")
+        task = run_host_async(host_name, args)
+        tasks.append(task)
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_until_complete(asyncio.gather(*tasks))
+    except Exception as ex:
+        print('g', repr(ex))
+    # finally:
+    #     tasks = asyncio.all_tasks(loop=loop)
+    #     for task in tasks:
+    #         task.cancel()
+    #     group = asyncio.gather(*tasks, return_exceptions=True)
+    #     loop.run_until_complete(group)
+    #     loop.close()
 
 
 def from_options(options: dict) -> RoutingDispatcher:
