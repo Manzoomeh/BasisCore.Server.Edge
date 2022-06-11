@@ -1,8 +1,9 @@
 import asyncio
 import os
+import sys
 from typing import Callable, Coroutine
 from ..listener.message import Message
-from bclib.utility import WindowsNamedPipeHelper
+from bclib.utility import LinuxNamedPipeHelper
 
 
 class LinuxNamedPipeListener:
@@ -10,33 +11,35 @@ class LinuxNamedPipeListener:
 
     def __init__(self, pipe_name: str, on_message_receive_call_back: 'Callable[[Message], Coroutine[Message]]'):
         self.pipe_name = pipe_name
+        self.__writer_pipe_name = F"{self.pipe_name}-writer"
         self.on_message_receive = on_message_receive_call_back
         self.__writer_pipe = None
-        self.__reader_pipe = None
         self.__event_loop: asyncio.AbstractEventLoop = None
 
-    # async def __connect_writer_pipe_async(self):
-    #     try:
-    #         name = F"{self.pipe_name}/writer"
-    #         self.__writer_pipe = win32pipe.CreateNamedPipe(name, win32pipe.PIPE_ACCESS_OUTBOUND,
-    #                                                        win32pipe.PIPE_TYPE_MESSAGE | win32pipe.PIPE_READMODE_MESSAGE | win32pipe.PIPE_WAIT,
-    #                                                        1, 65536, 65536, 0, None)
-    #         print(
-    #             f"Writer named pipe '{name}' is created. Waiting for reader client to connect...")
-    #         await WindowsNamedPipeHelper.wait_for_client_connect_async(self.__writer_pipe, self.__event_loop)
-    #         print(
-    #             f"Reader client is connected to '{name}'...")
-    #     except pywintypes.error as e:  # pylint: disable=maybe-no-member
-    #         self.__writer_pipe = None
-    #         if e.args[0] == 2:   # ERROR_FILE_NOT_FOUND
-    #             print(f"No Named Pipe.  {repr(e)}")
-    #         else:
-    #             print(f"Named Pipe error code {e.args[0]}. {repr(e)}")
-    #         raise
-    #     except Exception as ex:
-    #         self.__writer_pipe = None
-    #         print(f"Error in create writer named pipe. {repr(ex)}")
-    #         raise
+    def try_unlink(self, pipe_name: str):
+        try:
+            os.unlink(pipe_name)
+            print(f"unlink named pipe '{pipe_name}'...")
+        except:
+            pass
+
+    async def __connect_writer_pipe_async(self):
+        if self.__writer_pipe:
+            self.try_unlink(self.__writer_pipe_name)
+
+        try:
+            os.mkfifo(self.__writer_pipe_name)
+        except Exception as ex:
+            print('error in run os.mkfifo():', ex)
+
+        try:
+            self.__writer_pipe = open(self.__writer_pipe_name, "w")
+            print(
+                f"Writer named pipe '{self.__writer_pipe_name}' is created...")
+        except Exception as ex:
+            print(f"Error in create writer named pipe. {repr(ex)}")
+            self.try_unlink(self.__writer_pipe_name)
+            raise
 
     async def send_message_async(self, message: Message) -> bool:
         try_count = 0
@@ -45,14 +48,20 @@ class LinuxNamedPipeListener:
             try:
                 if self.__writer_pipe is None:
                     await self.__connect_writer_pipe_async()
-                WindowsNamedPipeHelper.write_to_named_pipe(
+                LinuxNamedPipeHelper.write_to_named_pipe(
                     message, self.__writer_pipe)
                 send = True
             except asyncio.CancelledError:
                 break
             except Exception as ex:
                 try_count = try_count+1
-                self.__writer_pipe = None
+                if self.__writer_pipe:
+                    self.try_unlink(self.__writer_pipe_name)
+                    try:
+                        self.__writer_pipe.close()
+                    except:
+                        pass
+                    self.__writer_pipe = None
                 print(f"Error in send message {ex}")
                 if try_count > 3:
                     break
@@ -62,54 +71,37 @@ class LinuxNamedPipeListener:
     def initialize_task(self, loop: asyncio.AbstractEventLoop):
         self.__event_loop = loop
 
-        # async def reader_loop_async():
-        #     while True:
-        #         try:
-        #             name = F"{self.pipe_name}/reader"
-        #             try:
-        #                 os.mkfifo(name)
-        #             except Exception as ex:
-        #                 print(f'Error in call os.mkfifo() for ${name}', ex)
-        #             with open(path, "r") as fifo:
-        #                 while True:
-        #                     r = fifo.read(1)
-        #                     if len(r) == 0:
-        #                         print("no message")
-        #                         await asyncio.sleep(.5)
-        #                     else:
-        #                         print("Received:", len(r), r)
-        #             try:
-        #                 fifo = open(name, "w")
-        #             except Exception as e:
-        #                 print(e)
-        #                 sys.exit()
-        #             self.__reader_pipe =
-        #             print(
-        #                 f"Reader named pipe '{name}' is created. Waiting for writer client to connect...")
-        #             await WindowsNamedPipeHelper.wait_for_client_connect_async(self.__reader_pipe, self.__event_loop)
-        #             print(
-        #                 f"Writer client connect to '{name}'...")
-        #             while True:
-        #                 message = await WindowsNamedPipeHelper.read_from_named_pipe_async(
-        #                     self.__reader_pipe, self.__event_loop)
-        #                 if message:
-        #                     self.__event_loop.create_task(
-        #                         self.on_message_receive(message))
-        #         except asyncio.CancelledError:
-        #             print('Edge named pipe server stopped.!')
-        #             break
-        #         except pywintypes.error as e:  # pylint: disable=maybe-no-member
-        #             if e.args[0] == 2:   # ERROR_FILE_NOT_FOUND
-        #                 print(f"No reader named pipe.  {repr(e)}")
-        #             elif e.args[0] == 109:   # ERROR_BROKEN_PIPE
-        #                 print(f"Reader named pipe is broken. {repr(e)}")
-        #             else:
-        #                 print(
-        #                     f"Reader named pipe error code {e.args[0]}. {repr(e)}")
-        #         finally:
-        #             # Disconnect the named pipe
-        #             win32pipe.DisconnectNamedPipe(self.__reader_pipe)
-        #             # CLose the named pipe
-        #             win32file.CloseHandle(self.__reader_pipe)
-        # self.__event_loop.create_task(reader_loop_async())
+        async def reader_loop_async():
+            reader_pipe_name = F"{self.pipe_name}-reader"
+            while True:
+                try:
+                    os.mkfifo(reader_pipe_name)
+                except Exception as ex:
+                    print(
+                        f'Error in call os.mkfifo() for ${reader_pipe_name}', ex)
+
+                with open(reader_pipe_name, "r") as reader_pipe:
+                    print(
+                        f"Reader named pipe '{reader_pipe_name}' is created. try to read from it...")
+                    try:
+                        while True:
+                            message = await LinuxNamedPipeHelper.read_from_named_pipe_async(reader_pipe, self.__event_loop)
+                            if message:
+                                self.__event_loop.create_task(
+                                    self.on_message_receive(message))
+                    except asyncio.CancelledError:
+                        print('Edge named pipe server stopped.!')
+                        break
+                    except Exception as ex:
+                        print('Edge named pipe server stopped.!', ex)
+                        await asyncio.sleep(1)
+                    finally:
+                        try:
+                            if reader_pipe:
+                                os.unlink(reader_pipe_name)
+                                print("unlink...")
+                        except Exception as ex:
+                            print("Error in unlink named pipe...", ex)
+
+        self.__event_loop.create_task(reader_loop_async())
         self.__event_loop.create_task(self.__connect_writer_pipe_async())
