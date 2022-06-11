@@ -4,7 +4,7 @@ import uuid
 from typing import Any
 from ..named_pipe.inamed_pipe_connection import INamedPipeConnection
 
-from bclib.utility import NamedPipeHelper
+from bclib.utility import WindowsNamedPipeHelper
 
 
 class WindowsNamedPipeConnection(INamedPipeConnection):
@@ -52,7 +52,7 @@ class WindowsNamedPipeConnection(INamedPipeConnection):
             try:
                 if self.__writer_pipe_handle is None:
                     self.__connect_to_writer_pipe()
-                message = await NamedPipeHelper.read_from_named_pipe_async(self.__writer_pipe_handle, self.__event_loop)
+                message = await WindowsNamedPipeHelper.read_from_named_pipe_async(self.__writer_pipe_handle, self.__event_loop)
                 if message and message.session_id in self.__query_list:
                     future = self.__query_list[message.session_id]
                     del self.__query_list[message.session_id]
@@ -75,7 +75,8 @@ class WindowsNamedPipeConnection(INamedPipeConnection):
             session_id = str(uuid.uuid4())
             msg = Message.create_add_hock(
                 session_id, json.dumps(command).encode("utf-8"))
-            NamedPipeHelper.write_to_named_pipe(msg, self.__reader_pipe_handle)
+            WindowsNamedPipeHelper.write_to_named_pipe(
+                msg, self.__reader_pipe_handle)
         except:
             self.__reader_pipe_handle = None
         return session_id
