@@ -1,4 +1,5 @@
 import asyncio
+from io import BufferedWriter
 import os
 import sys
 from typing import Callable, Coroutine
@@ -13,7 +14,7 @@ class LinuxNamedPipeListener:
         self.pipe_name = pipe_name
         self.__writer_pipe_name = F"{self.pipe_name}-writer"
         self.on_message_receive = on_message_receive_call_back
-        self.__writer_pipe = None
+        self.__writer_pipe: BufferedWriter = None
         self.__event_loop: asyncio.AbstractEventLoop = None
 
     def try_unlink(self, pipe_name: str):
@@ -33,7 +34,7 @@ class LinuxNamedPipeListener:
             print('error in run os.mkfifo():', ex)
 
         try:
-            self.__writer_pipe = open(self.__writer_pipe_name, "w")
+            self.__writer_pipe = open(self.__writer_pipe_name, "wb")
             print(
                 f"Writer named pipe '{self.__writer_pipe_name}' is created...")
         except Exception as ex:
@@ -80,7 +81,7 @@ class LinuxNamedPipeListener:
                     print(
                         f'Error in call os.mkfifo() for ${reader_pipe_name}', ex)
 
-                with open(reader_pipe_name, "r") as reader_pipe:
+                with open(reader_pipe_name, "rb") as reader_pipe:
                     print(
                         f"Reader named pipe '{reader_pipe_name}' is created. try to read from it...")
                     try:
