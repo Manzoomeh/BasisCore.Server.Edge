@@ -110,9 +110,9 @@ class WindowsNamedPipeHelper:
         def process(pipe_handler: any, future: asyncio.Future):
             try:
                 win32pipe.ConnectNamedPipe(pipe_handler, None)
-                future.set_result(True)
+                future.get_loop().call_soon_threadsafe(future.set_result, True)
             except Exception as ex:
-                future.set_exception(ex)
+                future.get_loop().call_soon_threadsafe(future.set_exception, ex)
         if not loop:
             loop = asyncio.get_event_loop()
         loop.run_in_executor(None, process, pipe_handler, future)

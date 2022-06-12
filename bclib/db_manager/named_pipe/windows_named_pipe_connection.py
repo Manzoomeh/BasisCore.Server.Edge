@@ -57,7 +57,7 @@ class WindowsNamedPipeConnection(INamedPipeConnection):
                     future = self.__query_list[message.session_id]
                     del self.__query_list[message.session_id]
                     data = json.loads(message.buffer)
-                    future.set_result(data)
+                    future.get_loop().call_soon_threadsafe(future.set_result, data)
             except asyncio.CancelledError:
                 self.clear_query_list()
                 break
@@ -97,7 +97,8 @@ class WindowsNamedPipeConnection(INamedPipeConnection):
         for session_id in self.__query_list:
             try:
                 future = self.__query_list[session_id]
-                future.set_exception(Exception("Named Pipe is broken"))
+                future.get_loop().call_soon_threadsafe(
+                    future.set_exception, Exception("Named Pipe is broken"))
             except:
                 pass
         self.__query_list.clear()

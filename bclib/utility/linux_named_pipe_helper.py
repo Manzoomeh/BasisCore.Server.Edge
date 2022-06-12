@@ -48,95 +48,16 @@ class LinuxNamedPipeHelper:
     def write_to_named_pipe(message: 'Message', named_pipe_handle: BufferedWriter):
         from bclib.listener import MessageType
 
-        named_pipe_handle.write(
-            message.type.value.to_bytes(1, 'big'))
+        named_pipe_handle.write(message.type.value.to_bytes(1, 'big'))
 
         data = message.session_id.encode()
         data_length_bytes = len(data).to_bytes(4, 'big')
-        named_pipe_handle.write(
-            data_length_bytes)
-
-        named_pipe_handle.write(named_pipe_handle, data)
+        named_pipe_handle.write(data_length_bytes)
+        named_pipe_handle.write(data)
 
         if message.type in (MessageType.AD_HOC, MessageType.MESSAGE):
             data_length_bytes = len(message.buffer).to_bytes(4, 'big')
-            named_pipe_handle.write(
-                data_length_bytes)
-
-            named_pipe_handle.write(
-                named_pipe_handle, message.buffer)
+            named_pipe_handle.write(data_length_bytes)
+            named_pipe_handle.write(message.buffer)
 
         named_pipe_handle.flush()
-
-
-# import asyncio
-# import os
-
-# import sys
-# import time
-
-# from aiofile import async_open
-
-# path = "./my.fifo1"
-
-
-# def send():
-#     try:
-#         try:
-#             os.mkfifo(path)
-#         except Exception as ex:
-#             print('error in run mkfifo:', ex)
-
-#         try:
-#             fifo = open(path, "w")
-#         except Exception as e:
-#             print(e)
-#             sys.exit()
-#         x = 0
-#         while x < 5:
-#             fifo.write(str(x))
-#             fifo.flush()
-#             print("Sending:", str(x))
-#             x += 1
-#             time.sleep(2)
-#         print("Closing")
-#         fifo.close()
-#     except Exception as ex:
-#         print(ex)
-#     finally:
-#         try:
-#             if fifo:
-#                 os.unlink(path)
-#                 print("unlink...")
-#         except Exception as ex:
-#             print("error in unlink...", ex)
-
-
-# async def client():
-#     await asyncio.sleep(1)
-#     print("start")
-#     try:
-#         with async_open(path, "r") as fifo:
-#             while True:
-#                 r = await fifo.read(1)
-#                 if len(r) == 0:
-#                     print("no message")
-#                     await asyncio.sleep(.5)
-#                 else:
-#                     print("Received:", len(r), r)
-#         print("client terminate")
-#     except Exception as e:
-#         print(e)
-#         sys.exit()
-
-
-# # send()
-# # client()
-# loop = asyncio.get_event_loop()
-# loop.run_in_executor(None, send)
-# #t2 = loop.run_in_executor(None, client)
-# loop.create_task(client())
-# # loop.run_until_complete(t2)
-# # asyncio.run(pipe_relay())
-# loop.run_forever()
-# print("end")

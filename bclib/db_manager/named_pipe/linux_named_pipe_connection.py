@@ -30,7 +30,7 @@ class LinuxNamedPipeConnection(INamedPipeConnection):
                     future = self.__query_list[message.session_id]
                     del self.__query_list[message.session_id]
                     data = json.loads(message.buffer)
-                    future.set_result(data)
+                    future.get_loop().call_soon_threadsafe(future.set_result, data)
             except asyncio.CancelledError:
                 self.clear_query_list()
                 break
@@ -52,6 +52,7 @@ class LinuxNamedPipeConnection(INamedPipeConnection):
                 msg, self.__reader_pipe_handle)
         except:
             self.__reader_pipe_handle = None
+            raise
         return session_id
 
     def try_send_command(self, command: Any) -> bool:
@@ -70,7 +71,8 @@ class LinuxNamedPipeConnection(INamedPipeConnection):
         for session_id in self.__query_list:
             try:
                 future = self.__query_list[session_id]
-                future.set_exception(Exception("Named Pipe is broken"))
+                future.get_loop().call_soon_threadsafe(
+                    future.set_exception, Exception("Named Pipe is broken"))
             except:
                 pass
         self.__query_list.clear()
