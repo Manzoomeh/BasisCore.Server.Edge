@@ -26,10 +26,10 @@ class HttpListener:
         self.__endpoint = endpoint
         self.on_message_receive_async = async_callback
 
-    def initialize_task(self, loop: asyncio.AbstractEventLoop):
-        loop.create_task(self.__server_task())
+    def initialize_task(self, event_loop: asyncio.AbstractEventLoop):
+        event_loop.create_task(self.__server_task(event_loop))
 
-    async def __server_task(self):
+    async def __server_task(self, event_loop: asyncio.AbstractEventLoop):
         from aiohttp import web
         from multidict import MultiDict
 
@@ -58,10 +58,10 @@ class HttpListener:
                 content_type=mime,
                 text=cms[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT])
 
-        app = web.Application()
+        app = web.Application(loop=event_loop)
         app.add_routes(
             [web.route('*', '/{tail:.*}', on_request_receive_async)])
-        runner = web.AppRunner(app)
+        runner = web.AppRunner(app, handle_signals=True)
         await runner.setup()
         site = web.TCPSite(runner, self.__endpoint.url, self.__endpoint.port)
         await site.start()
@@ -75,12 +75,14 @@ class HttpListener:
                 delay = 1
             else:
                 delay = 3600
-
             while True:
                 await asyncio.sleep(delay)
         except asyncio.CancelledError:
-            await site.stop()
             print("Development Edge server stopped.")
+        finally:
+            await site.stop()
+            await runner.shutdown()
+            await runner.cleanup()
 
     @staticmethod
     async def create_cms_async(request: 'web.Request') -> dict:
