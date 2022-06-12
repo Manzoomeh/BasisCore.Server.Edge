@@ -55,7 +55,7 @@ class WindowsNamedPipeHelper:
     async def read_from_named_pipe_async(named_pipe_handle: Any, loop: asyncio.AbstractEventLoop = None) -> 'Message':
         if not loop:
             loop = asyncio.get_event_loop()
-        future = asyncio.Future()
+        future = loop.create_future()
         loop.run_in_executor(
             None, WindowsNamedPipeHelper.__read_from_named_pipe, named_pipe_handle, future)
         return await future
@@ -105,7 +105,7 @@ class WindowsNamedPipeHelper:
     @staticmethod
     async def wait_for_client_connect_async(pipe_handler: any, loop: asyncio.AbstractEventLoop = None) -> None:
         import win32pipe
-        future = asyncio.Future()
+        future = loop.create_future()
 
         def process(pipe_handler: any, future: asyncio.Future):
             try:

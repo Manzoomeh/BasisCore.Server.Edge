@@ -94,7 +94,7 @@ class LinuxNamedPipeListener:
                         print('Edge named pipe server stopped.!')
                         break
                     except Exception as ex:
-                        print('Edge named pipe server stopped.!', ex)
+                        print('Error cause edge named pipe server restart!', ex)
                         await asyncio.sleep(1)
                     finally:
                         try:

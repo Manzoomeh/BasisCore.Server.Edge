@@ -62,7 +62,7 @@ class LinuxNamedPipeConnection(INamedPipeConnection):
         ret_val = None
         session_id = self.__try_send_command(query)
         if session_id:
-            future = asyncio.Future()
+            future = self.__event_loop.create_future()
             self.__query_list[session_id] = future
             ret_val = await future
         return ret_val
