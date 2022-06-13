@@ -78,11 +78,12 @@ class HttpListener:
             while True:
                 await asyncio.sleep(delay)
         except asyncio.CancelledError:
-            print("Development Edge server stopped.")
+            pass
         finally:
+            print("Development Edge server stopped.")
             await site.stop()
-            await runner.shutdown()
             await runner.cleanup()
+            await runner.shutdown()
 
     @staticmethod
     async def create_cms_async(request: 'web.Request') -> dict:
