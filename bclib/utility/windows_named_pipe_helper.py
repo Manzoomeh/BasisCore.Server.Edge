@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from bclib.listener.message import Message
 
 
-class NamedPipeHelper:
+class WindowsNamedPipeHelper:
 
     @staticmethod
     def __check_read_error(error_code):
@@ -26,25 +26,25 @@ class NamedPipeHelper:
 
         try:
             error, data = win32file.ReadFile(named_pipe_handle, 1)
-            NamedPipeHelper.__check_read_error(error)
+            WindowsNamedPipeHelper.__check_read_error(error)
             message_type = MessageType(int.from_bytes(
                 data, byteorder='big', signed=True))
             error, data = win32file.ReadFile(named_pipe_handle, 4)
-            NamedPipeHelper.__check_read_error(error)
+            WindowsNamedPipeHelper.__check_read_error(error)
             data_len = int.from_bytes(
                 data, byteorder='big', signed=True)
             error, data = win32file.ReadFile(named_pipe_handle, data_len)
-            NamedPipeHelper.__check_read_error(error)
+            WindowsNamedPipeHelper.__check_read_error(error)
             session_id = data.decode("utf-8")
             parameter = None
             if message_type in (MessageType.AD_HOC, MessageType.MESSAGE, MessageType.CONNECT):
                 error, data = win32file.ReadFile(named_pipe_handle, 4)
-                NamedPipeHelper.__check_read_error(error)
+                WindowsNamedPipeHelper.__check_read_error(error)
                 data_len = int.from_bytes(
                     data, byteorder='big', signed=True)
                 error, parameter = win32file.ReadFile(
                     named_pipe_handle, data_len)
-                NamedPipeHelper.__check_read_error(error)
+                WindowsNamedPipeHelper.__check_read_error(error)
         except Exception as ex:
             future.get_loop().call_soon_threadsafe(future.set_exception, ex)
         else:
@@ -55,9 +55,9 @@ class NamedPipeHelper:
     async def read_from_named_pipe_async(named_pipe_handle: Any, loop: asyncio.AbstractEventLoop = None) -> 'Message':
         if not loop:
             loop = asyncio.get_event_loop()
-        future = asyncio.Future()
+        future = loop.create_future()
         loop.run_in_executor(
-            None, NamedPipeHelper.__read_from_named_pipe, named_pipe_handle, future)
+            None, WindowsNamedPipeHelper.__read_from_named_pipe, named_pipe_handle, future)
         return await future
 
     @staticmethod
@@ -70,22 +70,22 @@ class NamedPipeHelper:
         try:
             error, _ = win32file.WriteFile(
                 named_pipe_handle, message.type.value.to_bytes(1, 'big'))
-            NamedPipeHelper.__check_write_error(error)
+            WindowsNamedPipeHelper.__check_write_error(error)
             data = message.session_id.encode()
             data_length_bytes = len(data).to_bytes(4, 'big')
             error, _ = win32file.WriteFile(
                 named_pipe_handle, data_length_bytes)
-            NamedPipeHelper.__check_write_error(error)
+            WindowsNamedPipeHelper.__check_write_error(error)
             error, _ = win32file.WriteFile(named_pipe_handle, data)
-            NamedPipeHelper.__check_write_error(error)
+            WindowsNamedPipeHelper.__check_write_error(error)
             if message.type in (MessageType.AD_HOC, MessageType.MESSAGE):
                 data_length_bytes = len(message.buffer).to_bytes(4, 'big')
                 error, _ = win32file.WriteFile(
                     named_pipe_handle, data_length_bytes)
-                NamedPipeHelper.__check_write_error(error)
+                WindowsNamedPipeHelper.__check_write_error(error)
                 error, _ = win32file.WriteFile(
                     named_pipe_handle, message.buffer)
-                NamedPipeHelper.__check_write_error(error)
+                WindowsNamedPipeHelper.__check_write_error(error)
             win32file.FlushFileBuffers(named_pipe_handle)
         except pywintypes.error as e:  # pylint: disable=maybe-no-member
             # Disconnect the named pipe
@@ -105,14 +105,14 @@ class NamedPipeHelper:
     @staticmethod
     async def wait_for_client_connect_async(pipe_handler: any, loop: asyncio.AbstractEventLoop = None) -> None:
         import win32pipe
-        future = asyncio.Future()
+        future = loop.create_future()
 
         def process(pipe_handler: any, future: asyncio.Future):
             try:
                 win32pipe.ConnectNamedPipe(pipe_handler, None)
-                future.set_result(True)
+                future.get_loop().call_soon_threadsafe(future.set_result, True)
             except Exception as ex:
-                future.set_exception(ex)
+                future.get_loop().call_soon_threadsafe(future.set_exception, ex)
         if not loop:
             loop = asyncio.get_event_loop()
         loop.run_in_executor(None, process, pipe_handler, future)

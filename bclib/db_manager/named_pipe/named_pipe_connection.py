@@ -1,5 +1,5 @@
 import asyncio
-from ..named_pipe.windows_named_pipe_connection import WindowsNamedPipeConnection
+from sys import platform
 from ..named_pipe.inamed_pipe_connection import INamedPipeConnection
 
 
@@ -12,6 +12,19 @@ class NamedPipeConnection:
         if pipe_name in NamedPipeConnection.__dic:
             ret_val = NamedPipeConnection.__dic[pipe_name]
         else:
-            ret_val = NamedPipeConnection.__dic[pipe_name] = WindowsNamedPipeConnection(
-                pipe_name, loop)
+            # https://docs.python.org/3/library/sys.html#sys.platform
+            if platform == "linux" or platform == "linux2":
+                # linux
+                from ..named_pipe.linux_named_pipe_connection import LinuxNamedPipeConnection
+                ret_val = NamedPipeConnection.__dic[pipe_name] = LinuxNamedPipeConnection(
+                    pipe_name, loop)
+            elif platform == "darwin":
+                # OS X
+                raise Exception(
+                    "named pipe connection not implemented in OS X")
+            elif platform == "win32":
+                from ..named_pipe.windows_named_pipe_connection import WindowsNamedPipeConnection
+                ret_val = NamedPipeConnection.__dic[pipe_name] = WindowsNamedPipeConnection(
+                    pipe_name, loop)
+            NamedPipeConnection.__dic[pipe_name] = ret_val
         return ret_val

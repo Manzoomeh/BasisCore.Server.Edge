@@ -1,4 +1,3 @@
-import asyncio
 from ..dispatcher.socket_dispatcher import RoutingDispatcher
 from bclib.listener import Endpoint,  Message, HttpListener
 
@@ -12,10 +11,7 @@ class DevServerDispatcher(RoutingDispatcher):
 
     async def send_message_async(self, message: Message) -> bool:
         """Send message to endpoint"""
-
-        ret_val = asyncio.Future()
-        ret_val.set_result(None)
-        return ret_val
+        return False
 
     def initialize_task(self):
         super().initialize_task()

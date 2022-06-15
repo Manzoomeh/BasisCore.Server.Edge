@@ -1,58 +1,31 @@
 import asyncio
+from io import BufferedReader, BufferedWriter
 import json
 import uuid
 from typing import Any
 from ..named_pipe.inamed_pipe_connection import INamedPipeConnection
 
-from bclib.utility import WindowsNamedPipeHelper
+from bclib.utility import LinuxNamedPipeHelper
 
 
-class WindowsNamedPipeConnection(INamedPipeConnection):
+class LinuxNamedPipeConnection(INamedPipeConnection):
     def __init__(self, pipe_name: str, event_loop: asyncio.AbstractEventLoop) -> None:
         self.__event_loop = event_loop
-        self.__reader_pipe_name = F"{pipe_name}/reader"
-        self.__writer_pipe_name = F"{pipe_name}/writer"
-        self.__reader_pipe_handle = None
-        self.__writer_pipe_handle = None
+        self.__reader_pipe_name = F"{pipe_name}-reader"
+        self.__writer_pipe_name = F"{pipe_name}-writer"
+        self.__reader_pipe_handle: BufferedWriter = None
+        self.__writer_pipe_handle: BufferedReader = None
         self.__query_list: 'dict[str,asyncio.Future]' = dict()
         self.__propcess_tesk = self.__event_loop.create_task(
             self.__get_receive_message_Task())
-
-    def __connect_to_reader_named_pipe(self):
-        import win32file
-        import pywintypes
-        try:
-            self.__reader_pipe_handle = win32file.CreateFile(self.__reader_pipe_name, win32file.GENERIC_WRITE,
-                                                             0, None, win32file.OPEN_EXISTING, win32file.FILE_ATTRIBUTE_NORMAL, None)
-        except pywintypes.error as e:  # pylint: disable=maybe-no-member
-            if e.args[0] == 2:   # ERROR_FILE_NOT_FOUND
-                print(f"No Named Pipe '{self.__reader_pipe_name}'. {repr(e)}")
-            else:
-                print(
-                    f"Named Pipe '{self.__reader_pipe_name}' error code {e.args[0]}. {repr(e)}")
-            raise
-
-    def __connect_to_writer_pipe(self):
-        import win32file
-        import pywintypes
-        try:
-            self.__writer_pipe_handle = win32file.CreateFile(self.__writer_pipe_name, win32file.GENERIC_READ,
-                                                             0, None, win32file.OPEN_EXISTING, win32file.FILE_ATTRIBUTE_READONLY, None)
-
-        except pywintypes.error as e:  # pylint: disable=maybe-no-member
-            if e.args[0] == 2:   # ERROR_FILE_NOT_FOUND
-                print(f"No Named Pipe '{self.__writer_pipe_name}'. {repr(e)}")
-            else:
-                print(
-                    f"Named Pipe '{self.__writer_pipe_name}' error code {e.args[0]}. {repr(e)}")
-            raise
 
     async def __get_receive_message_Task(self):
         while True:
             try:
                 if self.__writer_pipe_handle is None:
-                    self.__connect_to_writer_pipe()
-                message = await WindowsNamedPipeHelper.read_from_named_pipe_async(self.__writer_pipe_handle, self.__event_loop)
+                    self.__writer_pipe_handle = open(
+                        self.__writer_pipe_name, 'rb')
+                message = await LinuxNamedPipeHelper.read_from_named_pipe_async(self.__writer_pipe_handle, self.__event_loop)
                 if message and message.session_id in self.__query_list:
                     future = self.__query_list[message.session_id]
                     del self.__query_list[message.session_id]
@@ -71,14 +44,15 @@ class WindowsNamedPipeConnection(INamedPipeConnection):
         session_id = None
         try:
             if self.__reader_pipe_handle is None:
-                self.__connect_to_reader_named_pipe()
+                self.__reader_pipe_handle = open(self.__reader_pipe_name, "wb")
             session_id = str(uuid.uuid4())
             msg = Message.create_add_hock(
                 session_id, json.dumps(command).encode("utf-8"))
-            WindowsNamedPipeHelper.write_to_named_pipe(
+            LinuxNamedPipeHelper.write_to_named_pipe(
                 msg, self.__reader_pipe_handle)
         except:
             self.__reader_pipe_handle = None
+            raise
         return session_id
 
     def try_send_command(self, command: Any) -> bool:
