@@ -1,7 +1,7 @@
 import asyncio
 from typing import Callable, Coroutine
 from ..listener.message import Message
-from bclib.utility import NamedPipeHelper
+from bclib.utility import WindowsNamedPipeHelper
 
 
 class WindowsNamedPipeListener:
@@ -24,7 +24,7 @@ class WindowsNamedPipeListener:
                                                            1, 65536, 65536, 0, None)
             print(
                 f"Writer named pipe '{name}' is created. Waiting for reader client to connect...")
-            await NamedPipeHelper.wait_for_client_connect_async(self.__writer_pipe, self.__event_loop)
+            await WindowsNamedPipeHelper.wait_for_client_connect_async(self.__writer_pipe, self.__event_loop)
             print(
                 f"Reader client is connected to '{name}'...")
         except pywintypes.error as e:  # pylint: disable=maybe-no-member
@@ -46,7 +46,7 @@ class WindowsNamedPipeListener:
             try:
                 if self.__writer_pipe is None:
                     await self.__connect_writer_pipe_async()
-                NamedPipeHelper.write_to_named_pipe(
+                WindowsNamedPipeHelper.write_to_named_pipe(
                     message, self.__writer_pipe)
                 send = True
             except asyncio.CancelledError:
@@ -75,11 +75,11 @@ class WindowsNamedPipeListener:
                                                                    1, 65536, 65536, 0, None)
                     print(
                         f"Reader named pipe '{name}' is created. Waiting for writer client to connect...")
-                    await NamedPipeHelper.wait_for_client_connect_async(self.__reader_pipe, self.__event_loop)
+                    await WindowsNamedPipeHelper.wait_for_client_connect_async(self.__reader_pipe, self.__event_loop)
                     print(
                         f"Writer client connect to '{name}'...")
                     while True:
-                        message = await NamedPipeHelper.read_from_named_pipe_async(
+                        message = await WindowsNamedPipeHelper.read_from_named_pipe_async(
                             self.__reader_pipe, self.__event_loop)
                         if message:
                             self.__event_loop.create_task(
