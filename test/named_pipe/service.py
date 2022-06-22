@@ -23,8 +23,8 @@ def generate_data() -> list:
 
 
 @app.named_pipe_action()
-def process_restful_request(context: edge.NamedPipeContext):
-    print("process_restful_request", context.message)
+def process_pipe_request(context: edge.NamedPipeContext):
+    print("process_pipe_request", context.message)
     return generate_data()
 
 

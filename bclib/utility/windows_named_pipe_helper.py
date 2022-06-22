@@ -20,44 +20,38 @@ class WindowsNamedPipeHelper:
                 f"error in write in pip. error code = {error_code}")
 
     @staticmethod
-    def __read_from_named_pipe(named_pipe_handle: Any, future: asyncio.Future) -> None:
+    def __read_from_named_pipe(named_pipe_handle: Any) -> 'Message':
         import win32file
         from bclib.listener import Message, MessageType
 
-        try:
-            error, data = win32file.ReadFile(named_pipe_handle, 1)
-            WindowsNamedPipeHelper.__check_read_error(error)
-            message_type = MessageType(int.from_bytes(
-                data, byteorder='big', signed=True))
+        error, data = win32file.ReadFile(named_pipe_handle, 1)
+        WindowsNamedPipeHelper.__check_read_error(error)
+        message_type = MessageType(int.from_bytes(
+            data, byteorder='big', signed=True))
+        error, data = win32file.ReadFile(named_pipe_handle, 4)
+        WindowsNamedPipeHelper.__check_read_error(error)
+        data_len = int.from_bytes(
+            data, byteorder='big', signed=True)
+        error, data = win32file.ReadFile(named_pipe_handle, data_len)
+        WindowsNamedPipeHelper.__check_read_error(error)
+        session_id = data.decode("utf-8")
+        parameter = None
+        if message_type in (MessageType.AD_HOC, MessageType.MESSAGE, MessageType.CONNECT):
             error, data = win32file.ReadFile(named_pipe_handle, 4)
             WindowsNamedPipeHelper.__check_read_error(error)
             data_len = int.from_bytes(
                 data, byteorder='big', signed=True)
-            error, data = win32file.ReadFile(named_pipe_handle, data_len)
+            error, parameter = win32file.ReadFile(
+                named_pipe_handle, data_len)
             WindowsNamedPipeHelper.__check_read_error(error)
-            session_id = data.decode("utf-8")
-            parameter = None
-            if message_type in (MessageType.AD_HOC, MessageType.MESSAGE, MessageType.CONNECT):
-                error, data = win32file.ReadFile(named_pipe_handle, 4)
-                WindowsNamedPipeHelper.__check_read_error(error)
-                data_len = int.from_bytes(
-                    data, byteorder='big', signed=True)
-                error, parameter = win32file.ReadFile(
-                    named_pipe_handle, data_len)
-                WindowsNamedPipeHelper.__check_read_error(error)
-        except Exception as ex:
-            future.get_loop().call_soon_threadsafe(future.set_exception, ex)
-        else:
-            message = Message(session_id, message_type, parameter)
-            future.get_loop().call_soon_threadsafe(future.set_result, message)
+        return Message(session_id, message_type, parameter)
 
     @staticmethod
     async def read_from_named_pipe_async(named_pipe_handle: Any, loop: asyncio.AbstractEventLoop = None) -> 'Message':
         if not loop:
             loop = asyncio.get_event_loop()
-        future = loop.create_future()
-        loop.run_in_executor(
-            None, WindowsNamedPipeHelper.__read_from_named_pipe, named_pipe_handle, future)
+        future = loop.run_in_executor(
+            None, WindowsNamedPipeHelper.__read_from_named_pipe, named_pipe_handle)
         return await future
 
     @staticmethod

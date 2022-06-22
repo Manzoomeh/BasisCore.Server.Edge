@@ -8,7 +8,7 @@ edge.from_list(
         # ],
         "rest-b": [
             "py",
-            "test/named_pipe/simple.py"
+            "test/named_pipe/service.py"
         ],
         "rest-a": [
             "py",
