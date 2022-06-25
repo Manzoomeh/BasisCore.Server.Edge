@@ -156,7 +156,36 @@ js = {
                             "values": [
                                 {
                                     "id": 78854,
-                                    "value": "SAAAAALAAAAAM"
+                                    "value": "test",
+                                    "answer": {
+                                        "lid": 1,
+                                        "paramUrl": "/1164",
+                                        "schemaId": 1164,
+                                        "schemaVersion": 1.1,
+                                        "usedForId": 1423332,
+                                        "properties": [
+                                        {
+                                            "propId": 13060,
+                                            "multi": True,
+                                            "edited": [
+                                            {
+                                            "id": 8456251,
+                                            "parts": [
+                                            {
+                                                "part": 1,
+                                                "values": [
+                                                {
+                                                "id": 123,
+                                                "value": "5"
+                                                }
+                                                ]
+                                            }
+                                            ]
+                                            }
+                                            ]
+                                        }
+                                        ]
+                                        }
                                 }
                             ]
                         }
@@ -175,7 +204,7 @@ js = {
                             "values": [
                                 {
                                     "id": 85257,
-                                    "value": "1500"
+                                    "value": "1500", 
                                 }
                             ]
                         }
@@ -185,20 +214,14 @@ js = {
         }
     ]
 }
-# for action_type in parser.UserActionTypes:
-#     print(action_type.value)
 
 
 async def f():
     my_object = parser.ParseAnswer(js)
     print(await my_object.get_actions_async())
-    print(await my_object.get_actions_async(prp_id=12345))
-# print('f', await my_object.get_actions_async(predicate=lambda x: x.prp_id ==12345 or x.action == parser.UserActionTypes.DELETED))
-# print(my_object.get_actions(prp_id=[1000,12345],))
-# print(my_object.get_actions(action=[parser.UserActionTypes.DELETED]))
-# print(my_object.get_actions(action=[parser.UserActionTypes.DELETED, parser.UserActionTypes.ADDED]))
-# print(my_object.get_actions(action=[
-#       parser.UserActionTypes.EDITED, parser.UserActionTypes.ADDED], part=[1, 2]))
-# print(my_object.get_actions(prp_id=12344, action=parser.UserActionTypes.EDITED, part=2))
+    
+if __name__ == "__main__":
+    asyncio.run(f())
 
-asyncio.run(f())
+# display flat of js completely 
+# it returns a list

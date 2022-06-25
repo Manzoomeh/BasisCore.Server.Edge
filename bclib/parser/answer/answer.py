@@ -1,5 +1,6 @@
 import json
 from typing import Any, Callable
+from bclib import parser
 from bclib.db_manager import RESTfulConnection
 from bclib.utility import DictEx
 from ..answer.user_action_types import UserActionTypes
@@ -19,6 +20,7 @@ class Answer:
     async def __fill_answer_list_async(self):
         self.__answer_list = list()
         for data in self.json['properties']:
+            multi = data['multi'] if 'multi' in data else None
             for action_type in UserActionTypes:
                 if action_type.value in list(data.keys()):
                     for actions in data[action_type.value]:
@@ -33,14 +35,15 @@ class Answer:
                                     value_id = values['id'] if "id" in values.keys(
                                     ) else None
                                     value = values['value']
+                                    answer = parser.ParseAnswer(values["answer"]) if 'answer' in values.keys() else None
                                     self.__answer_list.append(UserAction(
-                                        prp_id, action_type, prp_value_id, value_id, value, None, None, part_number))
+                                        prp_id, action_type, prp_value_id, value_id, value, None, multi, part_number, answer))
                         else:
                             prp_id = data['propId']
                             prp_value_id = actions['id'] if 'id' in actions.keys(
                             ) else None
                             self.__answer_list.append(UserAction(
-                                prp_id, action_type,  prp_value_id, None, None, None, None, None))
+                                prp_id, action_type,  prp_value_id, None, None, None, multi, None, None))
 
         await self.__try_set_data_type_async()
 
@@ -48,7 +51,6 @@ class Answer:
         ret_val: 'list[UserAction]' = None
         if self.__answer_list is None:
             await self.__fill_answer_list_async()
-
         if predicate:
             ret_val = [x for x in self.__answer_list if predicate(x)]
         else:
@@ -57,6 +59,7 @@ class Answer:
                        (action_list is None or x.action in action_list) and
                        (part_list is None or x.part in part_list)
                        ]
+
         return ret_val if ret_val else list()
 
     async def get_actions_async(self, prp_id: 'int|list[int]' = None, action: 'UserActionTypes|list[UserActionTypes]' = None,
