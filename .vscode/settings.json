@@ -9,6 +9,7 @@
     "idispatcher",
     "ilogger",
     "INET",
+    "ipvi",
     "iscoroutinefunction",
     "ODBC",
     "pymongo",

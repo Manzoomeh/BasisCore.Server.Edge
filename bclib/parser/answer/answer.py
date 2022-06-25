@@ -19,6 +19,7 @@ class Answer:
 
     async def __fill_answer_list_async(self):
         self.__answer_list = list()
+        internal_prp_value_index = 1
         for data in self.json['properties']:
             multi = data['multi'] if 'multi' in data else None
             for action_type in UserActionTypes:
@@ -26,6 +27,7 @@ class Answer:
                     for actions in data[action_type.value]:
                         if 'parts' in actions.keys():
                             for parts in actions['parts']:
+                                internal_prp_value_id = internal_prp_value_index
                                 for values in parts['values']:
                                     prp_id = data['propId']
                                     prp_value_id = actions['id'] if 'id' in actions.keys(
@@ -37,14 +39,16 @@ class Answer:
                                     value = values['value']
                                     answer = parser.ParseAnswer(values["answer"]) if 'answer' in values.keys() else None
                                     self.__answer_list.append(UserAction(
-                                        prp_id, action_type, prp_value_id, value_id, value, None, multi, part_number, answer))
+                                        prp_id, action_type, prp_value_id,internal_prp_value_id ,value_id, value, None, multi, part_number, answer))
+                            
                         else:
+                            internal_prp_value_id = internal_prp_value_index
                             prp_id = data['propId']
                             prp_value_id = actions['id'] if 'id' in actions.keys(
                             ) else None
                             self.__answer_list.append(UserAction(
-                                prp_id, action_type,  prp_value_id, None, None, None, multi, None, None))
-
+                                prp_id, action_type,  prp_value_id, internal_prp_value_id, None, None, None, multi, None, None))
+                        internal_prp_value_index += 1
         await self.__try_set_data_type_async()
 
     async def __get_action_async(self, prp_id_list: 'list[int]', action_list: 'list[UserActionTypes]', part_list: 'list[int]', predicate: 'Callable[[UserAction],bool]' = None) -> 'list[UserAction]':
@@ -66,9 +70,9 @@ class Answer:
                                 part: int = None, predicate: 'Callable[[UserAction],bool]' = None) -> 'list[UserAction]':
         """
         inputs:
-        prpid: None, int or list
-        action: None, int or list
-        part: None or in
+        prpid: None, int or list[int]
+        action: None, int or list[int]
+        part: None or int
         Samples:
         (prpid=None, action='edited')
         (prpid=[12345, 1000], action=None)
@@ -116,3 +120,19 @@ class Answer:
                 for values in self.__answer_list:
                     if int(type['prpId']) == int(values.prp_id) and type["part"] == values.part or values.part is None:
                         values.datatype = type['table']
+
+
+    async def get_added_actions_async(self, prp_id: 'int|list[int]' = None,predicate: 'Callable[[UserAction],bool]' = None) -> list[UserAction]:
+        ret_val: 'dict[int:list[list[UserAction]]]' = {}
+        added_objects = await self.get_actions_async(prp_id=prp_id, action=UserActionTypes.ADDED, predicate=predicate)
+        unique_internal_values_id = set([obj.internal_prp_value_id for obj in added_objects])
+        same_internal_value_id_objects = [[obj for obj in added_objects if obj.internal_prp_value_id == internal_values_id] for internal_values_id in unique_internal_values_id]
+        unique_prp_id = set([obj[0].prp_id for obj in same_internal_value_id_objects])
+        for _prp_id in unique_prp_id:
+            for obj in same_internal_value_id_objects:
+                if obj[0].prp_id == _prp_id:
+                    if obj[0].prp_id in ret_val:
+                        ret_val[obj[0].prp_id].append(obj)
+                    else:
+                        ret_val[obj[0].prp_id] = [obj]
+        return list(ret_val.values())

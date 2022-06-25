@@ -89,6 +89,14 @@ js = {
                                     "value": "this is a test to check"
                                 }
                             ]
+                        },
+                        {
+                            "part": 2,
+                            "values": [
+                                {
+                                    "value": "this is a test"
+                                }
+                            ]
                         }
                     ]
                 },
@@ -99,6 +107,14 @@ js = {
                             "values": [
                                 {
                                     "value": "0"
+                                }
+                            ]
+                        },
+                        {
+                            "part": 2,
+                            "values": [
+                                {
+                                    "value": "this"
                                 }
                             ]
                         }
@@ -219,7 +235,6 @@ js = {
 async def f():
     my_object = parser.ParseAnswer(js)
     print(await my_object.get_actions_async())
-    
 if __name__ == "__main__":
     asyncio.run(f())
 
