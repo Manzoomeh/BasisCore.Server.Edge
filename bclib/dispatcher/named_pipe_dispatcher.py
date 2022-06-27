@@ -1,4 +1,4 @@
-import threading
+import asyncio
 from sys import platform
 from ..dispatcher.routing_dispatcher import RoutingDispatcher
 from bclib.listener import Message
@@ -7,7 +7,7 @@ from bclib.listener import Message
 class NamedPipeDispatcher(RoutingDispatcher):
     def __init__(self, options: dict):
         super().__init__(options)
-        self.__lock = threading.Lock()
+        self.__lock = asyncio.Lock()
         # https://docs.python.org/3/library/sys.html#sys.platform
         if platform == "linux" or platform == "linux2":
             # linux
@@ -27,11 +27,8 @@ class NamedPipeDispatcher(RoutingDispatcher):
     async def send_message_async(self, message: Message) -> bool:
         """Send message to endpoint"""
 
-        try:
-            self.__lock.acquire()
+        async with self.__lock:
             return await self.__listener.send_message_async(message)
-        finally:
-            self.__lock.release()
 
     def initialize_task(self):
         super().initialize_task()
