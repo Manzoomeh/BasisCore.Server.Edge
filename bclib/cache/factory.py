@@ -4,7 +4,7 @@ from ..cache.in_memory_cache_manager import InMemoryCacheManager
 from ..cache.no_cache import NoCacheManager
 
 
-def create_chaching(options: DictEx) -> CacheManager:
+def create_caching(options: DictEx) -> CacheManager:
     ret_val: CacheManager = None
     cache_type = options.type if options is not None and "type" in options else "none"
     if cache_type == "memory":

@@ -1,4 +1,4 @@
-"""Base class for dispaching request"""
+"""Base class for dispatching request"""
 import asyncio
 import inspect
 from abc import ABC
@@ -8,7 +8,7 @@ from typing import Callable, Any, Coroutine
 from functools import wraps
 
 from bclib.logger import ILogger, LoggerFactory
-from bclib.cache import create_chaching
+from bclib.cache import create_caching
 from bclib.listener import RabbitBusListener
 from bclib.predicate import Predicate
 from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext, NamedPipeContext
@@ -19,14 +19,14 @@ from ..dispatcher.callback_info import CallbackInfo
 
 
 class Dispatcher(ABC):
-    """Base class for dispaching request"""
+    """Base class for dispatching request"""
 
     def __init__(self, options: dict = None):
         self.options = DictEx(options)
         self.__look_up: 'dict[str, list[CallbackInfo]]' = dict()
         cache_options = self.options.cache if "cache" in self.options else None
         self.event_loop = asyncio.get_event_loop()
-        self.cache_manager = create_chaching(cache_options)
+        self.cache_manager = create_caching(cache_options)
         self.db_manager = DbManager(self.options, self.event_loop)
         self.__logger: ILogger = LoggerFactory.create(self.options)
         self.log_error: bool = self.options.log_error if self.options.has(
@@ -46,7 +46,7 @@ class Dispatcher(ABC):
 
             @wraps(socket_action_handler)
             async def non_async_wrapper(context: SocketContext):
-                return socket_action_handler(context)
+                return await self.event_loop.run_in_executor(None, socket_action_handler, context)
 
             @wraps(socket_action_handler)
             async def async_wrapper(context: SocketContext):
@@ -67,7 +67,7 @@ class Dispatcher(ABC):
 
             @wraps(restful_action_handler)
             async def non_async_wrapper(context: RESTfulContext):
-                action_result = restful_action_handler(context)
+                action_result = await self.event_loop.run_in_executor(None, restful_action_handler, context)
                 return None if action_result is None else context.generate_response(action_result)
 
             @wraps(restful_action_handler)
@@ -90,7 +90,7 @@ class Dispatcher(ABC):
 
             @wraps(web_action_handler)
             async def non_async_wrapper(context: WebContext):
-                action_result = web_action_handler(context)
+                action_result = await self.event_loop.run_in_executor(None, web_action_handler, context)
                 return None if action_result is None else context.generate_response(action_result)
 
             @wraps(web_action_handler)
@@ -112,13 +112,13 @@ class Dispatcher(ABC):
         def _decorator(client_source_action_handler: 'Callable[[ClientSourceContext], Any]'):
             @wraps(client_source_action_handler)
             async def non_async_wrapper(context: ClientSourceContext):
-                data = client_source_action_handler(context)
+                data = await self.event_loop.run_in_executor(None, client_source_action_handler, context)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
                         member_context = ClientSourceMemberContext(
                             context, data, member)
-                        dispath_result = await self.dispatch_async(member_context)
+                        dispatch_result = await self.dispatch_async(member_context)
                         result = {
                             "options": {
                                 "tableName": member_context.table_name,
@@ -127,7 +127,7 @@ class Dispatcher(ABC):
                                 "mergeType": member_context.merge_type.value,
                                 "columnNames": member_context.column_names,
                             },
-                            "data": dispath_result
+                            "data": dispatch_result
                         }
                         result_set.append(result)
                     ret_val = {
@@ -148,7 +148,7 @@ class Dispatcher(ABC):
                     for member in context.command.member:
                         member_context = ClientSourceMemberContext(
                             context, data, member)
-                        dispath_result = await self.dispatch_async(member_context)
+                        dispatch_result = await self.dispatch_async(member_context)
                         result = {
                             "options": {
                                 "tableName": member_context.table_name,
@@ -157,7 +157,7 @@ class Dispatcher(ABC):
                                 "mergeType": member_context.merge_type.value,
                                 "columnNames": member_context.column_names,
                             },
-                            "data": dispath_result
+                            "data": dispatch_result
                         }
                         result_set.append(result)
                     ret_val = {
@@ -186,7 +186,7 @@ class Dispatcher(ABC):
 
             @wraps(client_source_member_handler)
             async def non_async_wrapper(context: WebContext):
-                return client_source_member_handler(context)
+                return await self.event_loop.run_in_executor(None, client_source_member_handler, context)
 
             @wraps(client_source_member_handler)
             async def async_wrapper(context: WebContext):
@@ -206,13 +206,13 @@ class Dispatcher(ABC):
         def _decorator(server_source_action_handler: 'Callable[[ServerSourceContext], Any]'):
             @wraps(server_source_action_handler)
             async def non_async_wrapper(context: ServerSourceContext):
-                data = server_source_action_handler(context)
+                data = await self.event_loop.run_in_executor(None, server_source_action_handler, context)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
                         member_context = ServerSourceMemberContext(
                             context, data, member)
-                        dispath_result = await self.dispatch_async(member_context)
+                        dispatch_result = await self.dispatch_async(member_context)
                         result = {
                             "options": {
                                 "tableName": member_context.table_name,
@@ -221,7 +221,7 @@ class Dispatcher(ABC):
                                 "mergeType": member_context.merge_type.value,
                                 "columnNames": member_context.column_names,
                             },
-                            "data": dispath_result
+                            "data": dispatch_result
                         }
                         result_set.append(result)
                     ret_val = {
@@ -242,7 +242,7 @@ class Dispatcher(ABC):
                     for member in context.command.member:
                         member_context = ServerSourceMemberContext(
                             context, data, member)
-                        dispath_result = await self.dispatch_async(member_context)
+                        dispatch_result = await self.dispatch_async(member_context)
                         result = {
                             "options": {
                                 "tableName": member_context.table_name,
@@ -251,7 +251,7 @@ class Dispatcher(ABC):
                                 "mergeType": member_context.merge_type.value,
                                 "columnNames": member_context.column_names,
                             },
-                            "data": dispath_result
+                            "data": dispatch_result
                         }
                         result_set.append(result)
                     ret_val = {
@@ -280,7 +280,7 @@ class Dispatcher(ABC):
 
             @wraps(server_source_member_action_handler)
             async def non_async_wrapper(context: WebContext):
-                return server_source_member_action_handler(context)
+                return await self.event_loop.run_in_executor(None, server_source_member_action_handler, context)
 
             @wraps(server_source_member_action_handler)
             async def async_wrapper(context: WebContext):
@@ -301,7 +301,7 @@ class Dispatcher(ABC):
 
             @wraps(rabbit_action_handler)
             async def non_async_wrapper(context: RabbitContext):
-                return rabbit_action_handler(context)
+                return await self.event_loop.run_in_executor(None, rabbit_action_handler, context)
 
             @wraps(rabbit_action_handler)
             async def async_wrapper(context: RabbitContext):
@@ -323,7 +323,7 @@ class Dispatcher(ABC):
 
             @wraps(named_pipe_action_handler)
             async def non_async_wrapper(context: NamedPipeContext):
-                return named_pipe_action_handler(context)
+                return await self.event_loop.run_in_executor(None, named_pipe_action_handler, context)
 
             @wraps(named_pipe_action_handler)
             async def async_wrapper(context: NamedPipeContext):
@@ -372,8 +372,8 @@ class Dispatcher(ABC):
         return result
 
     def initialize_task(self):
-        for dispacher in self.__rabbit_dispatcher:
-            dispacher.initialize_task(self.event_loop)
+        for dispatcher in self.__rabbit_dispatcher:
+            dispatcher.initialize_task(self.event_loop)
 
     def listening(self):
         """Start listening to request for process"""
