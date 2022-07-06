@@ -19,7 +19,12 @@ class RabbitConnection(Db):
         connection = pika.BlockingConnection(
             pika.URLParameters(self.__connection_setting.host))
         self.__channel = connection.channel()
-        self.__channel.queue_declare(queue=self.__connection_setting.queue)
+        self.__channel.queue_declare(queue=self.__connection_setting.queue,
+                                     passive=self.__connection_setting.passive if self.__connection_setting.passive else False,
+                                     durable=self.__connection_setting.durable if self.__connection_setting.durable else False,
+                                     exclusive=self.__connection_setting.exclusive if self.__connection_setting.exclusive else False,
+                                     auto_delete=self.__connection_setting.auto_delete if self.__connection_setting.auto_delete else False
+                                     )
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.__connection is not None:
