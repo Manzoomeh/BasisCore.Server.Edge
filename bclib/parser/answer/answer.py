@@ -37,10 +37,11 @@ class Answer:
                                     value_id = values['id'] if "id" in values.keys(
                                     ) else None
                                     value = values['value']
-                                    answer = parser.ParseAnswer(values["answer"]) if 'answer' in values.keys() else None
+                                    answer = parser.ParseAnswer(
+                                        values["answer"]) if 'answer' in values.keys() else None
                                     self.__answer_list.append(UserAction(
-                                        prp_id, action_type, prp_value_id,internal_prp_value_id ,value_id, value, None, multi, part_number, answer))
-                            
+                                        prp_id, action_type, prp_value_id, internal_prp_value_id, value_id, value, None, multi, part_number, answer))
+
                         else:
                             internal_prp_value_id = internal_prp_value_index
                             prp_id = data['propId']
@@ -121,13 +122,15 @@ class Answer:
                     if int(type['prpId']) == int(values.prp_id) and type["part"] == values.part or values.part is None:
                         values.datatype = type['table']
 
-
-    async def get_added_actions_async(self, prp_id: 'int|list[int]' = None,predicate: 'Callable[[UserAction],bool]' = None) -> list[UserAction]:
-        ret_val: 'dict[int:list[list[UserAction]]]' = {}
+    async def get_added_actions_async(self, prp_id: 'int|list[int]' = None, predicate: 'Callable[[UserAction],bool]' = None) -> 'list[UserAction]':
+        ret_val: 'dict[int:"list[list[UserAction]]"]' = {}
         added_objects = await self.get_actions_async(prp_id=prp_id, action=UserActionTypes.ADDED, predicate=predicate)
-        unique_internal_values_id = set([obj.internal_prp_value_id for obj in added_objects])
-        same_internal_value_id_objects = [[obj for obj in added_objects if obj.internal_prp_value_id == internal_values_id] for internal_values_id in unique_internal_values_id]
-        unique_prp_id = set([obj[0].prp_id for obj in same_internal_value_id_objects])
+        unique_internal_values_id = set(
+            [obj.internal_prp_value_id for obj in added_objects])
+        same_internal_value_id_objects = [[obj for obj in added_objects if obj.internal_prp_value_id ==
+                                           internal_values_id] for internal_values_id in unique_internal_values_id]
+        unique_prp_id = set(
+            [obj[0].prp_id for obj in same_internal_value_id_objects])
         for _prp_id in unique_prp_id:
             for obj in same_internal_value_id_objects:
                 if obj[0].prp_id == _prp_id:
