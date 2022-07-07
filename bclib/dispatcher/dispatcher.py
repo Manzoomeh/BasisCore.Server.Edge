@@ -180,7 +180,7 @@ class Dispatcher(ABC):
         return _decorator
 
     def client_source_member_action(self, *predicates: (Predicate)):
-        """Decorator for determine source member action methode"""
+        """Decorator for determine source member action method"""
 
         def _decorator(client_source_member_handler: 'Callable[[ClientSourceMemberContext], Any]'):
 
@@ -350,7 +350,7 @@ class Dispatcher(ABC):
         return ret_val
 
     async def dispatch_async(self, context: Context) -> Any:
-        """Dispatch context and get result from related action methode"""
+        """Dispatch context and get result from related action method"""
 
         result: Any = None
         name = type(context).__name__
@@ -370,6 +370,11 @@ class Dispatcher(ABC):
                 traceback.print_exc()
             result = context.generate_error_response(ex)
         return result
+
+    def dispatch_in_background(self, context: 'Context') -> asyncio.Future:
+        """Dispatch context in background"""
+
+        return self.event_loop.create_task(self.dispatch_async(context))
 
     def initialize_task(self):
         for dispatcher in self.__rabbit_dispatcher:

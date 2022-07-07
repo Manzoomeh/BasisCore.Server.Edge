@@ -47,7 +47,11 @@ class IDispatcher(ABC):
 
     @abstractmethod
     async def dispatch_async(self, context: 'Context') -> Any:
-        """Dispatch context and get result from related action methode"""
+        """Dispatch context and get result from related action method"""
+
+    @abstractmethod
+    def dispatch_in_background(self, context: 'Context') -> asyncio.Future:
+        """Dispatch context in background"""
 
     @abstractmethod
     async def send_message_async(self, message: Message) -> None:

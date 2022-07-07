@@ -3,36 +3,44 @@ import edge
 
 options = {
     "server": "localhost:8080",
-    "router": "restful"
+    "router": {
+        "restful": [
+            "*"
+        ],
+        "rabbit": [
+            {
+                "url": "amqp://guest:guest@localhost:5672",
+                "queue": "demo"
+            }
+        ]
+    },
+    "settings": {
+        "connections.rabbit.demo": {
+            "host": "amqp://guest:guest@localhost:5672",
+            "queue": "demo"
+        }
+    }
 }
 
 app = edge.from_options(options)
 
 
-@app.cache()
-def generate_data() -> list:
-    import string
-    import random
-
-    ret_val = list()
-    for i in range(10):
-        ret_val.append({"id": i, "data": ''.join(random.choices(
-            string.ascii_uppercase + string.digits, k=10))})
-    return ret_val
-
-
-@app.restful_action(
-    app.url(":id"))
-def process_restful_with_filter_request(context: edge.RESTfulContext):
-    print("process_restful_with_filter_request")
-    id = int(context.url_segments.id)
-    return [row for row in generate_data() if row["id"] == id]
+@app.rabbit_action()
+def process_rabbit_request(context: edge.RabbitContext):
+    print("process_rabbit_request")
+    print(context.host, context.message)
 
 
 @app.restful_action()
 def process_restful_request(context: edge.RESTfulContext):
     print("process_restful_request")
-    return generate_data()
+    db = context.dispatcher.db_manager.open_rabbit_connection("demo")
+    with db:
+        msg = dict()
+        msg["type"] = "message-type-demo"
+        msg["keys"] = ["data1", "data2", "data3"]
+        db.publish(msg)
+    return True
 
 
 app.listening()

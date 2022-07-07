@@ -14,23 +14,20 @@ class RabbitContext(Context):
         self.__rabbit_message: DictEx = rabbit_message
         self.__message = DictEx(json.loads(
             rabbit_message.message)) if rabbit_message.message else None
+        self.url = self.__rabbit_message.host
 
     @property
-    def host(self) -> str:
+    def host(self) -> 'str':
         return self.__rabbit_message.host
 
     @property
-    def queue(self) -> str:
+    def queue(self) -> 'str':
         return self.__rabbit_message.queue
 
     @property
-    def raw_message(self) -> str:
+    def raw_message(self) -> 'str':
         return self.__rabbit_message.message
 
     @property
-    def message(self) -> Any:
+    def message(self) -> 'DictEx':
         return self.__message
-
-    @property
-    def url(self) -> str:
-        return self.host
