@@ -13,7 +13,13 @@ class RabbitListener(ABC):
             self._queue_name: str = connection_options.queue
             self.__connection = pika.BlockingConnection(param)
             self.__channel = self.__connection.channel()
-            self.__channel.queue_declare(queue=self._queue_name)
+            self.__channel.queue_declare(
+                queue=self._queue_name,
+                passive=connection_options.passive if connection_options.passive else False,
+                durable=connection_options.durable if connection_options.durable else False,
+                exclusive=connection_options.exclusive if connection_options.exclusive else False,
+                auto_delete=connection_options.auto_delete if connection_options.auto_delete else False
+            )
 
             self.__channel.basic_consume(
                 queue=self._queue_name, on_message_callback=lambda channel, method, properties, body: self.on_rabbit_message_received(body), auto_ack=True)
