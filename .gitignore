@@ -1,4 +1,5 @@
 #vertual environment folder
+venv*
 app-env*
 __pycache__
 .rar
