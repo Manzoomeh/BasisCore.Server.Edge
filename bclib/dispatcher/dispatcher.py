@@ -378,7 +378,7 @@ class Dispatcher(ABC):
 
     def initialize_task(self):
         for dispatcher in self.__rabbit_dispatcher:
-            dispatcher.initialize_task_async(self.event_loop)
+            dispatcher.initialize_task(self.event_loop)
 
     def listening(self):
         """Start listening to request for process"""
