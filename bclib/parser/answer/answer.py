@@ -123,11 +123,17 @@ class Answer:
                         values.datatype = type['table']
 
     async def get_added_actions_async(self, prp_id: 'int|list[int]' = None, predicate: 'Callable[[UserAction],bool]' = None) -> 'list[UserAction]':
+        return await self.__get_specify_actions(UserActionTypes.ADDED, prp_id, predicate)
+    
+    async def get_edited_actions_async(self, prp_id: 'int|list[int]' = None, predicate: 'Callable[[UserAction],bool]' = None) -> 'list[UserAction]':
+        return await self.__get_specify_actions(UserActionTypes.EDITED, prp_id, predicate)
+
+    async def __get_specify_actions(self, action_type:UserActionTypes, prp_id: 'int|list[int]' = None, predicate: 'Callable[[UserAction],bool]' = None) -> 'list[UserAction]':
         ret_val: 'dict[int:"list[list[UserAction]]"]' = {}
-        added_objects = await self.get_actions_async(prp_id=prp_id, action=UserActionTypes.ADDED, predicate=predicate)
+        action_objects = await self.get_actions_async(prp_id=prp_id, action=action_type, predicate=predicate)
         unique_internal_values_id = set(
-            [obj.internal_prp_value_id for obj in added_objects])
-        same_internal_value_id_objects = [[obj for obj in added_objects if obj.internal_prp_value_id ==
+            [obj.internal_prp_value_id for obj in action_objects])
+        same_internal_value_id_objects = [[obj for obj in action_objects if obj.internal_prp_value_id ==
                                            internal_values_id] for internal_values_id in unique_internal_values_id]
         unique_prp_id = set(
             [obj[0].prp_id for obj in same_internal_value_id_objects])
