@@ -31,15 +31,14 @@ class RabbitListener(ABC):
     def on_rabbit_message_received(self, body):
         pass
 
-    def initialize_task(self, loop: asyncio.AbstractEventLoop):
-        loop.create_task(self.__consuming_task())
+    def initialize_task_async(self, loop: asyncio.AbstractEventLoop) -> asyncio.Future:
+        return loop.run_in_executor(None, self.__consuming_task)
 
-    async def __consuming_task(self):
+    def __consuming_task(self):
         try:
             print(
                 f'Waiting for messages from {self._host}:{self._queue_name}.')
-            loop = asyncio.get_running_loop()
-            await loop.run_in_executor(None, self.__channel.start_consuming)
+            self.__channel.start_consuming()
         except asyncio.CancelledError:
             self.__channel.stop_consuming()
             self.__channel.cancel()
