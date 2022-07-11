@@ -3,5 +3,5 @@ from ..exception.short_circuit_err import ShortCircuitErr
 
 
 class UnauthorizedErr(ShortCircuitErr):
-    def __init__(self, message: str = None):
-        super().__init__(HttpStatusCodes.UNAUTHORIZED, 'http-401', message)
+    def __init__(self, message: str = None, data: 'dict' = None):
+        super().__init__(HttpStatusCodes.UNAUTHORIZED, 'http-401', message, data)
