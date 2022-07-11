@@ -1,7 +1,9 @@
+import json
 from typing import Any, TYPE_CHECKING
 
 from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
 from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes
+from bclib.exception import ShortCircuitErr
 from ..context.context import Context
 
 if TYPE_CHECKING:
@@ -35,10 +37,14 @@ class RequestContext(Context):
     def generate_error_response(self, exception: Exception) -> dict:
         """Generate error response from process result"""
         error_object, self.status_code = self._generate_error_object(exception)
-        content = f"{error_object['errorMessage']} (Error Code: {error_object['errorCode']})"
-        if 'error' in error_object:
-            error = error_object["error"].replace("\n", "</br>")
-            content += f"<hr/>{error}"
+        if isinstance(exception, ShortCircuitErr) and exception.data:
+            content = exception.data if isinstance(
+                exception.data, str) else json.dumps(exception.data, indent=1).replace("\n", "</br>")
+        else:
+            content = f"{error_object['errorMessage']} (Error Code: {error_object['errorCode']})"
+            if 'error' in error_object:
+                error = error_object["error"].replace("\n", "</br>")
+                content += f"<hr/>{error}"
         return self.generate_response(content)
 
     def generate_response(self, result: Any) -> dict:
