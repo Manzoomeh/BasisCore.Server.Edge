@@ -65,9 +65,9 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
         context_type: str = None
         if url:
             try:
-                for pattern, lookup_conyext_type in self.__context_type_lookup:
+                for pattern, lookup_context_type in self.__context_type_lookup:
                     if pattern == "*" or re.search(pattern, url):
-                        context_type = lookup_conyext_type
+                        context_type = lookup_context_type
                         break
             except TypeError:
                 pass
