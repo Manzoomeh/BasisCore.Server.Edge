@@ -37,7 +37,7 @@ class DbManager:
         elif db_type == "sqlite":
             ret_val = SQLiteDb(setting)
         elif db_type == "mongo":
-            ret_val = MongoDb(setting)
+            ret_val = MongoDb(setting).get_instance()
         elif db_type == "rest":
             ret_val = RESTfulConnection(setting)
         elif db_type == "rabbit":
