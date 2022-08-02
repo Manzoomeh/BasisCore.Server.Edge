@@ -1,5 +1,4 @@
 from ..db_manager.db import Db
-from collections import defaultdict
 
 
 class SingletonMeta(type):
@@ -11,23 +10,22 @@ class SingletonMeta(type):
 
     _instances = {}
 
-    def _call_(cls, *args, **kwargs):
+    def __call__(cls, *args, **kwargs):
         """
         Possible changes to the value of the `_init_` argument do not affect
         the returned instance.
         """
         if cls not in cls._instances:
-            instance = super()._call_(*args, **kwargs)
+            instance = super().__call__(*args, **kwargs)
             cls._instances[cls] = instance
         return cls._instances[cls]
 
 
 class MongoDb(metaclass=SingletonMeta):
     """Mongo implementation of Db wrapper"""
-    client_dict = defaultdict(None)
 
-    def _init_(self, connection_string: str) -> None:
-        super()._init_()
+    def __init__(self, connection_string: str) -> None:
+        super().__init__()
         import pymongo
         self.client = pymongo.MongoClient(connection_string)
 
