@@ -2,26 +2,35 @@ from ..db_manager.db import Db
 from collections import defaultdict
 
 
-class MongoDb(Db):
+class SingletonMeta(type):
+    """
+    The Singleton class can be implemented in different ways in Python. Some
+    possible methods include: base class, decorator, metaclass. We will use the
+    metaclass because it is best suited for this purpose.
+    """
+
+    _instances = {}
+
+    def _call_(cls, *args, **kwargs):
+        """
+        Possible changes to the value of the `_init_` argument do not affect
+        the returned instance.
+        """
+        if cls not in cls._instances:
+            instance = super()._call_(*args, **kwargs)
+            cls._instances[cls] = instance
+        return cls._instances[cls]
+
+
+class MongoDb(metaclass=SingletonMeta):
     """Mongo implementation of Db wrapper"""
     client_dict = defaultdict(None)
 
-    def get_instance(self):
-        if self.client_dict[self.connection_string] is None:
-            MongoDb(self.connection_string)
-        self.client = self.client_dict[self.connection_string]
-        return self.client
-
-    def __init__(self, connection_string: str) -> None:
-        super().__init__()
+    def _init_(self, connection_string: str) -> None:
+        super()._init_()
         import pymongo
-        self.connection_string = connection_string
-        if self.client_dict[self.connection_string] is not None:
-            raise Exception("This class is a singleton!")
-        else:
-            self.client_dict[self.connection_string] = pymongo.MongoClient(self.connection_string)
-            self.client = self.client_dict[self.connection_string]
+        self.client = pymongo.MongoClient(connection_string)
 
-    # def __exit__(self, exc_type, exc_val, exc_tb):
+    # def _exit_(self, exc_type, exc_val, exc_tb):
     #     self.client.close()
-    #     return super().__exit__(exc_type, exc_val, exc_tb)
+    #     return super()._exit_(exc_type, exc_val, exc_tb)
