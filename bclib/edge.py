@@ -1,6 +1,6 @@
 """Main module of bclib.wrapper for all exist module that need in basic coding"""
 
-from bclib.dispatcher import RoutingDispatcher, IDispatcher, SocketDispatcher, DevServerDispatcher, NamedPipeDispatcher
+from bclib.dispatcher import RoutingDispatcher, IDispatcher, SocketDispatcher, DevServerDispatcher, NamedPipeDispatcher, EndpointDispatcher
 from bclib.context import Context, WebContext, SocketContext, ClientSourceContext, ClientSourceMemberContext, RabbitContext, RESTfulContext, RequestContext, MergeType, ServerSourceContext, ServerSourceMemberContext, SourceContext, SourceMemberContext, NamedPipeContext
 from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes, HttpHeaders, WindowsNamedPipeHelper
 from bclib.listener import Message, MessageType, HttpBaseDataType, HttpBaseDataName
@@ -66,6 +66,8 @@ def from_options(options: dict) -> RoutingDispatcher:
         ret_val = DevServerDispatcher(options)
     elif "named_pipe" in options:
         ret_val = NamedPipeDispatcher(options)
+    elif "endpoint" in options:
+        ret_val = EndpointDispatcher(options)
     else:
         ret_val = SocketDispatcher(options)
     return ret_val

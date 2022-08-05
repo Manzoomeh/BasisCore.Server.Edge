@@ -86,7 +86,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
                 message_result = json.dumps(response).encode("utf-8")
                 ret_val = Message.create_add_hock(
                     message.session_id, message_result)
-                await self.send_message_async(ret_val)
+                # await self.send_message_async(ret_val)
             return ret_val
         except error as ex:
             print(f"Error in process received message {ex}")
