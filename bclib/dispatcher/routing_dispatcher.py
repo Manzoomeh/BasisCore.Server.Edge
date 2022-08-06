@@ -86,7 +86,6 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
                 message_result = json.dumps(response).encode("utf-8")
                 ret_val = Message.create_add_hock(
                     message.session_id, message_result)
-                # await self.send_message_async(ret_val)
             return ret_val
         except error as ex:
             print(f"Error in process received message {ex}")
@@ -152,6 +151,8 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
     @abstractmethod
     async def send_message_async(self, message: MessageType) -> bool:
         """Send message to endpoint"""
+        raise Exception(
+            "Send ad-hoc message not support in this type of dispatcher")
 
     def cache(self, seconds: int = 0, key: str = None):
         """Cache result of function for seconds of time or until signal by key for clear"""

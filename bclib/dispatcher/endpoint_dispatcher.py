@@ -9,10 +9,6 @@ class EndpointDispatcher(RoutingDispatcher):
         super().__init__(options)
         self.__endpoint = Endpoint(self.options.endpoint)
 
-    def send_message_async(self, message: Message) -> bool:
-        """Send message to endpoint"""
-        return False
-
     def initialize_task(self):
         super().initialize_task()
 
