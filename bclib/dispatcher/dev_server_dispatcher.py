@@ -1,5 +1,5 @@
 from ..dispatcher.socket_dispatcher import RoutingDispatcher
-from bclib.listener import Endpoint,  Message, HttpListener
+from bclib.listener import Endpoint,  HttpListener
 
 
 class DevServerDispatcher(RoutingDispatcher):
@@ -8,10 +8,6 @@ class DevServerDispatcher(RoutingDispatcher):
         self.__listener = HttpListener(
             Endpoint(self.options.server),
             self._on_message_receive_async)
-
-    async def send_message_async(self, message: Message) -> bool:
-        """Send message to endpoint"""
-        return False
 
     def initialize_task(self):
         super().initialize_task()
