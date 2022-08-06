@@ -148,7 +148,6 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
         else:
             return self.event_loop.run_in_executor(None, callback, *args)
 
-    @abstractmethod
     async def send_message_async(self, message: MessageType) -> bool:
         """Send message to endpoint"""
         raise Exception(
