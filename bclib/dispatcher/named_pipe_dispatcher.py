@@ -15,14 +15,14 @@ class NamedPipeDispatcher(RoutingDispatcher):
             self.__listener = LinuxNamedPipeListener(
                 self.options.named_pipe,
                 self._on_message_receive_async)
-        elif platform == "darwin":
-            # OS X
-            raise Exception("named pipe not implemented in OS X")
         elif platform == "win32":
             from bclib.listener import WindowsNamedPipeListener
             self.__listener = WindowsNamedPipeListener(
                 self.options.named_pipe,
                 self._on_message_receive_async)
+        elif platform == "darwin":
+            # OS X
+            raise Exception("named pipe not implemented in OS X")
 
     async def send_message_async(self, message: Message) -> bool:
         """Send message to endpoint"""

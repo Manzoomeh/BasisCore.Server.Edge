@@ -42,6 +42,11 @@ class LinuxNamedPipeListener:
             self.try_unlink(self.__writer_pipe_name)
             raise
 
+    async def __process_message_async(self, message: 'Message') -> None:
+        result = await self.on_message_receive(message)
+        if result:
+            await self.send_message_async(result)
+
     async def send_message_async(self, message: Message) -> bool:
         try_count = 0
         send = False
@@ -89,7 +94,7 @@ class LinuxNamedPipeListener:
                             message = await LinuxNamedPipeHelper.read_from_named_pipe_async(reader_pipe, self.__event_loop)
                             if message:
                                 self.__event_loop.create_task(
-                                    self.on_message_receive(message))
+                                    self.__process_message_async(message))
                     except asyncio.CancelledError:
                         print('Edge named pipe server stopped.!')
                         break

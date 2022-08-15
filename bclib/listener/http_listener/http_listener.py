@@ -33,30 +33,35 @@ class HttpListener:
         from aiohttp import web
         from multidict import MultiDict
 
-        async def on_request_receive_async(request: 'web.Request'):
+        async def on_request_receive_async(request: 'web.Request') -> web.Response:
+            ret_val: web.Response = None
             cms_object = await self.create_cms_async(request)
             msg = Message(str(uuid.uuid4()), MessageType.AD_HOC,
                           json.dumps(cms_object).encode())
             result = await self.on_message_receive_async(msg)
-            cms: dict = json.loads(result.buffer.decode("utf-8"))
-            headercode: str = cms[HttpBaseDataType.CMS][HttpBaseDataType.WEB_SERVER]["headercode"]
-            mime = cms[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["mime"]
-            headers: MultiDict = None
-            if HttpBaseDataName.HTTP in cms[HttpBaseDataType.CMS]:
-                http: dict = cms[HttpBaseDataType.CMS][HttpBaseDataName.HTTP]
-                if http:
-                    headers = MultiDict()
-                    for key, value in http.items():
-                        if isinstance(value, list):
-                            for item in value:
-                                headers.add(key, item)
-                        else:
-                            headers.add(key, value)
-            return web.Response(
-                status=int(headercode.split(' ')[0]),
-                headers=headers,
-                content_type=mime,
-                text=cms[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT])
+            if result:
+                cms: dict = json.loads(result.buffer.decode("utf-8"))
+                header_code: str = cms[HttpBaseDataType.CMS][HttpBaseDataType.WEB_SERVER]["headercode"]
+                mime = cms[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["mime"]
+                headers: MultiDict = None
+                if HttpBaseDataName.HTTP in cms[HttpBaseDataType.CMS]:
+                    http: dict = cms[HttpBaseDataType.CMS][HttpBaseDataName.HTTP]
+                    if http:
+                        headers = MultiDict()
+                        for key, value in http.items():
+                            if isinstance(value, list):
+                                for item in value:
+                                    headers.add(key, item)
+                            else:
+                                headers.add(key, value)
+                ret_val = web.Response(
+                    status=int(header_code.split(' ')[0]),
+                    headers=headers,
+                    content_type=mime,
+                    text=cms[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT])
+            else:
+                ret_val = web.Response()
+            return ret_val
 
         app = web.Application(loop=event_loop)
         app.add_routes(
@@ -68,15 +73,8 @@ class HttpListener:
         print(
             f"Development Edge server started at http://{self.__endpoint.url}:{self.__endpoint.port}")
         try:
-            # sleep forever by 1 hour intervals,
-            # on Windows before Python 3.8 wake up every 1 second to handle
-            # Ctrl+C smoothly
-            if sys.platform == "win32" and sys.version_info < (3, 8):
-                delay = 1
-            else:
-                delay = 3600
             while True:
-                await asyncio.sleep(delay)
+                await asyncio.sleep(.0001)
         except asyncio.CancelledError:
             pass
         finally:

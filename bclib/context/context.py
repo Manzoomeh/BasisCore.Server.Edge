@@ -45,14 +45,19 @@ class Context(ABC):
     def _generate_error_object(self, exception: Exception) -> 'Tuple[dict, str]':
         """Generate error object from exception object"""
         error_code = None
+        data = None
         status_code = HttpStatusCodes.INTERNAL_SERVER_ERROR
         if isinstance(exception, ShortCircuitErr):
+            data = exception.data
             status_code = exception.status_code
             error_code = exception.error_code
-        error_object = {
-            "errorCode": error_code,
-            "errorMessage": str(exception)
-        }
-        if self.dispatcher.log_error:
-            error_object["error"] = traceback.format_exc()
+        if data:
+            error_object = data
+        else:
+            error_object = {
+                "errorCode": error_code,
+                "errorMessage": str(exception)
+            }
+            if self.dispatcher.log_error:
+                error_object["error"] = traceback.format_exc()
         return (error_object, status_code)
