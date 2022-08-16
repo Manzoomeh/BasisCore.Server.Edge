@@ -95,9 +95,11 @@ class Answer:
         part_list = [part] if isinstance(part, int) else part
         return await self.__get_action_async(prp_id_list, action_list, part_list, is_file, predicate)
 
-    def __data_type_checker(self, view_type: str, datatype: str = None):
+    def __data_type_checker(self, view_type: str, datatype: str = None, has_link: bool = None):
 
-        if view_type in ["select", "checkList"]:
+        if view_type in ["select", "checkList", "radio"]:
+            if has_link == True:
+                result = "urlvalues"
             result = "fixvalue"
         elif view_type == "textarea":
             result = "ntextvalue"
@@ -108,7 +110,7 @@ class Answer:
         elif view_type == "text" and datatype == "float":
             result = "floatvalue"
         elif view_type == "autocomplete":
-            result = "autocomplete"
+            result = "urlvalues"
         elif view_type == "upload":
             result == "files"
         else:
@@ -123,11 +125,12 @@ class Answer:
                 for question in data.data:
                     for parts in question.questions:
                         for validations in parts.parts:
+                            has_link = True if validations.link else False
                             data_type = validations.validations["datatype"] if "datatype" in validations.validations.keys(
                             ) else "None"
                             type_list.append({
                                 "prpId": parts.prpId, "part": validations.part, "viewtype": validations.viewType,
-                                "datatype": data_type, "table": self.__data_type_checker(validations.viewType, data_type)
+                                "datatype": data_type, "table": self.__data_type_checker(validations.viewType, data_type, has_link)
                             })
             for type in type_list:
                 for values in self.__answer_list:
