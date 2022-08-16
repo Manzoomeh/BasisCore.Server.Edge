@@ -4,7 +4,7 @@ from bclib import parser
 from bclib.db_manager import RESTfulConnection
 from bclib.utility import DictEx
 from ..answer.user_action_types import UserActionTypes
-from ..answer.user_action import FileUserAction, UserAction
+from ..answer.user_action import UserAction
 
 
 class Answer:
@@ -59,21 +59,15 @@ class Answer:
             if is_file == None:
                 ret_val = [x for x in self.__answer_list if predicate(x)]
             else:
-                ret_val = [x for x in self.__answer_list if predicate(x) and x.is_file_content() == is_file]
+                ret_val = [x for x in self.__answer_list if predicate(
+                    x) and x.is_file_content() == is_file]
         else:
-            if is_file == None:
-                ret_val = [x for x in self.__answer_list if
-                        (prp_id_list is None or x.prp_id in prp_id_list) and
-                        (action_list is None or x.action in action_list) and
-                        (part_list is None or x.part in part_list)
-                        ]
-            else:
-                ret_val = [x for x in self.__answer_list if
-                        (prp_id_list is None or x.prp_id in prp_id_list) and
-                        (action_list is None or x.action in action_list) and
-                        (part_list is None or x.part in part_list) and
-                        x.is_file_content() == is_file
-                        ]
+            ret_val = [x for x in self.__answer_list if
+                       (prp_id_list is None or x.prp_id in prp_id_list) and
+                       (action_list is None or x.action in action_list) and
+                       (part_list is None or x.part in part_list) and
+                       (is_file is None or x.is_file_content() == is_file)
+                       ]
 
         return ret_val if ret_val else list()
 
@@ -139,11 +133,11 @@ class Answer:
 
     async def get_added_actions_async(self, prp_id: 'int|list[int]' = None, predicate: 'Callable[[UserAction],bool]' = None) -> 'list[list[list[UserAction]]]':
         return await self.__get_specify_actions(UserActionTypes.ADDED, prp_id, predicate)
-    
+
     async def get_edited_actions_async(self, prp_id: 'int|list[int]' = None, predicate: 'Callable[[UserAction],bool]' = None) -> 'list[list[list[UserAction]]]':
         return await self.__get_specify_actions(UserActionTypes.EDITED, prp_id, predicate)
 
-    async def __get_specify_actions(self, action_type:UserActionTypes, prp_id: 'int|list[int]' = None, predicate: 'Callable[[UserAction],bool]' = None) -> 'list[list[list[UserAction]]]':
+    async def __get_specify_actions(self, action_type: UserActionTypes, prp_id: 'int|list[int]' = None, predicate: 'Callable[[UserAction],bool]' = None) -> 'list[list[list[UserAction]]]':
         ret_val: "dict[int,list[list[UserAction]]]" = {}
         action_objects = await self.get_actions_async(prp_id=prp_id, action=action_type, predicate=predicate)
         unique_internal_values_id = set(
