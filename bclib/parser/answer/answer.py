@@ -110,7 +110,7 @@ class Answer:
         elif view_type == "text" and datatype == "float":
             result = "floatvalue"
         elif view_type == "autocomplete":
-            result = "urlvalues"
+            result = "urlvalue"
         elif view_type == "upload":
             result == "files"
         else:
