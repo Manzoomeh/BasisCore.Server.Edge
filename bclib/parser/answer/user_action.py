@@ -1,14 +1,15 @@
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from bclib.parser.answer.answer import Answer
-from .user_action_types import UserActionTypes
+from ..answer.user_action_types import UserActionTypes
+from ..answer.file_user_action import FileUserAction
 
 
 class UserAction:
     """This class will be updated in next versions."""
 
-    def __init__(self, prp_id: int, action: UserActionTypes, prp_value_id: int, internal_prp_value_id:int, value_id: int, value: any, datatype: str,
-                 multi: bool, part: int, answer:'Answer'):
+    def __init__(self, prp_id: int, action: UserActionTypes, prp_value_id: int, internal_prp_value_id: int, value_id: int, value: any, datatype: str,
+                 multi: bool, part: int, answer: 'Answer'):
         self.prp_id = prp_id
         self.action = action
         self.prp_value_id = prp_value_id
@@ -17,11 +18,12 @@ class UserAction:
         self.part = part
         self.datatype = datatype
         self.multi = multi
-        self.answer:'Answer' = answer
-        self.internal_prp_value_id:int = internal_prp_value_id
+        self.answer: 'Answer' = answer
+        self.internal_prp_value_id: int = internal_prp_value_id
+
     def as_tuple(self) -> tuple:
-        return (self.prp_id, self.action.value, self.prp_value_id,self.internal_prp_value_id, self.value_id,
-                self.value, self.part, self.datatype, self.multi,self.answer)
+        return (self.prp_id, self.action.value, self.prp_value_id, self.internal_prp_value_id, self.value_id,
+                self.value, self.part, self.datatype, self.multi, self.answer)
 
     def as_dict(self) -> dict:
         return {
@@ -36,6 +38,19 @@ class UserAction:
             "multi": self.multi,
             "answer": self.answer
         }
+
+    def is_file_content(self):
+        is_file = False
+        if isinstance(self.value, dict):
+            list(self.value.keys()).sort()
+            is_file = list(self.value.keys()) == [
+                "content", "name", "size", "type"]
+        return is_file
+
+    def as_file_content(self) -> 'FileUserAction':
+        if self.is_file_content():
+            value = self.value
+            return FileUserAction(self.prp_id, self.prp_value_id, self.value_id, value["name"], value["type"], value["size"], value["content"])
 
     def __str__(self) -> str:
         return str(self.as_tuple())
