@@ -34,11 +34,10 @@ def rest_set(context: edge.RESTfulContext):
     action = context.url_segments.action
     key = "demo"
     if action == "get":
-        cache_data_list = context.dispatcher.cache_manager.get_cache(key)
-        ret_val["result"] = cache_data_list
+        cache_data = context.dispatcher.cache_manager.get_cache(key)
+        ret_val["result"] = cache_data
     elif action == "edit":
-        cache_data_list = context.dispatcher.cache_manager.get_cache(key)
-        cache_data = cache_data_list[0]
+        cache_data = context.dispatcher.cache_manager.get_cache(key)
         cache_data["data"] += "*"
     elif action == "replace":
         now = datetime.now()

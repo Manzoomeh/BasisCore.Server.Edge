@@ -1,3 +1,4 @@
+import collections
 from datetime import timedelta
 from datetime import datetime
 from functools import wraps
@@ -11,7 +12,7 @@ class InMemoryCacheManager(SignalBaseCacheManager):
 
     def __init__(self, options: DictEx) -> None:
         super().__init__(options)
-        self.__cache_list: 'dict[str, list[Callable]]' = dict()
+        self.__cache_list: 'dict[str, list[Callable]|any]' = dict()
 
     def cache_decorator(self, seconds: int = 0, key: str = None):
         """Cache result of function for seconds of time or until signal by key for clear"""
@@ -49,22 +50,30 @@ class InMemoryCacheManager(SignalBaseCacheManager):
         print(f"reset cache for {keys}")
         for key in keys:
             if key in self.__cache_list:
-                for function in self.__cache_list[key]:
-                    function.cache = None
+                if isinstance(self.__cache_list[key], collections.abc.Sequence):
+                    for function in self.__cache_list[key]:
+                        function.cache = None
+                else:
+                    self.__cache_list[key] = None
 
     def get_cache(self, key: str) -> list:
         """Get key related cached data"""
 
-        return [function.cache for function in self.__cache_list[key]] if key in self.__cache_list else None
+        return ([function.cache for function in self.__cache_list[key]]
+                if isinstance(self.__cache_list[key], collections.abc.Sequence)
+                else self.__cache_list[key]) if key in self.__cache_list else None
 
     def update_cache(self, key: str, data: any) -> bool:
         """Update key related cached data"""
 
         is_successful = False
         if key in self.__cache_list:
-            for function in self.__cache_list[key]:
-                function.cache = data
-                is_successful = True
+            if isinstance(self.__cache_list[key], collections.abc.Sequence):
+                for function in self.__cache_list[key]:
+                    function.cache = data
+            else:
+                self.__cache_list[key] = data
+            is_successful = True
         return is_successful
 
     def add_or_update_cache(self, key: str, data: any) -> bool:
@@ -72,9 +81,5 @@ class InMemoryCacheManager(SignalBaseCacheManager):
 
         is_successfully = self.update_cache(key, data)
         if not is_successfully:
-            function = DictEx({
-                'cache': data
-            })
-            self.__cache_list[key] = list()
-            self.__cache_list[key].append(function)
+            self.__cache_list[key] = data
         return is_successfully
