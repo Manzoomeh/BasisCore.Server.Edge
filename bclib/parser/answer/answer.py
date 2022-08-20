@@ -91,9 +91,9 @@ class Answer:
 
     def __data_type_checker(self, view_type: str, datatype: str = None, has_link: bool = None):
 
-        if view_type in ["select", "checkList", "radio"]:
+        if view_type in ["select", "checklist", "radio"]:
             if has_link == True:
-                result = "urlvalues"
+                result = "urlvalue"
             result = "fixvalue"
         elif view_type == "textarea":
             result = "ntextvalue"
@@ -120,7 +120,7 @@ class Answer:
                     for parts in question.questions:
                         for validations in parts.parts:
                             has_link = True if validations.link else False
-                            data_type = validations.validations["datatype"] if "datatype" in validations.validations.keys(
+                            data_type = validations.validations["datatype"] if isinstance(validations.validations, dict) and "datatype" in validations.validations.keys(
                             ) else "None"
                             type_list.append({
                                 "prpId": parts.prpId, "part": validations.part, "viewtype": validations.viewType,
