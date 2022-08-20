@@ -42,9 +42,7 @@ class UserAction:
     def is_file_content(self):
         is_file = False
         if isinstance(self.value, dict):
-            list(self.value.keys()).sort()
-            is_file = list(self.value.keys()) == [
-                "content", "name", "size", "type"]
+            is_file = {"name", "size", "type"}.issubset(set(self.value.keys()))
         return is_file
 
     def as_file_content(self) -> 'FileUserAction':
