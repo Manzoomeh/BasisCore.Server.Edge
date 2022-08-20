@@ -21,3 +21,7 @@ class CacheManager(ABC):
     @abstractmethod
     def update_cache(self, key: str, data: any) -> bool:
         """Update key related cached data"""
+
+    @abstractmethod
+    def add_or_update_cache(self, key: str, data: any) -> bool:
+        """Add or update key related cached data"""

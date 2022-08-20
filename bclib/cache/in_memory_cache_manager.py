@@ -1,4 +1,3 @@
-
 from datetime import timedelta
 from datetime import datetime
 from functools import wraps
@@ -61,9 +60,21 @@ class InMemoryCacheManager(SignalBaseCacheManager):
     def update_cache(self, key: str, data: any) -> bool:
         """Update key related cached data"""
 
-        is_siccessfull = False
+        is_successful = False
         if key in self.__cache_list:
             for function in self.__cache_list[key]:
                 function.cache = data
-                is_siccessfull = True
-        return is_siccessfull
+                is_successful = True
+        return is_successful
+
+    def add_or_update_cache(self, key: str, data: any) -> bool:
+        """Add or update key related cached data"""
+
+        is_successfully = self.update_cache(key, data)
+        if not is_successfully:
+            function = DictEx({
+                'cache': data
+            })
+            self.__cache_list[key] = list()
+            self.__cache_list[key].append(function)
+        return is_successfully

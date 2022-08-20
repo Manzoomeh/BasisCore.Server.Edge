@@ -16,4 +16,7 @@ class NoCacheManager(CacheManager):
         pass
 
     def update_cache(self, key: str, data: any) -> bool:
-        pass
+        return False
+
+    def add_or_update_cache(self, key: str, data: any) -> bool:
+        return False
