@@ -2,6 +2,7 @@ import json
 from typing import Any, Callable
 from bclib import parser
 from bclib.db_manager import RESTfulConnection
+from bclib.parser.answer.validators import Validation, ValidationFactory
 from bclib.utility import DictEx
 from ..answer.user_action_types import UserActionTypes
 from ..answer.user_action import UserAction
@@ -11,11 +12,12 @@ class Answer:
     """BasisJsonParser is a tool to parse basis_core components json objects. This tool is developed based on
              basis_core key and values."""
 
-    def __init__(self, data: 'str|Any', api_url: 'str' = None):
+    def __init__(self, data: 'str|Any', api_url: 'str' = None, check_validation:"bool"= False):
         self.json = json.loads(data) if isinstance(data, str) else data
         self.__answer_list: 'list[UserAction]' = None
         self.__api_connection = RESTfulConnection(
             api_url) if api_url else None
+        self.check_validation = check_validation 
 
     async def __fill_answer_list_async(self):
         self.__answer_list = list()
@@ -30,12 +32,9 @@ class Answer:
                                 internal_prp_value_id = internal_prp_value_index
                                 for values in parts['values']:
                                     prp_id = data['propId']
-                                    prp_value_id = actions['id'] if 'id' in actions.keys(
-                                    ) else None
-                                    part_number = parts['part'] if "part" in parts.keys(
-                                    ) else None
-                                    value_id = values['id'] if "id" in values.keys(
-                                    ) else None
+                                    prp_value_id = actions['id'] if 'id' in actions.keys() else None
+                                    part_number = parts['part'] if "part" in parts.keys() else None
+                                    value_id = values['id'] if "id" in values.keys() else None
                                     value = values['value']
                                     answer = parser.ParseAnswer(
                                         values["answer"]) if 'answer' in values.keys() else None
@@ -44,13 +43,102 @@ class Answer:
                         else:
                             internal_prp_value_id = internal_prp_value_index
                             prp_id = data['propId']
-                            prp_value_id = actions['id'] if 'id' in actions.keys(
-                            ) else None
+                            prp_value_id = actions['id'] if 'id' in actions.keys() else None
                             self.__answer_list.append(UserAction(
-                                prp_id, action_type,  prp_value_id, internal_prp_value_id, None, None, None, multi, None, None))
+                                prp_id, action_type,  prp_value_id, internal_prp_value_id, None, None, None,  multi, None, None))
                         internal_prp_value_index += 1
-        await self.__try_set_data_type_async()
 
+        await self.__set_additional_data_async()
+
+    async def __set_additional_data_async(self):
+        additional_data_list = list()
+        if self.__api_connection:
+            questions_data = DictEx(await self.__api_connection.post_async())
+            for data in questions_data.sources:
+                for question in data.data:
+                    for parts in question.questions:
+                        for validations in parts.parts:
+                            parts_prpId = parts.prpId
+                            additional_data_list.append(self.__set_additional_data(validations, parts_prpId))
+        if len(additional_data_list) > 0:
+            for values in self.__answer_list:
+                for add in additional_data_list:
+                    if int(add['prpId']) == int(values.prp_id) and add["part"] == values.part or values.part is None:
+                        type = add["type"]
+                        values.datatype = type['datatype']
+                        values.database = type['database']
+                        values.table = type['table']
+                        values.field = type['field']
+                        vals: "list[Validation]" = add["validations"]
+                        for validation in vals:
+                            validation.check_validation(values.value)
+                            values.validation_status = validation.status
+                            if validation.status == False:
+                                values.description.append(validation.description)
+
+    def __set_additional_data(self, validations:DictEx, parts_prpId:int) -> 'dict':
+        return {
+            "prpId": parts_prpId,
+            "part": validations.part,
+            "type" : self.__try_set_data_type(validations),
+            "validations": self.__set_validations_list(validations) if self.check_validation else []
+        }
+
+    def __try_set_data_type(self, validations:DictEx) -> 'dict':
+        data_type = None
+        database = None
+        table = None
+        field = None
+        has_link = True if validations.link else False
+        val_val = validations.validations
+        if isinstance(val_val, dict):
+            keys = val_val.keys()
+            if "datatype" in keys:
+                data_type = val_val["datatype"]
+            if "database" in keys:
+                database = val_val["database"]
+            if "table" in keys:
+                table = val_val["table"]
+            if "field" in keys:
+                field = val_val["field"]
+        return {
+            "viewtype": validations.viewType,
+            "datatype": data_type, "datatype": self.__data_type_checker(validations.viewType, data_type, has_link),
+            "database": database, "table":table, "field": field
+        }     
+
+    def __data_type_checker(self, view_type: str, datatype: str = None, has_link: bool = None):
+
+        if view_type in ["select", "checklist", "radio"]:
+            if has_link == True:
+                result = "urlvalue"
+            result = "fixvalue"
+        elif view_type == "textarea":
+            result = "ntextvalue"
+        elif view_type == "text" and datatype in ["text", "None", None]:
+            result = "textvalue"
+        elif view_type == "text" and datatype == "int":
+            result = "numvalue"
+        elif view_type == "text" and datatype == "float":
+            result = "floatvalue"
+        elif view_type == "autocomplete":
+            result = "urlvalue"
+        elif view_type == "upload":
+            result = "files"
+        else:
+            result = "None"
+        return result
+
+    def __set_validations_list(self, validations:DictEx) -> "list[Validation]":
+        ret_val = list()
+        val_val = validations.validations
+        if isinstance(val_val, dict):
+            for val in val_val:
+                validation_checker = ValidationFactory(val, val_val[val])
+                if validation_checker:
+                    ret_val.append(validation_checker)
+        return ret_val
+                
     async def __get_action_async(self, prp_id_list: 'list[int]', action_list: 'list[UserActionTypes]', part_list: 'list[int]', is_file: "bool" = None, predicate: 'Callable[[UserAction],bool]' = None) -> 'list[UserAction]':
         ret_val: 'list[UserAction]' = None
         if self.__answer_list is None:
@@ -88,48 +176,6 @@ class Answer:
         prp_id_list = [prp_id] if isinstance(prp_id, int) else prp_id
         part_list = [part] if isinstance(part, int) else part
         return await self.__get_action_async(prp_id_list, action_list, part_list, is_file, predicate)
-
-    def __data_type_checker(self, view_type: str, datatype: str = None, has_link: bool = None):
-
-        if view_type in ["select", "checklist", "radio"]:
-            if has_link == True:
-                result = "urlvalue"
-            result = "fixvalue"
-        elif view_type == "textarea":
-            result = "ntextvalue"
-        elif view_type == "text" and datatype in ["text", "None", None]:
-            result = "textvalue"
-        elif view_type == "text" and datatype == "int":
-            result = "numvalue"
-        elif view_type == "text" and datatype == "float":
-            result = "floatvalue"
-        elif view_type == "autocomplete":
-            result = "urlvalue"
-        elif view_type == "upload":
-            result == "files"
-        else:
-            result = "None"
-        return result
-
-    async def __try_set_data_type_async(self):
-        if self.__api_connection:
-            type_list = list()
-            questions_data = DictEx(await self.__api_connection.post_async())
-            for data in questions_data.sources:
-                for question in data.data:
-                    for parts in question.questions:
-                        for validations in parts.parts:
-                            has_link = True if validations.link else False
-                            data_type = validations.validations["datatype"] if isinstance(validations.validations, dict) and "datatype" in validations.validations.keys(
-                            ) else "None"
-                            type_list.append({
-                                "prpId": parts.prpId, "part": validations.part, "viewtype": validations.viewType,
-                                "datatype": data_type, "table": self.__data_type_checker(validations.viewType, data_type, has_link)
-                            })
-            for type in type_list:
-                for values in self.__answer_list:
-                    if int(type['prpId']) == int(values.prp_id) and type["part"] == values.part or values.part is None:
-                        values.datatype = type['table']
 
     async def get_added_actions_async(self, prp_id: 'int|list[int]' = None, predicate: 'Callable[[UserAction],bool]' = None) -> 'list[list[list[UserAction]]]':
         return await self.__get_specify_actions(UserActionTypes.ADDED, prp_id, predicate)
