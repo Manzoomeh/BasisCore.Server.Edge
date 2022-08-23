@@ -1,6 +1,4 @@
 from typing import TYPE_CHECKING
-
-from bclib.parser.answer.validators import Validation
 if TYPE_CHECKING:
     from bclib.parser.answer.answer import Answer
 from ..answer.user_action_types import UserActionTypes
@@ -26,11 +24,11 @@ class UserAction:
         self.table:"str" = None
         self.field:"str" = None
         self.validation_status: "bool" = True
-        self.description: "list[str]" = []
+        self.validation_message: "list[str]" = []
 
     def as_tuple(self) -> tuple:
         return (self.prp_id, self.action.value, self.prp_value_id, self.internal_prp_value_id, self.value_id,
-                self.value, self.part, self.datatype, self.multi, self.answer, self.validation_status, self.description)
+                self.value, self.part, self.datatype, self.database, self.table, self.field, self.multi, self.answer, self.validation_status, self.validation_message)
 
     def as_dict(self) -> dict:
         return {
@@ -42,10 +40,13 @@ class UserAction:
             "value": self.value,
             "part": self.part,
             "datatype": self.datatype,
+            "database": self.database,
+            "table": self.table,
+            "field": self.field,
             "multi": self.multi,
             "answer": self.answer,
             "validation_status": self.validation_status,
-            "description": self.description
+            "validation_message": self.validation_message
         }
 
     def is_file_content(self):

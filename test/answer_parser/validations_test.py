@@ -108,8 +108,8 @@ input_json = {
 
  
 async def f():
-    my_object = parser.Answer(input_json, question_api)
-    # await my_object.get_actions_async()
-    print(await my_object.get_actions_async())
+    my_object = parser.Answer(input_json, question_api, check_validation=True)
+    await my_object.get_actions_async()
+    # print(await my_object.get_actions_async())
 if __name__ == "__main__":
     asyncio.run(f())

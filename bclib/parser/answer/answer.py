@@ -1,8 +1,11 @@
 import json
 from typing import Any, Callable
+
+from bclib.parser.answer.enriched_data import EnrichedData
+from bclib.parser.answer.storage_data import StorageData
 from bclib import parser
 from bclib.db_manager import RESTfulConnection
-from bclib.parser.answer.validators import Validation, ValidationFactory
+from bclib.parser.answer.validators import Validator
 from bclib.utility import DictEx
 from ..answer.user_action_types import UserActionTypes
 from ..answer.user_action import UserAction
@@ -48,10 +51,10 @@ class Answer:
                                 prp_id, action_type,  prp_value_id, internal_prp_value_id, None, None, None,  multi, None, None))
                         internal_prp_value_index += 1
 
-        await self.__set_additional_data_async()
+        await self.__enrich_data_async()
 
-    async def __set_additional_data_async(self):
-        additional_data_list = list()
+    async def __enrich_data_async(self):
+        enriched_data_list: "list[EnrichedData]" = list()
         if self.__api_connection:
             questions_data = DictEx(await self.__api_connection.post_async())
             for data in questions_data.sources:
@@ -59,53 +62,42 @@ class Answer:
                     for parts in question.questions:
                         for validations in parts.parts:
                             parts_prpId = parts.prpId
-                            additional_data_list.append(self.__set_additional_data(validations, parts_prpId))
-        if len(additional_data_list) > 0:
+                            enriched_data_list.append(self.__enrich_data(validations, parts_prpId))
+
+        if len(enriched_data_list) > 0:
             for values in self.__answer_list:
-                for add in additional_data_list:
-                    if int(add['prpId']) == int(values.prp_id) and add["part"] == values.part or values.part is None:
-                        type = add["type"]
-                        values.datatype = type['datatype']
-                        values.database = type['database']
-                        values.table = type['table']
-                        values.field = type['field']
-                        vals: "list[Validation]" = add["validations"]
-                        for validation in vals:
-                            validation.check_validation(values.value)
-                            values.validation_status = validation.status
-                            if validation.status == False:
-                                values.description.append(validation.description)
+                for data in enriched_data_list:
+                    if int(data.prpId) == int(values.prp_id) and data.part == values.part or values.part is None:
+                        values.datatype = data.data_type
+                        storage_data = data.storage_data
+                        if storage_data:
+                            values.database = storage_data.data_base
+                            values.table = storage_data.table
+                            values.field = storage_data.field
+                        if self.check_validation:
+                            status, message = Validator.check_validators(data.validators, values.value)
+                            values.validation_status = status
+                            values.validation_message = message
 
-    def __set_additional_data(self, validations:DictEx, parts_prpId:int) -> 'dict':
-        return {
-            "prpId": parts_prpId,
-            "part": validations.part,
-            "type" : self.__try_set_data_type(validations),
-            "validations": self.__set_validations_list(validations) if self.check_validation else []
-        }
+    def __enrich_data(self, validations:DictEx, parts_prpId:int) -> 'EnrichedData':
+        prpId = parts_prpId
+        part_id = validations.part
+        data_type = self.__set_data_type(validations)
+        val_val = validations.validations
+        storage_data = self.__set_storage_data(val_val) if isinstance(val_val, dict) else None
+        validators = val_val if self.check_validation and isinstance(validations.validations, dict) else {}
+        return EnrichedData(prpId, part_id, data_type, storage_data, validators)
 
-    def __try_set_data_type(self, validations:DictEx) -> 'dict':
+    def __set_data_type(self, validations:DictEx) -> 'str':
         data_type = None
-        database = None
-        table = None
-        field = None
         has_link = True if validations.link else False
         val_val = validations.validations
         if isinstance(val_val, dict):
             keys = val_val.keys()
             if "datatype" in keys:
                 data_type = val_val["datatype"]
-            if "database" in keys:
-                database = val_val["database"]
-            if "table" in keys:
-                table = val_val["table"]
-            if "field" in keys:
-                field = val_val["field"]
-        return {
-            "viewtype": validations.viewType,
-            "datatype": data_type, "datatype": self.__data_type_checker(validations.viewType, data_type, has_link),
-            "database": database, "table":table, "field": field
-        }     
+        
+        return self.__data_type_checker(validations.viewType, data_type, has_link)
 
     def __data_type_checker(self, view_type: str, datatype: str = None, has_link: bool = None):
 
@@ -128,16 +120,12 @@ class Answer:
         else:
             result = "None"
         return result
-
-    def __set_validations_list(self, validations:DictEx) -> "list[Validation]":
-        ret_val = list()
-        val_val = validations.validations
-        if isinstance(val_val, dict):
-            for val in val_val:
-                validation_checker = ValidationFactory(val, val_val[val])
-                if validation_checker:
-                    ret_val.append(validation_checker)
-        return ret_val
+    
+    def __set_storage_data(self, val_val:"dict") -> "StorageData":
+        database = val_val["database"] if "database" in val_val else None
+        table = val_val["table"] if "table" in val_val else None
+        field = val_val["field"] if "field" in val_val else None
+        return StorageData(database, table, field)
                 
     async def __get_action_async(self, prp_id_list: 'list[int]', action_list: 'list[UserActionTypes]', part_list: 'list[int]', is_file: "bool" = None, predicate: 'Callable[[UserAction],bool]' = None) -> 'list[UserAction]':
         ret_val: 'list[UserAction]' = None

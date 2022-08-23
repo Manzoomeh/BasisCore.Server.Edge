@@ -1,132 +1,109 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 import re
-from pydantic import BaseModel
-def ValidationFactory(name:"str", rule:"any") -> "Validation|None":
-    validations = {
-        "required": RequiredValidation(name, rule),
-        "minLength": MinLengthValidation(name, rule),
-        "maxLength": MaxLengthValidation(name, rule), 
-        "min": MinValidation(name, rule), 
-        "max": MaxValidation(name, rule), 
-        "dataType": DataTypeValidation(name, rule), 
-        "regex": RegexValidation(name, rule),
-        "national_code": NatioanalValidation(name, rule)
-    }
-    return validations[name] if name in validations else None
 
-class Validation(ABC):
-    def __init__(self, name:"str", rule:"any") -> None:
-        self.name = name
-        self.rule = rule
-        self.status: "bool" = None
-        self.description: "str" = None
 
-    @abstractmethod
-    def check_validation(self, value:"any"):
-        pass
+class Validator(ABC):
 
-class RequiredValidation(Validation):
-    def __init__(self, name: "str", rule:"any") -> None:
-        super().__init__(name, rule)
+    @staticmethod
+    def check_validators(validators:"dict", value:"any") -> "tuple[bool, list[str]]":
 
-    def check_validation(self, value: "any"):
-        self.status = False if self.rule == True and not value else True
-        self.description = None if self.status else "required error"
-
-class MinLengthValidation(Validation):
-    def __init__(self, name: "str", rule: "any") -> None:
-        super().__init__(name, rule)
-
-    def check_validation(self, value: "any"):
-        try:
-            self.status = len(value) > self.rule
-            self.description = None if self.status else "min length error"
-        except Exception as ex:
-            self.status = False
-            self.description = "min length error"
-
-class MaxLengthValidation(Validation):
-    def __init__(self, name: "str", rule: "any") -> None:
-        super().__init__(name, rule)
-
-    def check_validation(self, value: "any"):
-        try:
-            self.status = len(value) < self.rule
-            self.description = None if self.status else "max length error"
-        except Exception as ex:
-            self.status = False
-            self.description = "max length error"
-
-class MinValidation(Validation):
-    def __init__(self, name: "str", rule: "any") -> None:
-        super().__init__(name, rule)
-
-    def check_validation(self, value: "any"):
-        try:
-            self.status = value > self.rule
-            self.description = None if self.status else "min value error"
-        except Exception as ex:
-            self.status = False
-            self.description = "min value error"
-
-class MaxValidation(Validation):
-    def __init__(self, name: "str", rule: "any") -> None:
-        super().__init__(name, rule)
-
-    def check_validation(self, value: "any"):
-        try:
-            self.status = value < self.rule
-            self.description = None if self.status else "max value error"
-        except Exception as ex:
-            self.status = False
-            self.description = "max value error"
-
-class DataTypeValidation(Validation):
-    def __init__(self, name: "str", rule: "any") -> None:
-        super().__init__(name, rule)
-
-    def check_validation(self, value: "any"):
-        types = {
-            "int": self.__is_integer(value),
-            "float": self.__is_float(value)
+        check_validation = {
+            "required": Validator.required_validator(value, validators["required"]) if 'required' in validators else None,
+            "minLength": Validator.min_length_validator(value, validators["minLength"]) if 'minLength' in validators else None,
+            "maxLength": Validator.max_length_validator(value, validators["maxLength"]) if 'maxLength' in validators else None, 
+            "min": Validator.min_validator(value, validators["min"]) if 'min' in validators else None, 
+            "max": Validator.max_validator(value, validators["max"]) if 'max' in validators else None, 
+            "regex": Validator.regex_validator(value, validators["regex"]) if 'regex' in validators else None
         }
-        types[self.rule] if self.rule in types else self.__set_attrs()
+        validations_message:"list[str]" = []
+        
+        for validator in validators:
+            if validator in check_validation:
+                checked, message = check_validation[validator] 
+                if not checked:
+                    validations_message.append(message)
 
-    def __set_attrs(self):
-        self.status = False
-        self.description = f"check function not found for {self.rule}"
-
-    def __is_integer(self, value: "any"):
-        try:
-            int(value)
-            self.status == True
-        except Exception:
-            self.status == False
-            self.description = "Value is not an integer"
-
-    def __is_float(self, value: "any"):
-        try: 
-            float(value)
-            self.status == True
-        except Exception :
-            self.status == False
-            self.description = "Value is not an integer"
-
-class RegexValidation(Validation):
-    def __init__(self, name: "str", rule: "any") -> None:
-        super().__init__(name, rule)
-
-    def check_validation(self, value: "any"):
-        try:
-            self.status = re.search(value, self.rule) != None
-            self.description = None if self.status else "regex error"
-        except Exception as ex:
-            self.status = False
-            self.description = "regex error"
-
-class NatioanalValidation(Validation):
-    def __init__(self, name: "str", rule: "any") -> None:
-        super().__init__(name, rule)
+        validation_status = True if len(validations_message) == 0 else False
+        return validation_status, validations_message
     
-    def check_validation(self, value: "any"):
-        pass
+    @staticmethod
+    def required_validator(value:"any", is_required:"bool") -> "tuple[bool, list[str]|None]":
+        status = False if is_required and not value else True
+        message = None if status else "Required validation error"
+        return status, message
+
+    @staticmethod
+    def min_length_validator(value:"any", min_length:"any") -> "tuple[bool, list[str]|None]":
+        try:
+            min_length = min_length if isinstance(min_length, int) else int(min_length)
+            status = len(value) > min_length
+        except Exception:
+            status = False
+
+        message = None if status else "Min length error"
+        return status, message
+
+    @staticmethod
+    def max_length_validator(value:"any", max_length:"any") -> "tuple[bool, list[str]|None]":
+        try:
+            max_length = max_length if isinstance(max_length, int) else int(max_length)
+            status = len(value) < max_length
+        except Exception:
+            status = False
+
+        message = None if status else "Max length error"
+        return status, message
+    
+    @staticmethod
+    def min_validator(value:"any", min_value:"any") -> "tuple[bool, list[str]|None]":
+        try:
+            status = value > min_value
+        except Exception as ex:
+            status = False
+        
+        message = None if status else "Min value error"
+        return status, message
+    
+    @staticmethod
+    def max_validator(value:"any", max_value:"any") -> "tuple[bool, list[str]|None]":
+        try:
+            status = value < max_value
+        except Exception as ex:
+            status = False
+        
+        message = None if status else "Max value error"
+        return status, message 
+    
+    @staticmethod
+    def data_type_validator(value:"any", type:"str") -> "tuple[bool, list[str]|None]":        
+        
+        types = {
+            "int": int(value),
+            "float": float(value),
+            "text": str(value)
+        }
+        message = None
+        if type in types:
+            try:
+                types[type]
+                status = True
+            except Exception:
+                status = False
+
+            if not status:
+                message = f"Type of value is not {type}"
+        else:
+            status = False
+            message = f"Function not found for {type} type checker"
+
+        return status, message
+
+    @staticmethod
+    def regex_validator(value:"any", regex_expression:"str") -> "tuple[bool, list[str]|None]":
+        try:
+            status = re.search(value, regex_expression) != None
+        except Exception as ex:
+            status = False
+        
+        message = None if status else "regex error"
+        return status, message
