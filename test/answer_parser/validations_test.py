@@ -106,7 +106,6 @@ input_json = {
   ]
  }
 
- 
 async def f():
     my_object = parser.Answer(input_json, question_api, check_validation=True)
     # await my_object.get_actions_async()
