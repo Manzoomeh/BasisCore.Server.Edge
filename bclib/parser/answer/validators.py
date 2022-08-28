@@ -13,6 +13,7 @@ class Validator(ABC):
             "maxLength": Validator.max_length_validator(value, validators["maxLength"]) if 'maxLength' in validators else None, 
             "min": Validator.min_validator(value, validators["min"]) if 'min' in validators else None, 
             "max": Validator.max_validator(value, validators["max"]) if 'max' in validators else None, 
+            "dataType": Validator.data_type_validator(value, validators["dataType"]) if 'dataType' in validators else None,
             "regex": Validator.regex_validator(value, validators["regex"]) if 'regex' in validators else None
         }
         validations_message:"list[str]" = []
