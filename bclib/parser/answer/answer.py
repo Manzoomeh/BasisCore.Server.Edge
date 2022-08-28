@@ -188,3 +188,13 @@ class Answer:
                     else:
                         ret_val[obj[0].prp_id] = [obj]
         return list(ret_val.values())
+
+    async def is_valid_answer_async(self):
+        if self.__answer_list is None:
+            await self.__fill_answer_list_async()
+        is_valid = True
+        for user_action in self.__answer_list:
+            if user_action.validation_status == False:
+                is_valid = False
+                break
+        return is_valid
