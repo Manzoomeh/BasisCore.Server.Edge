@@ -72,7 +72,7 @@ input_json = {
         "part": 1,
         "values": [
          {
-          "value": "2"
+          "value": "dsfdsf"
          }
         ]
        }
