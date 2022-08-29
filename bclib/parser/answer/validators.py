@@ -78,6 +78,7 @@ class Validator(ABC):
     @staticmethod
     def data_type_validator(value:"any", type:"str") -> "tuple[bool, list[str]|None]":        
         message = None
+        status = True
         if type in ["int", "float", "str"]:
             try:
                 if type == "int":
