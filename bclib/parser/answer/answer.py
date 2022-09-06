@@ -56,7 +56,7 @@ class Answer:
     async def __enrich_data_async(self):
         enriched_data_list: "list[EnrichedData]" = list()
         if self.__api_connection:
-            questions_data = DictEx(await self.__api_connection.post_async())
+            questions_data = DictEx(await self.__api_connection.get_async())
             for data in questions_data.sources:
                 for question in data.data:
                     for parts in question.questions:
