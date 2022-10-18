@@ -8,11 +8,11 @@ class Match (Predicate):
 
     def __init__(self, expression: str, value: str) -> None:
         super().__init__(expression)
-        self.__value = value
+        self.__compiled_regex = re.compile(value)
 
     async def check_async(self, context: Context) -> bool:
         try:
             value = eval(self.exprossion, {}, {"context": context})
-            return re.search(self.__value, str(value)) != None
+            return self.__compiled_regex.match(str(value)) != None
         except:  # pylint: disable=bare-except
             return False
