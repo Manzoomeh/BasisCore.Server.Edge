@@ -74,7 +74,7 @@ class Answer:
                             values.database = storage_data.data_base
                             values.table = storage_data.table
                             values.field = storage_data.field
-                        if self.check_validation:
+                        if self.check_validation and values.action != UserActionTypes.DELETED:
                             status, message = Validator.check_validators(data.validators, values.value)
                             values.validation_status = status
                             values.validation_message = message
