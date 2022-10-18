@@ -101,7 +101,7 @@ class Answer:
 
     def __data_type_checker(self, view_type: str, datatype: str = None, has_link: bool = None):
 
-        if view_type in ["select", "checklist", "radio"]:
+        if view_type in ["select", "checkList", "radio"]:
             if has_link == True:
                 result = "urlvalue"
             result = "fixvalue"
