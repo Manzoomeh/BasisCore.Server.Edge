@@ -78,7 +78,7 @@ class Answer:
                             status, message = Validator.check_validators(data.validators, values.value)
                             values.validation_status = status
                             values.validation_message = message
-
+                
     def __enrich_data(self, validations:DictEx, parts_prpId:int) -> 'EnrichedData':
         prpId = parts_prpId
         part_id = validations.part
@@ -94,13 +94,11 @@ class Answer:
         val_val = validations.validations
         if isinstance(val_val, dict):
             keys = val_val.keys()
-            if "datatype" in keys:
-                data_type = val_val["datatype"]
-        
+            if "dataType" in keys:
+                data_type = val_val["dataType"]
         return self.__data_type_checker(validations.viewType, data_type, has_link)
 
     def __data_type_checker(self, view_type: str, datatype: str = None, has_link: bool = None):
-
         if view_type in ["select", "checkList", "radio"]:
             if has_link == True:
                 result = "urlvalue"
