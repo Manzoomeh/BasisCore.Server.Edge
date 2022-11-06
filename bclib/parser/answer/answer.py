@@ -89,13 +89,10 @@ class Answer:
         return EnrichedData(prpId, part_id, data_type, storage_data, validators)
 
     def __set_data_type(self, validations:DictEx) -> 'str':
-        data_type = None
         has_link = True if validations.link else False
         val_val = validations.validations
-        if isinstance(val_val, dict):
-            keys = val_val.keys()
-            if "dataType" in keys:
-                data_type = val_val["dataType"]
+        data_type = val_val["dataType"] if isinstance(val_val, dict) and "dataType" in val_val else None
+        
         return self.__data_type_checker(validations.viewType, data_type, has_link)
 
     def __data_type_checker(self, view_type: str, datatype: str = None, has_link: bool = None):
