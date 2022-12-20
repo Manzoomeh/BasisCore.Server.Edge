@@ -93,13 +93,13 @@ class ChatRoom:
 @app.socket_action(app.equal("context.message_type", edge.MessageType.NOT_EXIST))
 def process_not_exist_message(context: edge.SocketContext):
     print("process_not_exist_message")
-    ChatRoom.process_message(context.message_object, None)
+    ChatRoom.process_message(context.message, None)
 
 
 @ app.socket_action(app.url("chat"))
 def process_all_other_message(context: edge.SocketContext):
     print("process_all_other_message")
-    ChatRoom.process_message(context.message_object, context.cms)
+    ChatRoom.process_message(context.message, context.cms)
 
 
 @ app.web_action()

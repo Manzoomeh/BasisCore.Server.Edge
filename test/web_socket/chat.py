@@ -96,13 +96,13 @@ class ChatRoom:
 @app.socket_action(app.equal("context.message_type", edge.MessageType.NOT_EXIST))
 async def process_not_exist_message_async(context: edge.SocketContext):
     print("process_not_exist_message")
-    await ChatRoom.process_message_async(context.message_object, None, None)
+    await ChatRoom.process_message_async(context.message, None, None)
 
 
 @ app.socket_action()
 async def process_all_other_message_async(context: edge.SocketContext):
     print("process_all_other_message")
-    await ChatRoom.process_message_async(context.message_object,
+    await ChatRoom.process_message_async(context.message,
                                          context.cms, context.body)
 
 

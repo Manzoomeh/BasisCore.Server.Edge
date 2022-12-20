@@ -3,7 +3,7 @@ import json
 from typing import Any
 
 
-from ..listener.message_type import MessageType
+from bclib.listener.message_type import MessageType
 
 
 class Message:
@@ -63,24 +63,3 @@ class Message:
             ret_val = Message.create_from_object(
                 session_id,  data)
         return ret_val
-
-    @staticmethod
-    async def read_from_stream_async(stream: asyncio.StreamReader) -> 'Message':
-        message: Message = None
-        data = await stream.readexactly(1)
-        if data:
-            message_type = MessageType(int.from_bytes(
-                data, byteorder='big', signed=True))
-            data = await stream.readexactly(4)
-            data_len = int.from_bytes(data, byteorder='big', signed=True)
-            data = await stream.readexactly(data_len)
-            session_id = data.decode("utf-8")
-            parameter = None
-            if message_type in (MessageType.AD_HOC, MessageType.MESSAGE, MessageType.CONNECT):
-                data = await stream.readexactly(4)
-                data_len = int.from_bytes(
-                    data, byteorder='big', signed=True)
-                data = await stream.readexactly(data_len)
-                parameter = data
-            message = Message(session_id, message_type, parameter)
-        return message
