@@ -4,11 +4,11 @@ import random
 import os
 import time
 from bclib import edge
+import datetime
 
 
 options = {
-    "sender": "127.0.0.1:1025",
-    "receiver": "127.0.0.1:1026",
+    "endpoint": "127.0.0.1:1025",
     "defaultRouter": "server_source",
     "router": "web",
     "log_error": True
@@ -25,15 +25,17 @@ def f():
     print('haha')
 
 
-async def send_data_async(session_id: str):
+async def send_data_async(context: edge.SocketContext):
     id = 1
-    print(f'Send data form {session_id} start!')
+
+    print(f'Send data form {context.message.session_id} start!')
     while True:
+        keep_alive = id < 5
         try:
             await asyncio.sleep(1)
             data = {
                 "setting": {
-                    "keepalive": True
+                    "keepalive": keep_alive
                 },
                 "sources": [
                     {
@@ -53,41 +55,44 @@ async def send_data_async(session_id: str):
                 ],
             }
             id += 1
-            print(f'Send data form {session_id}')
-            await app.send_message_async(
-                edge.Message.create_from_object(session_id, data))
+            print(
+                f'Send data to {context.message.session_id} in {datetime.datetime.now()}')
+            try:
+                await context.send_object_async(data)
+            except:  # ConnectionError
+                print("connection closed!")
+                return
+            if not keep_alive:
+                return
         except asyncio.CancelledError:
-            print(f'Send data form {session_id} stopped!')
+            print(
+                f'Send data to {context.message.session_id} stopped in {datetime.datetime.now()}!')
             return
 ########
 # Socket
 ########
 
 
-@app.socket_action(app.in_list("context.message_type", edge.MessageType.NOT_EXIST, edge.MessageType.DISCONNECT))
-def process_not_exist_message(context: edge.SocketContext):
-    print(f'process_not_exist_message for {context.session_id}')
-    if context.session_id in sessions:
-        future = sessions[context.session_id]
-        del sessions[context.session_id]
-        future.cancel()
-    return True
-
-
-@app.socket_action(app.in_list("context.message_type", edge.MessageType.CONNECT))
-def process_not_connect_message(context: edge.SocketContext):
-    print(f'process_not_connect_message for {context.session_id}')
-    future = context.dispatcher.run_in_background(
-        send_data_async, context.session_id)
-    sessions[context.session_id] = future
-    return True
-
-
 @app.socket_action()
-def process_all_other_message_async(context: edge.SocketContext):
-    print(f"process_all_other_message for {context.session_id}")
-    context.dispatcher.run_in_background(f)
-    return True
+async def process_message_async(context: edge.SocketContext):
+    print(
+        f'message of type {context.message.type} come from {context.message.session_id} in {datetime.datetime.now()}')
+    msg = await context.read_message_async()
+    print(
+        f'message of type {msg.type} come from {msg.session_id} in {datetime.datetime.now()}')
+    future = context.dispatcher.run_in_background(
+        send_data_async, context)
+    while True:
+        try:
+            msg = await context.read_message_async()
+            print(
+                f'message of type {msg.type} come from {msg.session_id} in {datetime.datetime.now()}')
+            if msg.type in [edge.MessageType.DISCONNECT, edge.MessageType.NOT_EXIST]:
+                break
+        except:
+            print("connection closed!")
+            break
+    future.cancel()
 
 
 #####

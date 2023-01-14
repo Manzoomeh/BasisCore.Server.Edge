@@ -1,10 +1,11 @@
 from struct import error
 from bclib.context import RabbitContext
 from typing import TYPE_CHECKING
+from bclib.listener.rabbit_listener import RabbitListener
+from bclib.utility import DictEx
+
 if TYPE_CHECKING:
     from .. import dispatcher
-from ..listener.rabbit_listener import RabbitListener
-from bclib.utility import DictEx
 
 
 class RabbitBusListener(RabbitListener):
@@ -23,7 +24,6 @@ class RabbitBusListener(RabbitListener):
             new_context = RabbitContext(
                 DictEx(message), self.__dispatcher)
             self.__dispatcher.dispatch_in_background(new_context)
-            # print(f"Message '{message}' received to rabbit listener")
         except error as ex:
             print(
                 f"error in dispatcher received message from rabbit in {self._host}:{self._queue_name} ({ex})")

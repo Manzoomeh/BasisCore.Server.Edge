@@ -4,15 +4,14 @@ import json
 import re
 from struct import error
 from typing import Callable, Any, Coroutine
-from abc import abstractmethod
 
 from bclib.utility import DictEx
 
 from bclib.context import ClientSourceContext, RESTfulContext, WebContext, RequestContext, Context, SocketContext, ServerSourceContext, NamedPipeContext
-from bclib.listener import Message, MessageType, HttpBaseDataType
+from bclib.listener import Message, MessageType, HttpBaseDataType, ReceiveMessage
 
-from ..dispatcher.dispatcher_helper import DispatcherHelper
-from ..dispatcher.dispatcher import Dispatcher
+from bclib.dispatcher.dispatcher_helper import DispatcherHelper
+from bclib.dispatcher.dispatcher import Dispatcher
 
 
 class RoutingDispatcher(Dispatcher, DispatcherHelper):
@@ -75,7 +74,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
                 print("Error in detect context from routing options!", ex)
         return context_type if context_type else self.__default_router
 
-    async def _on_message_receive_async(self, message: Message) -> Message:
+    async def _on_message_receive_async(self, message: ReceiveMessage) -> Message:
         """Process received message"""
 
         try:
@@ -91,7 +90,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
             print(f"Error in process received message {ex}")
             raise ex
 
-    def __context_factory(self, message: Message) -> Context:
+    def __context_factory(self, message: ReceiveMessage) -> Context:
         """Create context from message object"""
 
         ret_val: RequestContext = None

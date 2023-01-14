@@ -2,8 +2,7 @@ import json
 from typing import TYPE_CHECKING
 
 from bclib.utility import HttpMimeTypes
-from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
-from ..context.request_context import RequestContext
+from bclib.context.request_context import RequestContext
 
 if TYPE_CHECKING:
     from .. import dispatcher
@@ -21,10 +20,7 @@ class JsonBaseRequestContext(RequestContext):
         error_object, self.status_code = self._generate_error_object(exception)
         return self.generate_response(error_object)
 
-    def generate_response(self, result: dict) -> dict:
-        """Generate response from process result"""
+    def generate_response(self, content: dict) -> dict:
+        """Generate response from process content"""
 
-        ret_val = super().generate_response(result)
-        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT] = json.dumps(
-            result)
-        return ret_val
+        return super().generate_response(json.dumps(content))
