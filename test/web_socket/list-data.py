@@ -30,11 +30,12 @@ async def send_data_async(context: edge.SocketContext):
 
     print(f'Send data form {context.message.session_id} start!')
     while True:
+        keep_alive = id < 5
         try:
             await asyncio.sleep(1)
             data = {
                 "setting": {
-                    "keepalive": True
+                    "keepalive": keep_alive
                 },
                 "sources": [
                     {
@@ -58,8 +59,10 @@ async def send_data_async(context: edge.SocketContext):
                 f'Send data to {context.message.session_id} in {datetime.datetime.now()}')
             try:
                 await context.send_object_async(data)
-            except ConnectionError as ex:
+            except:  # ConnectionError
                 print("connection closed!")
+                return
+            if not keep_alive:
                 return
         except asyncio.CancelledError:
             print(
@@ -86,7 +89,7 @@ async def process_message_async(context: edge.SocketContext):
                 f'message of type {msg.type} come from {msg.session_id} in {datetime.datetime.now()}')
             if msg.type in [edge.MessageType.DISCONNECT, edge.MessageType.NOT_EXIST]:
                 break
-        except ConnectionError as ex:
+        except:
             print("connection closed!")
             break
     future.cancel()

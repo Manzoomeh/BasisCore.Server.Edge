@@ -44,3 +44,7 @@ class SocketContext(Context):
 
     async def read_message_async(self) -> 'listener.ReceiveMessage':
         return await self.message.read_next_message_async()
+
+    async def send_close_async(self) -> None:
+        message = ReceiveMessage.create_disconnect(self.message.session_id)
+        await message.write_to_stream_async(self.message.writer)

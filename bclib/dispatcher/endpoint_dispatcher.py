@@ -13,9 +13,9 @@ class EndpointDispatcher(RoutingDispatcher):
         super().initialize_task()
 
         async def on_connection_open(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-            msg = await ReceiveMessage.read_from_stream_async(reader, writer)
-            result = await self._on_message_receive_async(msg)
             try:
+                msg = await ReceiveMessage.read_from_stream_async(reader, writer)
+                result = await self._on_message_receive_async(msg)
                 await result.write_to_stream_async(writer)
             except:
                 pass
