@@ -28,7 +28,7 @@ class Dispatcher(ABC):
         self.event_loop = asyncio.get_event_loop()
         self.cache_manager = create_caching(cache_options)
         self.db_manager = DbManager(self.options, self.event_loop)
-        self.__logger: ILogger = LoggerFactory.create(self.options)
+        self.__loggers: "list[ILogger]|ILogger" = LoggerFactory.create(self.options)
         self.log_error: bool = self.options.log_error if self.options.has(
             "log_error") else False
         self.log_request: bool = self.options.log_request if self.options.has(
@@ -397,9 +397,30 @@ class Dispatcher(ABC):
 
     async def log_async(self, **kwargs):
         """log params"""
-        await self.__logger.log_async(**kwargs)
+        logger = None
+        if isinstance(self.__loggers, list):
+            for _logger in self.__loggers:
+                if _logger.name == kwargs["logger_name"]:
+                    logger = _logger
+                    break
+        else:
+            logger = self.__loggers
+        if logger is not None:
+            await logger.log_async(**kwargs)
+        else:
+            raise Exception("There is no logger with this name!")
 
     def log_in_background(self, **kwargs) -> Coroutine:
         """log params in background precess"""
-        return self.event_loop.create_task(
-            self.__logger.log_async(**kwargs))
+        logger = None
+        if isinstance(self.__loggers, list):
+            for _logger in self.__loggers:
+                if _logger.name == kwargs["logger_name"]:
+                    logger = _logger
+                    break
+        else:
+            logger = self.__loggers
+        if logger is not None:
+            return self.event_loop.create_task(
+                logger.log_async(**kwargs))
+
