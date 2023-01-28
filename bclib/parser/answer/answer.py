@@ -67,7 +67,7 @@ class Answer:
         if len(enriched_data_list) > 0:
             for values in self.__answer_list:
                 for data in enriched_data_list:
-                    if int(data.prpId) == int(values.prp_id) and data.part == values.part or values.part is None:
+                    if int(data.prpId) == int(values.prp_id) and (data.part == values.part or values.part is None):
                         values.datatype = data.data_type
                         storage_data = data.storage_data
                         if storage_data:
