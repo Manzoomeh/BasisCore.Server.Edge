@@ -46,11 +46,13 @@ class Dispatcher(ABC):
 
             @wraps(socket_action_handler)
             async def non_async_wrapper(context: SocketContext):
-                return await self.event_loop.run_in_executor(None, socket_action_handler, context)
+                await self.event_loop.run_in_executor(None, socket_action_handler, context)
+                return True
 
             @wraps(socket_action_handler)
             async def async_wrapper(context: SocketContext):
-                return await socket_action_handler(context)
+                await socket_action_handler(context)
+                return True
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 socket_action_handler) else non_async_wrapper

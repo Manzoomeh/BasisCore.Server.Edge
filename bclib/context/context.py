@@ -4,11 +4,12 @@ from typing import TYPE_CHECKING, Tuple
 
 from bclib.exception import ShortCircuitErr
 
+from bclib.db_manager import SqlDb, SQLiteDb, MongoDb, RabbitConnection, RESTfulConnection
+from bclib.utility import DictEx, HttpStatusCodes, HttpStatusCodes
+from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
+
 if TYPE_CHECKING:
     from .. import dispatcher
-
-from bclib.db_manager import SqlDb, SQLiteDb, MongoDb, RabbitConnection, RESTfulConnection
-from bclib.utility import DictEx, HttpStatusCodes
 
 
 class Context(ABC):
@@ -61,3 +62,43 @@ class Context(ABC):
             if self.dispatcher.log_error:
                 error_object["error"] = traceback.format_exc()
         return (error_object, status_code)
+
+    @staticmethod
+    def _generate_response_cms(
+            content: 'str',
+            response_type: 'str',
+            status_code: 'str',
+            mime: 'str',
+            template: 'DictEx' = None,
+            headers: 'dict' = None) -> dict:
+        """Generate response from process result"""
+
+        ret_val = DictEx() if template is None else template
+        if HttpBaseDataType.CMS not in ret_val:
+            ret_val[HttpBaseDataType.CMS] = {}
+        if HttpBaseDataName.WEB_SERVER not in ret_val[HttpBaseDataType.CMS]:
+            ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER] = DictEx()
+        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["index"] = response_type
+        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["headercode"] = status_code
+        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["mime"] = mime
+        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT] = content
+        if headers is not None:
+            Context.__add_user_defined_headers(ret_val, headers)
+        return ret_val
+
+    @staticmethod
+    def __add_user_defined_headers(response: dict, headers: dict) -> None:
+        """Adding user defined header to response"""
+
+        if HttpBaseDataName.HTTP not in response[HttpBaseDataType.CMS]:
+            response[HttpBaseDataType.CMS][HttpBaseDataName.HTTP] = {}
+        http = response[HttpBaseDataType.CMS][HttpBaseDataName.HTTP]
+        for key, value in headers.items():
+            if key in http:
+                current_value = http[key] if isinstance(
+                    http[key], list) else [http[key]]
+                new_value = current_value + value
+            else:
+                new_value = value
+
+            http[key] = ",".join(new_value)

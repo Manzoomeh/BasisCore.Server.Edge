@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 from bclib.parser import HtmlParserEx
 from bclib.utility import DictEx
-from ..context.json_base_request_context import JsonBaseRequestContext
+from bclib.context.json_base_request_context import JsonBaseRequestContext
 
 if TYPE_CHECKING:
     from .. import dispatcher

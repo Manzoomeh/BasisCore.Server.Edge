@@ -1,7 +1,6 @@
 from typing import Any, TYPE_CHECKING
 
 from bclib.utility import HttpMimeTypes
-from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
 from ..context.request_context import RequestContext
 
 if TYPE_CHECKING:
@@ -13,8 +12,3 @@ class WebContext(RequestContext):
         super().__init__(cms_object, dispatcher)
         self.process_async = True
         self.mime = HttpMimeTypes.HTML
-
-    def generate_response(self, result: Any) -> dict:
-        ret_val = super().generate_response(result)
-        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT] = result
-        return ret_val

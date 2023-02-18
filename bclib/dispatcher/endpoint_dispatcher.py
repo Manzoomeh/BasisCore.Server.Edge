@@ -1,6 +1,6 @@
 import asyncio
 
-from ..listener import Endpoint, Message
+from ..listener import Endpoint, ReceiveMessage
 from .routing_dispatcher import RoutingDispatcher
 
 
@@ -13,13 +13,19 @@ class EndpointDispatcher(RoutingDispatcher):
         super().initialize_task()
 
         async def on_connection_open(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-            msg = await Message.read_from_stream_async(reader)
-            result = await self._on_message_receive_async(msg)
-            await result.write_to_stream_async(writer)
-            if writer.can_write_eof():
-                writer.write_eof()
-            await writer.drain()
-            writer.close()
+            try:
+                msg = await ReceiveMessage.read_from_stream_async(reader, writer)
+                result = await self._on_message_receive_async(msg)
+                await result.write_to_stream_async(writer)
+            except:
+                pass
+            try:
+                if writer.can_write_eof():
+                    writer.write_eof()
+                await writer.drain()
+                writer.close()
+            except:
+                pass
 
         async def start_servers_async():
             server = await asyncio.start_server(on_connection_open, self.__endpoint.url, self.__endpoint.port,)

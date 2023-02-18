@@ -67,7 +67,7 @@ class Answer:
         if len(enriched_data_list) > 0:
             for values in self.__answer_list:
                 for data in enriched_data_list:
-                    if int(data.prpId) == int(values.prp_id) and data.part == values.part or values.part is None:
+                    if int(data.prpId) == int(values.prp_id) and (data.part == values.part or values.part is None):
                         values.datatype = data.data_type
                         storage_data = data.storage_data
                         if storage_data:
@@ -96,7 +96,7 @@ class Answer:
         return self.__data_type_checker(validations.viewType, data_type, has_link)
 
     def __data_type_checker(self, view_type: str, datatype: str = None, has_link: bool = None):
-        if view_type in ["select", "checkList", "radio"]:
+        if view_type in ["select", "checklist", "radio"]:
             if has_link == True:
                 result = "urlvalue"
             result = "fixvalue"
