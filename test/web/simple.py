@@ -6,8 +6,7 @@ import time
 
 
 options = {
-    "sender": "127.0.0.1:1025",
-    "receiver": "127.0.0.1:1026",
+    "endpoint": "127.0.0.1:1025",
     "router":  "web"
 }
 
@@ -18,7 +17,7 @@ print(app)
 
 @app.web_action()
 async def process_web_remain_request(context: edge.WebContext):
-    await asyncio.sleep(1)
+    # await asyncio.sleep(1)
     # def f(n):
     #     time.sleep(n)
     #     return "33"
@@ -26,7 +25,7 @@ async def process_web_remain_request(context: edge.WebContext):
     # k = await context.dispatcher.run_in_background(asyncio.sleep, 1)
     # time.sleep(1)
     # time.sleep(1)
-    print("process_web_remain_request")
+    # print("process_web_remain_request")
     return """
         <form method="post" enctype="multipart/form-data">
 <input type="file" name="my_files" multiple="multiple"/>
