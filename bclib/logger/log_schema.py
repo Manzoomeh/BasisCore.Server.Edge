@@ -6,6 +6,7 @@ class LogSchema:
         self.schema_name = schema["schemaName"]
         self.schema_version = schema["schemaVersion"]
         self.lid = schema["lid"]
+        self.schemaId = schema["schemaId"]
         self.properties: 'dict[str,(int,str)]' = dict([
             (x["title"], (x["prpId"], x["source"] if "source" in x else None)) for x in schema["questions"]])
 
@@ -21,7 +22,7 @@ class LogSchema:
             except:
                 pass
 
-            if value:
+            if value is not None:
                 properties.append({
                     "prpId": id,
                     "answers": [
@@ -43,5 +44,6 @@ class LogSchema:
             "schemaName": self.schema_name,
             "schemaVersion": self.schema_version,
             "lid": self.lid,
+            "schemaId": self.schemaId,
             "properties": properties
         }
