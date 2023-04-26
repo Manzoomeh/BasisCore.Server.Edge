@@ -1,28 +1,23 @@
-from abc import ABC, abstractmethod
-from datetime import datetime, timedelta
+from abc import ABC
+import time
 
 class BaseCacheItem(ABC):
-    def __init__(self, data:"any", life_time:"int"=0) -> None:
-        self._data = data
-        self.__life_time = timedelta(seconds=life_time) if life_time > 0 else None
-        self.__expiration = self.__set_expiration()
+    MAX_LIFE_TIME = 86400 #Seconds => 1 Day
+    def __init__(self, data:"any", life_time:"int") -> None:
+        super().__init__()
+        self.__data = data
+        self.__life_time = min(life_time, BaseCacheItem.MAX_LIFE_TIME) if life_time != -1 else None
+        self.__created_time = time.time()
 
-    def __set_expiration(self) -> "datetime|None":
-        return datetime.utcnow() + self.__life_time if self.__life_time else None
+    def __is_expired(self):
+        return time.time() > (self.__created_time + self.__life_time) if self.__life_time is not None else False
+    
+    def _update_data(self, data):
+        self.__data = data
+        self.__created_time = time.time()
+    
+    def data(self):
+        if self.__data is not None and self.__is_expired():
+            self.__data = None
+        return self.__data
 
-    # @abstractmethod
-    # def get_data(self, *args, **kwargs) -> "any|None":
-    #     if self._data is not None and self.is_expired:
-    #         self._data = None
-
-    @property
-    def data(self) -> "any":
-        return self._data
-
-    @property
-    def is_expired(self) -> "bool":
-        return datetime.utcnow() > self.__expiration if self.__expiration else False
-
-    def update_data(self, data:"any"):
-        self._data = data
-        self.__expiration = self.__set_expiration()

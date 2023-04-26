@@ -1,2 +1,2 @@
-from bclib.cache.cache_manager import CacheManager
-from bclib.cache.factory import create_caching
+from bclib.cache.manager import CacheManager
+from bclib.cache.factory import CacheFactory

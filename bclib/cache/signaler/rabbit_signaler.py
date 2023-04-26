@@ -1,15 +1,13 @@
-from struct import error
 from typing import Callable
 import json
 import asyncio
-from ..signaler.signaler_base import SignalerBase
+from ..signaler.base_signaler import BaseSignaler
+from bclib.utility import DictEx
 
-
-class RabbitSignaller(SignalerBase):
+class RabbitSignaller(BaseSignaler):
     """Implement rabbit-mq signaler"""
-
-    def __init__(self, options: dict, callback: 'Callable[[list], None]') -> None:
-        super().__init__(options, callback)
+    def __init__(self, reset_cache_callback:"Callable", options:"DictEx") -> None:
+        super().__init__(reset_cache_callback, options)
         import pika
         try:
             param = pika.URLParameters(options.url)
@@ -29,9 +27,10 @@ class RabbitSignaller(SignalerBase):
                             keys = cmd["keys"]
                             self._callback(keys)
 
-                except error as ex:
-                    print(
-                        f"error in process received message from rabbit in {param.host}:{queue_name} ({ex})")
+                except Exception as ex:
+                    print(f"""
+                        error in process received message from rabbit in {param.host}:{queue_name} ({ex})
+                    """)
 
             channel.basic_consume(
                 queue=queue_name, on_message_callback=on_rabbit_message_received, auto_ack=True)
