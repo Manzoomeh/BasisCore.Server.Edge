@@ -9,7 +9,7 @@ class TimeSignaler(BaseSignaler):
         super().__init__(reset_cache_callback, options)
         self.__reset_interval = int(self._options.interval) if self._options.has("interval") else TimeSignaler.DEFAULT_INTERVAL
         if self.__reset_interval != -1:
-            asyncio.get_running_loop().create_task(self.__reset_signal())
+            asyncio.get_event_loop().create_task(self.__reset_signal())
 
     async def __reset_signal(self):
         try:

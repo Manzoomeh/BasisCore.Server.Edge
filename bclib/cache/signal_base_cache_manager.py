@@ -21,13 +21,12 @@ class SignalBaseCacheManager(CacheManager):
         # self._clear_cache = self.__interval != -1
 
     @abstractmethod
-    @property
     def _size(self): ...
 
 
     @property
     def _is_valid_size(self):
-        return self._size <= self.__max_size if self.__max_size != 1 else True
+        return self._size() <= self.__max_size if self.__max_size != 1 else True
     
     @abstractmethod
     def _clean(self): ...

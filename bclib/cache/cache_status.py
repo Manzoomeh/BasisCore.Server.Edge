@@ -1,5 +1,8 @@
 class CacheStatus:
     ADDED = "ADDED"
-    UPDATE = "UPDATE"
+    UPDATED = "UPDATED"
     REMOVED = "REMOVED"
+    CLEANED = "CLEANED"
+    RESET = "RESET"
+    SET = "SET"
     NONE = "NONE"

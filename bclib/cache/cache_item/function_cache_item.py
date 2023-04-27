@@ -9,6 +9,6 @@ class FunctionCacheItem(BaseCacheItem):
     def get_data(self, *args, **kwargs) -> "any":
         data = self.data()
         if data is None:
-            data = self.__function(args, kwargs)
+            data = self.__function(*args, **kwargs)
             self._update_data(data)
         return data
