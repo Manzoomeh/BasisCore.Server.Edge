@@ -18,6 +18,19 @@ class DictMemoryCacheManager(InMemoryCacheManager):
         return len(self.__cache_dict)
 
     def _add_to_cache(self, key:"str", cache_item:"BaseCacheItem") -> None:
+        """
+        Adds a cache item to the cache dictionary with the specified key.
+
+        Args:
+            key (str): The key for the cache item.
+            cache_item (BaseCacheItem): The cache item to add to the dictionary.
+
+        Returns:
+            None
+
+        Raises:
+            None
+        """
         if key in self.__cache_dict:
             self.__cache_dict[key].append(cache_item)
             self.__cache_dict.move_to_end(key)
@@ -27,6 +40,19 @@ class DictMemoryCacheManager(InMemoryCacheManager):
                 self.__cache_dict.popitem(last=False)
 
     def cache_decorator(self, key:"str", life_time:"int"="None") -> "Callable":
+        """
+        Decorator that caches the result of a function for a specified key and life time.
+
+        Args:
+            key (str): The key to use for caching the function's result.
+            life_time (int): The life time of the cache item in seconds. If not specified, uses the default life time.
+
+        Returns:
+            Callable: The decorated function.
+
+        Raises:
+            ValueError: If the key is None.
+        """
         life_time = min(life_time, self._max_life_time) if life_time is not None else self._default_life_time
         def decorator(function):
             if key is not None:
@@ -44,6 +70,18 @@ class DictMemoryCacheManager(InMemoryCacheManager):
         return decorator
 
     def reset(self, keys:"list[str]"=None) -> "CacheStatus":
+        """
+        Resets the cache by removing all items or specified keys.
+
+        Args:
+            keys (list[str]): Optional list of keys to remove from the cache. If not specified, removes all items.
+
+        Returns:
+            CacheStatus: The status of the cache after the reset operation.
+
+        Raises:
+            None
+        """
         if keys is None or len(keys) == 0:
             self.__cache_dict = OrderedDict()
         else:
@@ -53,6 +91,9 @@ class DictMemoryCacheManager(InMemoryCacheManager):
         return CacheStatus.RESET
 
     def _clean(self) -> "CacheStatus":
+        """
+        Removes expired cache items from the cache dictionary.
+        """
         valid_cache_dict = OrderedDict()
         for key in self.__cache_dict:
             valid_cache_list = list()
@@ -65,6 +106,18 @@ class DictMemoryCacheManager(InMemoryCacheManager):
         return CacheStatus.CLEANED
 
     def get_cache(self, key:"str") -> "list":
+        """
+        Returns the data associated with the cache items for a given key.
+
+        Args:
+            key (str): The key to look up in the cache dictionary.
+
+        Returns:
+            list: The data associated with the cache items for the given key.
+
+        Raises:
+            None
+        """
         if key in self.__cache_dict:
             self.__cache_dict.move_to_end(key)
             print("ITEMS: ", self.__cache_dict[key])
@@ -75,6 +128,9 @@ class DictMemoryCacheManager(InMemoryCacheManager):
         return []
     
     def _update(self, key:"str", data:"any", life_time:"int"=None) -> "bool":
+        """
+        Updates the cache item for a given key with the specified data and lifetime.
+        """
         updated = False
         if key in self.__cache_dict:
             self.__cache_dict[key].append(CostumCacheItem(data, life_time))
@@ -83,6 +139,17 @@ class DictMemoryCacheManager(InMemoryCacheManager):
         return updated
     
     def add_or_update(self, key:"str", data:"any", life_time:"int"=None) -> "CacheStatus":
+        """
+        Add or update an item in the cache.
+
+        Args:
+            key (str): The key to identify the cache item.
+            data (any): The data to be stored in the cache.
+            life_time (int, optional): The time-to-live (TTL) of the cache item in seconds. If None, the default life time of the cache will be used.
+
+        Returns:
+            CacheStatus: The status of the cache after adding or updating the item. Returns CacheStatus.ADDED if a new item was added to the cache, and CacheStatus.UPDATED if an existing item was updated.        
+        """
         is_updated = self._update(key, data, life_time)
         if not is_updated:
             self._add_to_cache(key, CostumCacheItem(data, life_time))
@@ -90,6 +157,17 @@ class DictMemoryCacheManager(InMemoryCacheManager):
         return CacheStatus.UPDATED
 
     def remove(self, key:"str", data:"any") -> "CacheStatus":
+        """
+        Removes a specific cache item with a given key and data from the cache.
+
+        Args:
+        - key (str): The cache key to remove the data from.
+        - data (any): The data to be removed from the cache.
+
+        Returns:
+        - CacheStatus.REMOVED if the item was successfully removed from the cache.
+        - CacheStatus.NONE if the item was not found in the cache.
+        """
         if key in self.__cache_dict:
             selected_item = None
             cache_list = self.__cache_dict[key]
@@ -103,6 +181,21 @@ class DictMemoryCacheManager(InMemoryCacheManager):
         return CacheStatus.NONE
 
     def set_data(self, key:"str", data:"any", life_time:"int"=None) -> "CacheStatus":
+        """
+        Sets the cache for a given key with the provided data and life_time.
+        If the key already exists, its previous value will be overwritten with the new data.
+
+        Args:
+            key (str): The key to be set in the cache.
+            data (Any): The data to be cached.
+            life_time (int, optional): The maximum time in seconds that the data should be kept in the cache.
+                                    If None, the default lifetime of the cache will be used.
+
+        Returns:
+            CacheStatus: The status of the cache after the set operation.
+                        Returns CacheStatus.SET if a new cache item was added, or CacheStatus.UPDATED
+                        if an existing cache item was updated with new data.
+        """
         self.__cache_dict[key] = [CostumCacheItem(data, life_time)]
         self.__cache_dict.move_to_end(key)
         return CacheStatus.SET
