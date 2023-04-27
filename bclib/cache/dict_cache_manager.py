@@ -17,27 +17,19 @@ class DictMemoryCacheManager(InMemoryCacheManager):
     def _size(self):
         return len(self.__cache_dict)
 
-    def _add_to_cache(self, key:"str", cache_item:"BaseCacheItem") -> None:
+    def _add_to_cache(self, key:"str", cache_item:"BaseCacheItem") -> "CacheStatus":
         """
         Adds a cache item to the cache dictionary with the specified key.
-
-        Args:
-            key (str): The key for the cache item.
-            cache_item (BaseCacheItem): The cache item to add to the dictionary.
-
-        Returns:
-            None
-
-        Raises:
-            None
         """
         if key in self.__cache_dict:
             self.__cache_dict[key].append(cache_item)
             self.__cache_dict.move_to_end(key)
+            return CacheStatus.UPDATED
         else:
             self.__cache_dict[key] = [cache_item]
             if not self._is_valid_size:
                 self.__cache_dict.popitem(last=False)
+            return CacheStatus.UPDATED
 
     def cache_decorator(self, key:"str", life_time:"int"="None") -> "Callable":
         """
@@ -141,7 +133,6 @@ class DictMemoryCacheManager(InMemoryCacheManager):
     def add_or_update(self, key:"str", data:"any", life_time:"int"=None) -> "CacheStatus":
         """
         Add or update an item in the cache.
-
         Args:
             key (str): The key to identify the cache item.
             data (any): The data to be stored in the cache.
@@ -150,11 +141,7 @@ class DictMemoryCacheManager(InMemoryCacheManager):
         Returns:
             CacheStatus: The status of the cache after adding or updating the item. Returns CacheStatus.ADDED if a new item was added to the cache, and CacheStatus.UPDATED if an existing item was updated.        
         """
-        is_updated = self._update(key, data, life_time)
-        if not is_updated:
-            self._add_to_cache(key, CostumCacheItem(data, life_time))
-            return CacheStatus.ADDED
-        return CacheStatus.UPDATED
+        return self._add_to_cache(key, CostumCacheItem(data, life_time))
 
     def remove(self, key:"str", data:"any") -> "CacheStatus":
         """
