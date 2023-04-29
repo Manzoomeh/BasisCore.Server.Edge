@@ -106,17 +106,18 @@ class DictMemoryCacheManager(InMemoryCacheManager):
 
         Returns:
             list: The data associated with the cache items for the given key.
-            None: If key not found in the cache dictionaty.
+            None: If key not found in the cache dictionaty Or all date related to key is expired.
 
         Raises:
             None
         """
         if key in self.__cache_dict:
             self.__cache_dict.move_to_end(key)
-            return [
+            cache_list = [
                 item.data() for item in self.__cache_dict[key]
                 if item.data() is not None
             ]
+            return cache_list if len(cache_list) > 0 else None
         return None
     
     def _update(self, key:"str", data:"any", life_time:"int"=None) -> "bool":
