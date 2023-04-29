@@ -9,8 +9,8 @@ class NoCacheManager(CacheManager):
             return function
         return decorator
     
-    def get_cache(self, key: str) -> list:
-        return list()
+    def get_cache(self, key: str) -> "list|None":
+        return None
     
     def add_or_update(self, key: str, data: "any", life_time: int = None) -> CacheStatus:
         return CacheStatus.NONE

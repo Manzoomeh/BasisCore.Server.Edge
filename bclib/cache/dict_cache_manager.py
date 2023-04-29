@@ -97,7 +97,7 @@ class DictMemoryCacheManager(InMemoryCacheManager):
         self.__cache_dict = valid_cache_dict
         return CacheStatus.CLEANED
 
-    def get_cache(self, key:"str") -> "list":
+    def get_cache(self, key:"str") -> "list|None":
         """
         Returns the data associated with the cache items for a given key.
 
@@ -106,18 +106,18 @@ class DictMemoryCacheManager(InMemoryCacheManager):
 
         Returns:
             list: The data associated with the cache items for the given key.
+            None: If key not found in the cache dictionaty.
 
         Raises:
             None
         """
         if key in self.__cache_dict:
             self.__cache_dict.move_to_end(key)
-            print("ITEMS: ", self.__cache_dict[key])
             return [
                 item.data() for item in self.__cache_dict[key]
                 if item.data() is not None
             ]
-        return []
+        return None
     
     def _update(self, key:"str", data:"any", life_time:"int"=None) -> "bool":
         """

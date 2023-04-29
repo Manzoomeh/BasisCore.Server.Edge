@@ -29,10 +29,9 @@ def get_data(context: edge.RESTfulContext):
     key = context.url_segments.key
     print(f"GET -> {key}")
     cache_data_list = context.dispatcher.cache_manager.get_cache(key)
-    print("cache_data_list: ", cache_data_list)
     return {
         "result": cache_data_list
-    } if len(cache_data_list) > 0 else {
+    } if cache_data_list is not None else {
         "error": "Key not found in cache dict!"
     }
 
