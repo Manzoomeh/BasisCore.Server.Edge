@@ -26,6 +26,7 @@ class Dispatcher(ABC):
         self.__look_up: 'dict[str, list[CallbackInfo]]' = dict()
         cache_options = self.options.cache if "cache" in self.options else None
         self.cache_manager = CacheFactory.create(cache_options)
+        print("self.cache_manager: ", self.cache_manager)
         self.event_loop = asyncio.get_event_loop()
         self.db_manager = DbManager(self.options, self.event_loop)
         self.__logger: ILogger = LoggerFactory.create(self.options)

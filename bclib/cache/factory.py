@@ -1,7 +1,7 @@
 from ..cache.manager import CacheManager
 from abc import ABC
 from bclib.utility import DictEx
-from ..cache.memory_cache_factory import InMemoryCacheFactory
+from ..cache.in_memory_cache_manager import InMemoryCacheManager
 from ..cache.no_cache import NoCacheManager
 
 class CacheFactory(ABC):
@@ -10,5 +10,7 @@ class CacheFactory(ABC):
         cache_type = str(options.type) if options is not None and options.has("type") else None
         if cache_type is not None:
             if cache_type == "memory":
-                return InMemoryCacheFactory.create(options)
+                return InMemoryCacheManager(options)
+            else:
+                raise ValueError(f"Unknown type for cache ('${cache_type}')")
         return NoCacheManager(options)

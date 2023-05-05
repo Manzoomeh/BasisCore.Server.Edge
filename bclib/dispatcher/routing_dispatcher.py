@@ -152,7 +152,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
         raise Exception(
             "Send ad-hoc message not support in this type of dispatcher")
 
-    def cache(self, key:"str", life_time:"int"=None):
+    def cache(self, life_time:"int"=0, key:"str"=None):
         """Cache result of function for seconds of time or until signal by key for clear"""
 
         return self.cache_manager.cache_decorator(key, life_time)

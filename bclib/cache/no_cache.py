@@ -4,7 +4,7 @@ from ..cache.cache_status import CacheStatus
 class NoCacheManager(CacheManager):
     """"Implementing non caching. Only palace holder for None setting"""
 
-    def cache_decorator(self, key: str, life_time: int = None):
+    def cache_decorator(self, key: str=None, life_time: int = 0):
         def decorator(function):
             return function
         return decorator
@@ -12,13 +12,7 @@ class NoCacheManager(CacheManager):
     def get_cache(self, key: str) -> "list|None":
         return None
     
-    def add_or_update(self, key: str, data: "any", life_time: int = None) -> CacheStatus:
-        return CacheStatus.NONE
-    
-    def _update(self, key: str, data: "any", life_time: int = None) -> bool:
-        return False
-    
-    def remove(self, key: str, data: "any") -> CacheStatus:
+    def add_or_update(self, key: str, data: "any", life_time: int = 0) -> CacheStatus:
         return CacheStatus.NONE
 
     def clean(self) -> None:
