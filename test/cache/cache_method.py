@@ -7,15 +7,19 @@ options = {
     "router": "restful",
     "cache": {
         "type": "memory",
+        "clean_interval": 60, # 1 Minute
+        "reset_interval": 120 # 2 Minutes
     }
 }
 
 app = edge.from_options(options)
 
-@app.restful_action(app.get("api/data"))
-@app.cache("demo", 60)
-def add_data(context: "edge.RESTfulContext"):
-    print("doing function...")
+@app.restful_action(
+    app.get("api/data")
+)
+@app.cache(15, "demo")
+def data(context: "edge.RESTfulContext"):
+    print("Doing function...")
     time.sleep(2)
     return {
         "data": "static-data",
@@ -23,75 +27,80 @@ def add_data(context: "edge.RESTfulContext"):
     }
 
 
-@app.restful_action(app.get("api/get/:key"))
+@app.restful_action(
+    app.get("api/get/:key")
+)
 def get_data(context: edge.RESTfulContext):
     key = context.url_segments.key
     print(f"GET -> {key}")
-    cache_data_list = context.dispatcher.cache_manager.get_cache(key)
-    print("cache_data_list: ", cache_data_list)
     return {
-        "result": cache_data_list
-    } if len(cache_data_list) > 0 else {
-        "error": "Key not found in cache dict!"
+        "From Cache": context.dispatcher.cache_manager.get_cache(key)
     }
 
-@app.restful_action(app.post("api/:action/:key"))
-def add_new_data(context: edge.RESTfulContext):
-    key = context.url_segments.key
+
+@app.restful_action(
+    app.post("api/:action")
+)
+def action_api(context: edge.RESTfulContext):
     action = context.url_segments.action
-    if action in ("add", "set"):
-        print(f"{action} -> {key}")
+    if action in ("add", "reset"):
         body = context.body
         if body is not None:
-            new_data = body.data
-            if new_data is not None:
-                life_time = int(body.life_time) if body.has("life_time") else None
+            key = body.key # list[str]
+            if key is not None:
+                print(f"${action} -> ${key}")
+                if action == "reset":
+                    if isinstance(key, list):
+                        return {
+                            "Status": context.dispatcher.cache_manager.reset(key)
+                        }
+                    else:
+                        ret_val = {
+                            "Error": "key must be a list!"
+                        }
+                else:
+                    new_data = body.data
+                    if new_data is not None:
+                        life_time = int(body.life_time) if body.has("life_time") else 0
+                        ret_val = {
+                            "Status": context.dispatcher.cache_manager.add_or_update(key, new_data, life_time)
+                        }
+                    else:
+                        ret_val = {
+                            "Error": "data not found in body!"
+                        }
+            else:
+                if action == "reset":
+                    print("reset -> all")
+                    return {
+                        "Status": context.dispatcher.cache_manager.reset()
+                    }
                 ret_val = {
-                    "status": context.dispatcher.cache_manager.add_or_update(key, new_data, life_time)
-                } if action == "add" else {
-                    "status": context.dispatcher.cache_manager.set_data(key, new_data, life_time)
+                    "Error": "key not found in body!"
+                }
+        else:
+            if action == "reset":
+                print("reset -> all")
+                return {
+                    "Status": context.dispatcher.cache_manager.reset()
                 }
             else:
                 ret_val = {
-                    "error": "data not found in body!"
+                    "Error": "body is empty!"
                 }
-        else:
-            ret_val = {
-                "error": "body is empty!"
-            }
     else:
         ret_val = {
-            "error": "invalid action! (add or set)"
+            "Error": "invalid action! (add or reset)"
         }
     return ret_val
 
-@app.restful_action(app.get("api/clean"))
+@app.restful_action(
+    app.post("api/clean")
+)
 def clean_cache(context: edge.RESTfulContext):
-    print("CLEAND CACHE...")
+    print("Cleaning Cache...")
     return {
         "Status": context.dispatcher.cache_manager.clean()
     }
 
-@app.restful_action(app.post("api/reset"))
-def reset_cache(context: edge.RESTfulContext):
-    print("RESET CACHE...")
-    body = context.body
-    if body is not None:
-        keys = body.key
-        if keys is None or isinstance(keys, list):
-            ret_val = {
-                "status": context.dispatcher.cache_manager.reset(keys)
-            }
-        else:
-            ret_val = {
-                "error": "key object is invalid! (list or None)"
-            }
-    else:
-        ret_val = {
-            "error": "body is empty!"
-        }
-    return ret_val
-
-
 app.listening()
-
