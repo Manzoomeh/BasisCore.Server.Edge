@@ -18,7 +18,7 @@ class SignalBaseCacheManager(CacheManager):
         signaler_options = self._options.signaler if self._options.has("signaler") else None
         self._reset_signaler = SignalerFactory.create(self.reset, signaler_options)
         if self.__reset_interval > 0 or self.__clean_interval > 0:
-            loop = asyncio.get_running_loop()
+            loop = asyncio.get_event_loop()
             if self.__reset_interval > 0:
                 loop.create_task(self.__reset_async(self.__reset_interval))
             if self.__reset_interval > 0:

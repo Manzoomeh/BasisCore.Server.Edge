@@ -3,4 +3,4 @@ class CacheStatus:
     UPDATED = "UPDATED"
     CLEANED = "CLEANED"
     RESET = "RESET"
-    NONE = None
+    ERROR = "ERROR"

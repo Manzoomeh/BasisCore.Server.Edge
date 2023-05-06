@@ -7,7 +7,7 @@ class ArrayValueItem(BaseValueItem):
         return [cache_item]
     
     def add_or_update_item(self, cache_item: "BaseCacheItem"):
-        if self._item is not None:
-            self._item.append(cache_item)
-        else:
-            self._item = self._apply_item(cache_item)
+        self._item.append(cache_item)
+
+    def reset(self):
+        self._item = list()

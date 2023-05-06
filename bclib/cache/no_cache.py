@@ -13,7 +13,7 @@ class NoCacheManager(CacheManager):
         return None
     
     def add_or_update(self, key: str, data: "any", life_time: int = 0) -> CacheStatus:
-        return CacheStatus.NONE
+        return CacheStatus.ERROR
 
     def clean(self) -> None:
         pass

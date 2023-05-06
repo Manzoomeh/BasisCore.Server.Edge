@@ -27,6 +27,6 @@ class BaseValueItem(ABC):
             ret_val = None
         return ret_val
     
-    def reset(self):
-        self._item = None
+    @abstractmethod
+    def reset(self): ...
 
