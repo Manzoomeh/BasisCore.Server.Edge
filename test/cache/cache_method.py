@@ -7,8 +7,8 @@ options = {
     "router": "restful",
     "cache": {
         "type": "memory",
-        "clean_interval": 60, # 1 Minute
-        "reset_interval": 120 # 2 Minutes
+        "clean_interval": 0, # 1 Minute
+        "reset_interval": 0 # 2 Minutes
     }
 }
 
@@ -17,7 +17,7 @@ app = edge.from_options(options)
 @app.restful_action(
     app.get("api/data")
 )
-@app.cache(15, "demo")
+@app.cache(30, "demo")
 def data(context: "edge.RESTfulContext"):
     print("Doing function...")
     time.sleep(2)

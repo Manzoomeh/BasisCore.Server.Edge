@@ -9,7 +9,7 @@ from .cache_item.custom_cache_item import CustomCacheItem
 from ..cache.value_item.base_value_item import BaseValueItem
 from ..cache.value_item.array_value_item import ArrayValueItem
 from ..cache.value_item.scalar_value_item import ScalarValueItem
-from functools import  wraps
+from functools import wraps
 
 class InMemoryCacheManager(SignalBaseCacheManager):
     
@@ -27,7 +27,6 @@ class InMemoryCacheManager(SignalBaseCacheManager):
                 return CacheStatus.UPDATED
             except TypeError as ex:
                 print(repr(ex))
-                # raise ValueError("Update failed!")
                 return CacheStatus.ERROR
 
     def cache_decorator(self, key:"str"=None, life_time:"int"=0) -> "Callable":

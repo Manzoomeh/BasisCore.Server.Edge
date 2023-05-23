@@ -21,8 +21,8 @@ class SignalBaseCacheManager(CacheManager):
             loop = asyncio.get_event_loop()
             if self.__reset_interval > 0:
                 loop.create_task(self.__reset_async(self.__reset_interval))
-            if self.__reset_interval > 0:
-                loop.create_task(self.__clean_async(self.__reset_interval))
+            if self.__clean_interval > 0:
+                loop.create_task(self.__clean_async(self.__clean_interval))
     
     async def __reset_async(self, interval:"int"):
         try:
