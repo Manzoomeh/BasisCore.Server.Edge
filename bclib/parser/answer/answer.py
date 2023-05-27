@@ -112,6 +112,10 @@ class Answer:
             result = "urlvalue"
         elif view_type == "upload":
             result = "files"
+        elif view_type == "color":
+            result = "textvalue"
+        elif view_type == "reference":
+            result = "reference"
         else:
             result = "None"
         return result
