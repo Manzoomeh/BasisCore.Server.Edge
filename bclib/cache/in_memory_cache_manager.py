@@ -5,7 +5,7 @@ from ..cache.cache_status import CacheStatus
 from typing import Callable
 from ..cache.cache_item.base_cache_item import BaseCacheItem
 from ..cache.cache_item.function_cache_item import FunctionCacheItem
-from .cache_item.custom_cache_item import CustomCacheItem
+from .cache_item.scalar_cache_item import ScalarCacheItem
 from ..cache.value_item.base_value_item import BaseValueItem
 from ..cache.value_item.array_value_item import ArrayValueItem
 from ..cache.value_item.scalar_value_item import ScalarValueItem
@@ -100,4 +100,4 @@ class InMemoryCacheManager(SignalBaseCacheManager):
         Returns:
             CacheStatus: The status of the cache after adding or updating the item. Returns CacheStatus.ADDED if a new item was added to the cache, and CacheStatus.UPDATED if an existing item was updated.        
         """
-        return self.__add_or_update(key, CustomCacheItem(data, int(life_time)), ScalarValueItem)
+        return self.__add_or_update(key, ScalarCacheItem(data, int(life_time)), ScalarValueItem)
