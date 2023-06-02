@@ -1,31 +1,38 @@
 import asyncio
 from abc import ABC, abstractmethod
 from bclib.utility import DictEx
-
+import pika
+from pika.exceptions import AMQPConnectionError
 
 class RabbitListener(ABC):
-
     def __init__(self, connection_options: DictEx) -> None:
-        import pika
         try:
-            param = pika.URLParameters(connection_options.url)
-            self._host: str = param.host
+            self.__param = pika.URLParameters(connection_options.url)
+            self._host: str = self.__param.host
             self._queue_name: str = connection_options.queue
-            self.__connection = pika.BlockingConnection(param)
-            self.__channel = self.__connection.channel()
-            self.__channel.queue_declare(
-                queue=self._queue_name,
-                passive=connection_options.passive if connection_options.passive else False,
-                durable=connection_options.durable if connection_options.durable else False,
-                exclusive=connection_options.exclusive if connection_options.exclusive else False,
-                auto_delete=connection_options.auto_delete if connection_options.auto_delete else False
-            )
-
-            self.__channel.basic_consume(
-                queue=self._queue_name, on_message_callback=lambda channel, method, properties, body: self.on_rabbit_message_received(body), auto_ack=True)
+            self.__passive = connection_options.passive if connection_options.has("passive") else False
+            self.__durable = connection_options.durable if connection_options.has("durable") else False
+            self.__exclusive = connection_options.exclusive if connection_options.has("exclusive") else False
+            self.__auto_delete =  connection_options.auto_delete if connection_options.has("auto_delete") else False
+            self.__interval: int = int(connection_options.interval) if connection_options.has("interval") else 60
+            self.__try_to_apply_connection()
         except Exception as ex:
             print(f"Error in config rabbit-mq ({ex})")
             raise ex
+
+    def __try_to_apply_connection(self):
+        print("Rabbit connection attemp...")
+        self.__connection = pika.BlockingConnection(self.__param)
+        self.__channel = self.__connection.channel()
+        self.__channel.queue_declare(
+            queue = self._queue_name,
+            passive = self.__passive,
+            durable = self.__durable,
+            exclusive = self.__exclusive,
+            auto_delete = self.__auto_delete
+        )
+        self.__channel.basic_consume(
+            queue=self._queue_name, on_message_callback=lambda channel, method, properties, body: self.on_rabbit_message_received(body), auto_ack=True)
 
     @abstractmethod
     def on_rabbit_message_received(self, body):
@@ -51,3 +58,13 @@ class RabbitListener(ABC):
                 self.__connection.close()
             except:
                 pass
+        except AMQPConnectionError as ex:
+            print("Rabbit listener disconnected!")
+            while True:
+                try:
+                    await asyncio.sleep(self.__interval)
+                    self.__try_to_apply_connection()
+                    loop.create_task(self.__consuming_task())
+                    break
+                except:
+                    pass
