@@ -3,7 +3,7 @@ import inspect
 import json
 import re
 from struct import error
-from typing import Callable, Any, Coroutine
+from typing import Callable, Any, Coroutine, Optional
 
 from bclib.utility import DictEx
 
@@ -86,7 +86,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
                 ret_val = Message.create_add_hock(
                     message.session_id, message_result)
             return ret_val
-        except error as ex:
+        except Exception as ex:
             print(f"Error in process received message {ex}")
             raise ex
 
@@ -95,20 +95,26 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
 
         ret_val: RequestContext = None
         context_type = None
-        cms_object: dict = None
-        url: str = None
-        request_id: str = None
-        method: str = None
-        message_json: dict = None
+        cms_object: Optional[dict] = None
+        url: Optional[str] = None
+        request_id: Optional[str] = None
+        method: Optional[str] = None
+        message_json: Optional[dict] = None
         if message.buffer:
             message_string = message.buffer.decode("utf-8")
             message_json = json.loads(message_string)
             cms_object = message_json[HttpBaseDataType.CMS] if HttpBaseDataType.CMS in message_json else None
             if cms_object:
-                req = cms_object["request"]
-                request_id = req['request-id']
-                method = req['methode']
-                url = req["full-url"]
+                if 'request' in cms_object:
+                    req = cms_object["request"]
+                else:
+                    raise KeyError("request key not found in cms object")
+                if 'full-url' in req:
+                    url = req["full-url"]
+                else:
+                    raise KeyError("request key not found in cms object")
+                request_id = req['request-id'] if 'request-id' in req else 'none'
+                method = req['methode'] if 'methode' in req else 'none'
         if message.type == MessageType.AD_HOC:
             if url or self.__default_router is None:
                 context_type = self.__context_type_detector(url)
@@ -133,9 +139,9 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
         elif context_type == "named_pipe":
             ret_val = NamedPipeContext(message_json, message_string, self)
         elif context_type is None:
-            raise Exception(f"No context found for '{url}'")
+            raise NameError(f"No context found for '{url}'")
         else:
-            raise Exception(
+            raise NameError(
                 f"Configured context type '{context_type}' not found for '{url}'")
         return ret_val
 
@@ -149,7 +155,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
 
     async def send_message_async(self, message: MessageType) -> bool:
         """Send message to endpoint"""
-        raise Exception(
+        raise NotImplementedError(
             "Send ad-hoc message not support in this type of dispatcher")
 
     def cache(self, life_time:"int"=0, key:"str"=None):
