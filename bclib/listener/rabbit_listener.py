@@ -4,17 +4,23 @@ from bclib.utility import DictEx
 import pika
 from pika.exceptions import AMQPConnectionError
 
+
 class RabbitListener(ABC):
     def __init__(self, connection_options: DictEx) -> None:
         try:
             self.__param = pika.URLParameters(connection_options.url)
             self._host: str = self.__param.host
             self._queue_name: str = connection_options.queue
-            self.__passive = connection_options.passive if connection_options.has("passive") else False
-            self.__durable = connection_options.durable if connection_options.has("durable") else False
-            self.__exclusive = connection_options.exclusive if connection_options.has("exclusive") else False
-            self.__auto_delete =  connection_options.auto_delete if connection_options.has("auto_delete") else False
-            self.__interval: int = int(connection_options.interval) if connection_options.has("interval") else 60
+            self.__passive = connection_options.passive if connection_options.has(
+                "passive") else False
+            self.__durable = connection_options.durable if connection_options.has(
+                "durable") else False
+            self.__exclusive = connection_options.exclusive if connection_options.has(
+                "exclusive") else False
+            self.__auto_delete = connection_options.auto_delete if connection_options.has(
+                "auto_delete") else False
+            self.__retry_delay: int = int(
+                connection_options.retry_delay) if connection_options.has("retry_delay") else 60
             self.__try_to_apply_connection()
         except Exception as ex:
             print(f"Error in config rabbit-mq ({ex})")
@@ -25,11 +31,11 @@ class RabbitListener(ABC):
         self.__connection = pika.BlockingConnection(self.__param)
         self.__channel = self.__connection.channel()
         self.__channel.queue_declare(
-            queue = self._queue_name,
-            passive = self.__passive,
-            durable = self.__durable,
-            exclusive = self.__exclusive,
-            auto_delete = self.__auto_delete
+            queue=self._queue_name,
+            passive=self.__passive,
+            durable=self.__durable,
+            exclusive=self.__exclusive,
+            auto_delete=self.__auto_delete
         )
         self.__channel.basic_consume(
             queue=self._queue_name, on_message_callback=lambda channel, method, properties, body: self.on_rabbit_message_received(body), auto_ack=True)
@@ -42,29 +48,25 @@ class RabbitListener(ABC):
         loop.create_task(self.__consuming_task())
 
     async def __consuming_task(self):
-        try:
-            print(
-                f'Rabbit listener waiting for messages from "{self._host}:{self._queue_name}."')
-            loop = asyncio.get_running_loop()
-            await loop.run_in_executor(None, self.__channel.start_consuming)
-        except asyncio.CancelledError:
-            self.__channel.stop_consuming()
-            self.__channel.cancel()
+        while True:
             try:
-                self.__channel.close()
-            except:
-                pass
-            try:
-                self.__connection.close()
-            except:
-                pass
-        except AMQPConnectionError as ex:
-            print("Rabbit listener disconnected!")
-            while True:
+                print(
+                    f'Rabbit listener waiting for messages from "{self._host}:{self._queue_name}."')
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(None, self.__channel.start_consuming)
+                break
+            except asyncio.CancelledError:
+                self.__channel.stop_consuming()
+                self.__channel.cancel()
                 try:
-                    await asyncio.sleep(self.__interval)
-                    self.__try_to_apply_connection()
-                    loop.create_task(self.__consuming_task())
-                    break
+                    self.__channel.close()
                 except:
                     pass
+                try:
+                    self.__connection.close()
+                except:
+                    pass
+                break
+            except AMQPConnectionError as ex:
+                print("Rabbit listener disconnected!")
+                await asyncio.sleep(self.__retry_delay)
