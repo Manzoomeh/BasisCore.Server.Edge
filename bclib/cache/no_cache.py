@@ -1,22 +1,22 @@
-from ..cache.cache_manager import CacheManager
-
+from ..cache.manager import CacheManager
+from ..cache.cache_status import CacheStatus
 
 class NoCacheManager(CacheManager):
     """"Implementing non caching. Only palace holder for None setting"""
 
-    def cache_decorator(self, seconds: int = 0, key: str = None):
+    def cache_decorator(self, key: str=None, life_time: int = 0):
         def decorator(function):
             return function
         return decorator
+    
+    def get_cache(self, key: str) -> "list|None":
+        return None
+    
+    def add_or_update(self, key: str, data: "any", life_time: int = 0) -> CacheStatus:
+        return CacheStatus.ERROR
 
-    def reset_cache(self, keys: 'list[str]'):
+    def clean(self) -> None:
         pass
 
-    def get_cache(self, key: str) -> list:
+    def reset(self, keys: list[str] = None) -> None:
         pass
-
-    def update_cache(self, key: str, data: any) -> bool:
-        return False
-
-    def add_or_update_cache(self, key: str, data: any) -> bool:
-        return False

@@ -9,3 +9,4 @@ qam_*
 bclib.egg-info
 dist
 build
+.vscode
