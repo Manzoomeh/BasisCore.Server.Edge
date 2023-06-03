@@ -8,7 +8,7 @@ from typing import Callable, Any, Coroutine
 from functools import wraps
 
 from bclib.logger import ILogger, LoggerFactory
-from bclib.cache import create_caching
+from bclib.cache import CacheFactory
 from bclib.listener import RabbitBusListener
 from bclib.predicate import Predicate
 from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext, NamedPipeContext
@@ -25,8 +25,8 @@ class Dispatcher(ABC):
         self.options = DictEx(options)
         self.__look_up: 'dict[str, list[CallbackInfo]]' = dict()
         cache_options = self.options.cache if "cache" in self.options else None
+        self.cache_manager = CacheFactory.create(cache_options)
         self.event_loop = asyncio.get_event_loop()
-        self.cache_manager = create_caching(cache_options)
         self.db_manager = DbManager(self.options, self.event_loop)
         self.__logger: ILogger = LoggerFactory.create(self.options)
         self.log_error: bool = self.options.log_error if self.options.has(

@@ -1,85 +1,103 @@
-import collections
-from datetime import timedelta
-from datetime import datetime
-from functools import wraps
-from typing import Callable
-from bclib.utility import DictEx
+from bclib.cache.cache_status import CacheStatus
 from ..cache.signal_base_cache_manager import SignalBaseCacheManager
-
+from bclib.utility import DictEx
+from ..cache.cache_status import CacheStatus
+from typing import Callable
+from ..cache.cache_item.base_cache_item import BaseCacheItem
+from ..cache.cache_item.function_cache_item import FunctionCacheItem
+from .cache_item.scalar_cache_item import ScalarCacheItem
+from ..cache.value_item.base_value_item import BaseValueItem
+from ..cache.value_item.array_value_item import ArrayValueItem
+from ..cache.value_item.scalar_value_item import ScalarValueItem
+from functools import wraps
 
 class InMemoryCacheManager(SignalBaseCacheManager):
-    """Implement in memory cache manager"""
-
+    
     def __init__(self, options: DictEx) -> None:
         super().__init__(options)
-        self.__cache_list: 'dict[str, list[Callable]|any]' = dict()
+        self.__cache_dict:"dict[str, BaseValueItem]" = dict()
 
-    def cache_decorator(self, seconds: int = 0, key: str = None):
-        """Cache result of function for seconds of time or until signal by key for clear"""
+    def __add_or_update(self, key:"str", cache_item:"BaseCacheItem", value_item:"BaseValueItem") -> "CacheStatus":
+        if key not in self.__cache_dict:
+            self.__cache_dict[key] = value_item(cache_item)
+            return CacheStatus.ADDED
+        else:
+            try:
+                self.__cache_dict[key].add_or_update_item(cache_item)
+                return CacheStatus.UPDATED
+            except TypeError as ex:
+                print(repr(ex))
+                return CacheStatus.ERROR
 
+    def cache_decorator(self, key:"str"=None, life_time:"int"=0) -> "Callable":
+        """
+        Decorator that caches the result of a function for a specified key and life time.
+
+        Args:
+            key (str): The key to use for caching the function's result.
+            life_time (int): The life time of the cache item in seconds. If not specified, uses the default life time.
+
+        Returns:
+            Callable: The decorated function.
+
+        Raises:
+            ValueError: If the key is None.
+        """
         def decorator(function):
-            function.cache = None
-            if seconds > 0:
-                function.lifetime = timedelta(seconds=seconds)
-                function.expiration = datetime.utcnow() + function.lifetime
+            cache_item = FunctionCacheItem(None, life_time, function)
+            function.cache = cache_item
             if key is not None:
-                if key not in self.__cache_list:
-                    self.__cache_list[key] = list()
-                self.__cache_list[key].append(function)
+                self.__add_or_update(key, cache_item, ArrayValueItem)
 
             @wraps(function)
-            def wrapper_with_time(*args, **kwargs):
-                if function.cache is not None and datetime.utcnow() >= function.expiration:
-                    function.cache = None
-                    function.expiration = datetime.utcnow() + function.lifetime
-                if function.cache is None:
-                    function.cache = function(*args, **kwargs)
-                return function.cache
-
-            @wraps(function)
-            def wrapper_without_time(*args, **kwargs):
-                if function.cache is None:
-                    function.cache = function(*args, **kwargs)
-                return function.cache
-            return wrapper_with_time if seconds > 0 else wrapper_without_time
+            def wrapper(*args, **kwargs):
+                function_cache:"FunctionCacheItem" = function.cache
+                return function_cache.get_data(*args, **kwargs)
+            return wrapper
         return decorator
 
-    def reset_cache(self, keys: 'list[str]') -> None:
-        """Remove key related cache"""
+    def reset(self, keys:"list[str]"=None) -> "CacheStatus":
+        """
+        Resets the cache by removing all items or specified keys.
 
-        print(f"reset cache for {keys}")
+        Args:
+            keys (list[str]): Optional list of keys to remove from the cache. If not specified, removes all items.
+
+        Returns:
+            CacheStatus: The status of the cache after the reset operation.
+
+        Raises:
+            None
+        """
+        if keys is None or len(keys) == 0:
+            keys = list(self.__cache_dict.keys())
         for key in keys:
-            if key in self.__cache_list:
-                if isinstance(self.__cache_list[key], collections.abc.Sequence):
-                    for function in self.__cache_list[key]:
-                        function.cache = None
-                else:
-                    self.__cache_list[key] = None
+            self.__cache_dict[key].reset()
+        return CacheStatus.RESET
 
-    def get_cache(self, key: str) -> list:
-        """Get key related cached data"""
+    def clean(self) -> "CacheStatus":
+        """
+        Removes expired cache items from the cache dictionary.
+        """
+        cleaned_cache_dict = dict()
+        for key, value in self.__cache_dict.items():
+            if value.get_item() is not None:
+                cleaned_cache_dict[key] = value
+        self.__cache_dict = cleaned_cache_dict
+        return CacheStatus.CLEANED
 
-        return ([function.cache for function in self.__cache_list[key]]
-                if isinstance(self.__cache_list[key], collections.abc.Sequence)
-                else self.__cache_list[key]) if key in self.__cache_list else None
+    def get_cache(self, key:"str") -> "list|any|None":
+        return self.__cache_dict[key].get_item() if key in self.__cache_dict else None
+    
+    def add_or_update(self, key: str, data: "any", life_time:"int"= 0) -> "CacheStatus":
+        """
+        Add or update an item in the cache.
+        Args:
+            key (str): The key to identify the cache item.
+            data (any): The data to be stored in the cache.
+            life_time (int, optional): The time-to-live (TTL) of the cache item in seconds. If 0, the default life time of the cache will be used.
 
-    def update_cache(self, key: str, data: any) -> bool:
-        """Update key related cached data"""
-
-        is_successful = False
-        if key in self.__cache_list:
-            if isinstance(self.__cache_list[key], collections.abc.Sequence):
-                for function in self.__cache_list[key]:
-                    function.cache = data
-            else:
-                self.__cache_list[key] = data
-            is_successful = True
-        return is_successful
-
-    def add_or_update_cache(self, key: str, data: any) -> bool:
-        """Add or update key related cached data"""
-
-        is_successfully = self.update_cache(key, data)
-        if not is_successfully:
-            self.__cache_list[key] = data
-        return is_successfully
+        Returns:
+            CacheStatus: The status of the cache after adding or updating the item. Returns CacheStatus.ADDED if a new item was added to the cache, and CacheStatus.UPDATED if an existing item was updated.        
+        """
+        return self.__add_or_update(key, ScalarCacheItem(data, int(life_time)), ScalarValueItem)

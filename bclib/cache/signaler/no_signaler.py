@@ -1,7 +1,6 @@
-from ..signaler.signaler_base import SignalerBase
+from ..signaler.base_signaler import BaseSignaler
 
-
-class NoSignaler(SignalerBase):
+class NoSignaler(BaseSignaler):
     """Implement no signaller for cache"""
 
     def __init__(self) -> None:
