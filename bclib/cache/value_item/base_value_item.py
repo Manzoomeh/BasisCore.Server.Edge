@@ -4,13 +4,14 @@ from ..cache_item.base_cache_item import BaseCacheItem
 class BaseValueItem(ABC):
     def __init__(self, cache_item:"BaseCacheItem") -> None:
         super().__init__()
-        self._item:"list[BaseCacheItem]|BaseCacheItem" = self._apply_item(cache_item)
+        self._item:"list[BaseCacheItem]|BaseCacheItem" = None
+        self._apply_item(cache_item)
     
     @abstractmethod
     def _apply_item(self, cache_item:"BaseCacheItem"): ...
 
-    @abstractmethod
-    def add_or_update_item(self, cache_item: "BaseCacheItem"): ...
+    def add_or_update_item(self, cache_item: "BaseCacheItem"):
+        self._apply_item(cache_item)
     
     def get_item(self) -> "list|any|None":
         if self._item is not None:
@@ -27,6 +28,6 @@ class BaseValueItem(ABC):
             ret_val = None
         return ret_val
     
-    @abstractmethod
-    def reset(self): ...
+    def reset(self):
+        self._item = None
 
