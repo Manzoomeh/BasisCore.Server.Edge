@@ -34,7 +34,7 @@ class Answer:
                             for parts in actions['parts']:
                                 internal_prp_value_id = internal_prp_value_index
                                 for values in parts['values']:
-                                    prp_id = data['propId']
+                                    prp_id = data['propId'] if action_type != UserActionTypes.ANSWERS else data["prpId"]
                                     prp_value_id = actions['id'] if 'id' in actions.keys() else None
                                     part_number = parts['part'] if "part" in parts.keys() else None
                                     value_id = values['id'] if "id" in values.keys() else None
