@@ -79,16 +79,16 @@ class Validator(ABC):
     def data_type_validator(value:"any", type:"str") -> "tuple[bool, list[str]|None]":        
         message = None
         status = True
-        if type in ["int", "float", "str"]:
+        if type in ["int", "float", "text", "ntext", "str"]:
             try:
                 if type == "int":
                     int(value)
                 elif type == "float":
                     float(value)
-                elif type == "str":
+                else:
                     str(value)
             except Exception:
-                status = False   
+                status = False
             if not status:
                 message = f"Type of value is not {type}"
         else:
