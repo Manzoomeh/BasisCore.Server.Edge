@@ -6,8 +6,10 @@ import signal
 import traceback
 from typing import Callable, Any, Coroutine
 from functools import wraps
+import time
 
 from bclib.logger import ILogger, LoggerFactory
+from bclib.time_logger import BaseTimeLogger, TimeLoggerFactory
 from bclib.cache import CacheFactory
 from bclib.listener import RabbitBusListener
 from bclib.predicate import Predicate
@@ -38,6 +40,7 @@ class Dispatcher(ABC):
             for setting in self.options.router.rabbit:
                 self.__rabbit_dispatcher.append(
                     RabbitBusListener(setting, self))
+        self.__time_logger:"BaseTimeLogger" = TimeLoggerFactory.create(self.options)  
 
     def socket_action(self, * predicates: (Predicate)):
         """Decorator for determine Socket action"""
@@ -64,14 +67,14 @@ class Dispatcher(ABC):
 
     def restful_action(self, * predicates: (Predicate)):
         """Decorator for determine RESTful action"""
-
+        
         def _decorator(restful_action_handler: 'Callable[[RESTfulContext], dict]'):
 
             @wraps(restful_action_handler)
             async def non_async_wrapper(context: RESTfulContext):
                 action_result = await self.event_loop.run_in_executor(None, restful_action_handler, context)
                 return None if action_result is None else context.generate_response(action_result)
-
+            
             @wraps(restful_action_handler)
             async def async_wrapper(context: RESTfulContext):
                 action_result = await restful_action_handler(context)
@@ -85,6 +88,7 @@ class Dispatcher(ABC):
             return restful_action_handler
         return _decorator
 
+    
     def web_action(self, * predicates: (Predicate)):
         """Decorator for determine legacy web request action"""
 
@@ -108,6 +112,7 @@ class Dispatcher(ABC):
             return web_action_handler
         return _decorator
 
+    
     def client_source_action(self, *predicates: (Predicate)):
         """Decorator for determine source action"""
 
@@ -181,6 +186,7 @@ class Dispatcher(ABC):
             return client_source_action_handler
         return _decorator
 
+    
     def client_source_member_action(self, *predicates: (Predicate)):
         """Decorator for determine source member action method"""
 
@@ -202,6 +208,7 @@ class Dispatcher(ABC):
             return client_source_member_handler
         return _decorator
 
+    
     def server_source_action(self, *predicates: (Predicate)):
         """Decorator for determine source action"""
 
@@ -275,6 +282,7 @@ class Dispatcher(ABC):
             return server_source_action_handler
         return _decorator
 
+    
     def server_source_member_action(self, *predicates: (Predicate)):
         """Decorator for determine server source member action method"""
 
@@ -296,6 +304,7 @@ class Dispatcher(ABC):
             return server_source_member_action_handler
         return _decorator
 
+    
     def rabbit_action(self, * predicates: (Predicate)):
         """Decorator for determine rabbit-mq message request action"""
 
@@ -318,6 +327,7 @@ class Dispatcher(ABC):
             return rabbit_action_handler
         return _decorator
 
+    
     def named_pipe_action(self, * predicates: (Predicate)):
         """Decorator for determine named pipe message request action"""
 
@@ -351,6 +361,7 @@ class Dispatcher(ABC):
             self.__look_up[key] = ret_val
         return ret_val
 
+
     async def dispatch_async(self, context: Context) -> Any:
         """Dispatch context and get result from related action method"""
 
@@ -359,8 +370,13 @@ class Dispatcher(ABC):
         try:
             items = self._get_context_lookup(name)
             for item in items:
+                t1 = time.time()
                 result = await item.try_execute_async(context)
                 if result is not None:
+                    execution_time = time.time() - t1
+                    self.event_loop.run_in_executor(
+                        None, self.__time_logger.log, execution_time, item, context
+                    )
                     break
             else:
                 ex = HandlerNotFoundErr(name)
