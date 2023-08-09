@@ -9,7 +9,7 @@ class UserAction:
     """This class will be updated in next versions."""
 
     def __init__(self, prp_id: 'int', action: 'UserActionTypes', prp_value_id: 'int', internal_prp_value_id: 'int', value_id: 'int', value: 'any', datatype: 'str',
-                 multi: 'bool', part: 'int', answer: 'Answer'):
+                 multi: 'bool', ownerid:"int", typeid:"int", wordid:"int", part: 'int', answer: 'Answer'):
         self.prp_id = prp_id
         self.action = action
         self.prp_value_id = prp_value_id
@@ -23,12 +23,18 @@ class UserAction:
         self.database:"str" = None
         self.table:"str" = None
         self.field:"str" = None
+        self.ownerid:"int" = ownerid
+        self.typeid:"int" = typeid
+        self.wordid:"int" = wordid
         self.validation_status: "bool" = True
         self.validation_message: "list[str]" = []
 
     def as_tuple(self) -> tuple:
-        return (self.prp_id, self.action.value, self.prp_value_id, self.internal_prp_value_id, self.value_id,
-                self.value, self.part, self.datatype, self.database, self.table, self.field, self.multi, self.answer, self.validation_status, self.validation_message)
+        return (
+            self.prp_id, self.action.value, self.prp_value_id, self.internal_prp_value_id, self.value_id,
+            self.value, self.part, self.datatype, self.database, self.table, self.field, self.multi, 
+            self.ownerid, self.typeid, self.wordid, self.answer, self.validation_status, self.validation_message
+        )
 
     def as_dict(self) -> dict:
         return {
@@ -44,6 +50,9 @@ class UserAction:
             "table": self.table,
             "field": self.field,
             "multi": self.multi,
+            "ownerid": self.ownerid,
+            "typeid": self.typeid,
+            "wordid": self.wordid,
             "answer": self.answer,
             "validation_status": self.validation_status,
             "validation_message": self.validation_message
