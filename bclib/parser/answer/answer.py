@@ -34,12 +34,12 @@ class Answer:
             for action_type in UserActionTypes:
                 if action_type.value in list(data.keys()):
                     for actions in data[action_type.value]:
+                        prp_value_id = actions['id'] if 'id' in actions.keys() else None
                         if 'parts' in actions.keys():
                             for parts in actions['parts']:
                                 internal_prp_value_id = internal_prp_value_index
+                                part_number = parts['part'] if "part" in parts.keys() else None
                                 for values in parts['values']:
-                                    prp_value_id = actions['id'] if 'id' in actions.keys() else None
-                                    part_number = parts['part'] if "part" in parts.keys() else None
                                     value_id = values['id'] if "id" in values.keys() else None
                                     value = values['value']
                                     answer = parser.ParseAnswer(
@@ -51,8 +51,6 @@ class Answer:
                                     )
                         else:
                             internal_prp_value_id = internal_prp_value_index
-                            prp_id = data['propId']
-                            prp_value_id = actions['id'] if 'id' in actions.keys() else None
                             self.__answer_list.append(
                                 UserAction(
                                     prp_id, action_type,  prp_value_id, internal_prp_value_id, None, None, None, multi, ownerid, typeid, wordid, None, None
