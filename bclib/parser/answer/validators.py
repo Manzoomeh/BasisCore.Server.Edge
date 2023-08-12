@@ -56,9 +56,9 @@ class Validator(ABC):
         return status, message
     
     @staticmethod
-    def min_validator(value:"any", min_value:"any") -> "tuple[bool, list[str]|None]":
+    def min_validator(value:"any", min_value:"int") -> "tuple[bool, list[str]|None]":
         try:
-            status = value > min_value
+            status = int(value) > min_value
         except Exception as ex:
             status = False
         
@@ -66,9 +66,9 @@ class Validator(ABC):
         return status, message
     
     @staticmethod
-    def max_validator(value:"any", max_value:"any") -> "tuple[bool, list[str]|None]":
+    def max_validator(value:"any", max_value:"int") -> "tuple[bool, list[str]|None]":
         try:
-            status = value < max_value
+            status = int(value) < max_value
         except Exception as ex:
             status = False
         
@@ -79,16 +79,16 @@ class Validator(ABC):
     def data_type_validator(value:"any", type:"str") -> "tuple[bool, list[str]|None]":        
         message = None
         status = True
-        if type in ["int", "float", "str"]:
+        if type in ["int", "float", "text", "ntext", "str"]:
             try:
                 if type == "int":
                     int(value)
                 elif type == "float":
                     float(value)
-                elif type == "str":
+                else:
                     str(value)
             except Exception:
-                status = False   
+                status = False
             if not status:
                 message = f"Type of value is not {type}"
         else:
