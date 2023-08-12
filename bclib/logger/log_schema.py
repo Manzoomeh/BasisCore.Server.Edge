@@ -7,6 +7,7 @@ class LogSchema:
         self.schema_version = schema["schemaVersion"]
         self.lid = schema["lid"]
         self.schemaId = schema["schemaId"]
+        self.paramUrl = schema["paramUrl"]
         self.properties: 'dict[str,(int,str)]' = dict([
             (x["title"], (x["prpId"], x["source"] if "source" in x else None)) for x in schema["questions"]])
 
@@ -42,6 +43,7 @@ class LogSchema:
                 })
         return {
             "schemaName": self.schema_name,
+            "paramUrl": self.paramUrl,
             "schemaVersion": self.schema_version,
             "lid": self.lid,
             "schemaId": self.schemaId,
