@@ -26,29 +26,36 @@ class Answer:
         self.__answer_list = list()
         internal_prp_value_index = 1
         for data in self.json['properties']:
+            prp_id = data['propId'] if action_type != UserActionTypes.ANSWERS else data["prpId"]
             multi = data['multi'] if 'multi' in data else None
+            ownerid = data["OwnerID"] if 'OwnerID' in data else 0
+            typeid = data["TypeID"] if 'TypeID' in data else 0
+            wordid = data["wordid"] if 'wordid' in data else 0
             for action_type in UserActionTypes:
                 if action_type.value in list(data.keys()):
                     for actions in data[action_type.value]:
+                        prp_value_id = actions['id'] if 'id' in actions.keys() else None
                         if 'parts' in actions.keys():
                             for parts in actions['parts']:
                                 internal_prp_value_id = internal_prp_value_index
+                                part_number = parts['part'] if "part" in parts.keys() else None
                                 for values in parts['values']:
-                                    prp_id = data['propId'] if action_type != UserActionTypes.ANSWERS else data["prpId"]
-                                    prp_value_id = actions['id'] if 'id' in actions.keys() else None
-                                    part_number = parts['part'] if "part" in parts.keys() else None
                                     value_id = values['id'] if "id" in values.keys() else None
                                     value = values['value']
                                     answer = parser.ParseAnswer(
                                         values["answer"]) if 'answer' in values.keys() else None
-                                    self.__answer_list.append(UserAction(
-                                        prp_id, action_type, prp_value_id, internal_prp_value_id, value_id, value, None, multi, part_number, answer))
+                                    self.__answer_list.append(
+                                        UserAction(
+                                            prp_id, action_type, prp_value_id, internal_prp_value_id, value_id, value, None, multi, ownerid, typeid, wordid, part_number, answer
+                                        )
+                                    )
                         else:
                             internal_prp_value_id = internal_prp_value_index
-                            prp_id = data['propId']
-                            prp_value_id = actions['id'] if 'id' in actions.keys() else None
-                            self.__answer_list.append(UserAction(
-                                prp_id, action_type,  prp_value_id, internal_prp_value_id, None, None, None,  multi, None, None))
+                            self.__answer_list.append(
+                                UserAction(
+                                    prp_id, action_type,  prp_value_id, internal_prp_value_id, None, None, None, multi, ownerid, typeid, wordid, None, None
+                                )
+                            )
                         internal_prp_value_index += 1
 
         await self.__enrich_data_async()
