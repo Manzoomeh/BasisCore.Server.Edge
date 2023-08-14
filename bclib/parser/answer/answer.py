@@ -30,7 +30,7 @@ class Answer:
             multi = data['multi'] if 'multi' in data else None
             ownerid = data["OwnerID"] if 'OwnerID' in data else 0
             typeid = data["TypeID"] if 'TypeID' in data else 0
-            wordid = data["wordid"] if 'wordid' in data else 0
+            wordid = data["wordId"] if 'wordId' in data else 0
             for action_type in UserActionTypes:
                 if action_type.value in list(data.keys()):
                     for actions in data[action_type.value]:
