@@ -9,7 +9,7 @@ class UserAction:
     """This class will be updated in next versions."""
 
     def __init__(self, prp_id: 'int', action: 'UserActionTypes', prp_value_id: 'int', internal_prp_value_id: 'int', value_id: 'int', value: 'any', datatype: 'str',
-                 multi: 'bool', ownerid:"int", typeid:"int", wordid:"int", part: 'int', answer: 'Answer'):
+                 multi: 'bool', part: 'int', answer: 'Answer'):
         self.prp_id = prp_id
         self.action = action
         self.prp_value_id = prp_value_id
@@ -23,9 +23,9 @@ class UserAction:
         self.database:"str" = None
         self.table:"str" = None
         self.field:"str" = None
-        self.ownerid:"int" = ownerid
-        self.typeid:"int" = typeid
-        self.wordid:"int" = wordid
+        self.ownerid:"int" = 0
+        self.typeid:"int" = None
+        self.wordid:"int" = None
         self.validation_status: "bool" = True
         self.validation_message: "list[str]" = []
 

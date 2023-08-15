@@ -27,9 +27,6 @@ class Answer:
         internal_prp_value_index = 1
         for data in self.json['properties']:
             multi = data['multi'] if 'multi' in data else None
-            ownerid = data["OwnerID"] if 'OwnerID' in data else 0
-            typeid = data["TypeID"] if 'TypeID' in data else 0
-            wordid = data["wordId"] if 'wordid' in data else 0
             for action_type in UserActionTypes:
                 if action_type.value in list(data.keys()):
                     prp_id = data['propId'] if action_type != UserActionTypes.ANSWERS else data["prpId"]
@@ -46,14 +43,14 @@ class Answer:
                                         values["answer"]) if 'answer' in values.keys() else None
                                     self.__answer_list.append(
                                         UserAction(
-                                            prp_id, action_type, prp_value_id, internal_prp_value_id, value_id, value, None, multi, ownerid, typeid, wordid, part_number, answer
+                                            prp_id, action_type, prp_value_id, internal_prp_value_id, value_id, value, None, multi, part_number, answer
                                         )
                                     )
                         else:
                             internal_prp_value_id = internal_prp_value_index
                             self.__answer_list.append(
                                 UserAction(
-                                    prp_id, action_type,  prp_value_id, internal_prp_value_id, None, None, None, multi, ownerid, typeid, wordid, None, None
+                                    prp_id, action_type,  prp_value_id, internal_prp_value_id, None, None, None, multi, None, None
                                 )
                             )
                         internal_prp_value_index += 1
@@ -72,12 +69,13 @@ class Answer:
                             for validations in parts.parts
                         ]
                         questions_info.append(
-                            QuestionData(parts.prpId, parts.TypeID, parts.wordId, enriched_data_list)
+                            QuestionData(parts.prpId, parts.OwnerID, parts.TypeID, parts.wordId, enriched_data_list)
                         )
         if len(questions_info) > 0:
             for values in self.__answer_list:
                 for data in questions_info:
                     if int(data.prpid) == int(values.prp_id):
+                        values.ownerid = data.ownerid
                         values.typeid = data.typeid
                         values.wordid = data.wordid
                         for enriched_data in data.enriched_data:
