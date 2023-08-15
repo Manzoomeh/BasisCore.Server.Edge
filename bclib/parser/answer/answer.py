@@ -3,13 +3,13 @@ from typing import Any, Callable
 
 from bclib.parser.answer.enriched_data import EnrichedData
 from bclib.parser.answer.storage_data import StorageData
+from bclib.parser.answer.question_data import QuestionData
 from bclib import parser
 from bclib.db_manager import RESTfulConnection
 from bclib.parser.answer.validators import Validator
 from bclib.utility import DictEx
 from ..answer.user_action_types import UserActionTypes
 from ..answer.user_action import UserAction
-
 
 class Answer:
     """BasisJsonParser is a tool to parse basis_core components json objects. This tool is developed based on
@@ -26,13 +26,10 @@ class Answer:
         self.__answer_list = list()
         internal_prp_value_index = 1
         for data in self.json['properties']:
-            prp_id = data['propId'] if action_type != UserActionTypes.ANSWERS else data["prpId"]
             multi = data['multi'] if 'multi' in data else None
-            ownerid = data["OwnerID"] if 'OwnerID' in data else 0
-            typeid = data["TypeID"] if 'TypeID' in data else 0
-            wordid = data["wordId"] if 'wordId' in data else 0
             for action_type in UserActionTypes:
                 if action_type.value in list(data.keys()):
+                    prp_id = data['propId'] if action_type != UserActionTypes.ANSWERS else data["prpId"]
                     for actions in data[action_type.value]:
                         prp_value_id = actions['id'] if 'id' in actions.keys() else None
                         if 'parts' in actions.keys():
@@ -46,14 +43,14 @@ class Answer:
                                         values["answer"]) if 'answer' in values.keys() else None
                                     self.__answer_list.append(
                                         UserAction(
-                                            prp_id, action_type, prp_value_id, internal_prp_value_id, value_id, value, None, multi, ownerid, typeid, wordid, part_number, answer
+                                            prp_id, action_type, prp_value_id, internal_prp_value_id, value_id, value, None, multi, part_number, answer
                                         )
                                     )
                         else:
                             internal_prp_value_id = internal_prp_value_index
                             self.__answer_list.append(
                                 UserAction(
-                                    prp_id, action_type,  prp_value_id, internal_prp_value_id, None, None, None, multi, ownerid, typeid, wordid, None, None
+                                    prp_id, action_type,  prp_value_id, internal_prp_value_id, None, None, None, multi, None, None
                                 )
                             )
                         internal_prp_value_index += 1
@@ -61,39 +58,46 @@ class Answer:
         await self.__enrich_data_async()
 
     async def __enrich_data_async(self):
-        enriched_data_list: "list[EnrichedData]" = list()
+        questions_info: "list[QuestionData]" = list()
         if self.__api_connection:
             questions_data = DictEx(await self.__api_connection.get_async())
             for data in questions_data.sources:
                 for question in data.data:
                     for parts in question.questions:
-                        for validations in parts.parts:
-                            parts_prpId = parts.prpId
-                            enriched_data_list.append(self.__enrich_data(validations, parts_prpId))
-
-        if len(enriched_data_list) > 0:
+                        enriched_data_list: "list[EnrichedData]" = [
+                            self.__enrich_data(validations)
+                            for validations in parts.parts
+                        ]
+                        questions_info.append(
+                            QuestionData(parts.prpId, parts.OwnerID, parts.TypeID, parts.wordId, enriched_data_list)
+                        )
+        if len(questions_info) > 0:
             for values in self.__answer_list:
-                for data in enriched_data_list:
-                    if int(data.prpId) == int(values.prp_id) and (data.part == values.part or values.part is None):
-                        values.datatype = data.data_type
-                        storage_data = data.storage_data
-                        if storage_data:
-                            values.database = storage_data.data_base
-                            values.table = storage_data.table
-                            values.field = storage_data.field
-                        if self.check_validation and values.action != UserActionTypes.DELETED:
-                            status, message = Validator.check_validators(data.validators, values.value)
-                            values.validation_status = status
-                            values.validation_message = message
+                for data in questions_info:
+                    if int(data.prpid) == int(values.prp_id):
+                        values.ownerid = data.ownerid
+                        values.typeid = data.typeid
+                        values.wordid = data.wordid
+                        for enriched_data in data.enriched_data:
+                            if (enriched_data.part == values.part) or (values.part is None):
+                                values.datatype = enriched_data.data_type
+                                storage_data = enriched_data.storage_data
+                                if storage_data:
+                                    values.database = storage_data.data_base
+                                    values.table = storage_data.table
+                                    values.field = storage_data.field
+                                if self.check_validation and values.action != UserActionTypes.DELETED:
+                                    status, message = Validator.check_validators(enriched_data.validators, values.value)
+                                    values.validation_status = status
+                                    values.validation_message = message
                 
-    def __enrich_data(self, validations:DictEx, parts_prpId:int) -> 'EnrichedData':
-        prpId = parts_prpId
+    def __enrich_data(self, validations:DictEx) -> 'EnrichedData':
         part_id = validations.part
         data_type = self.__set_data_type(validations)
         val_val = validations.validations
         storage_data = self.__set_storage_data(val_val) if isinstance(val_val, dict) else None
         validators = val_val if self.check_validation and isinstance(validations.validations, dict) else {}
-        return EnrichedData(prpId, part_id, data_type, storage_data, validators)
+        return EnrichedData(part_id, data_type, storage_data, validators)
 
     def __set_data_type(self, validations:DictEx) -> 'str':
         has_link = True if validations.link else False
