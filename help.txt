@@ -1,0 +1,3 @@
+//pip install setuptools wheel twine
+py -m setup.py sdist bdist_wheel
+twine upload --verbos dist/*
