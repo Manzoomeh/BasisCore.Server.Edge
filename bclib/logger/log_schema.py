@@ -9,11 +9,11 @@ class LogSchema:
         self.schemaId = schema["schemaId"]
         self.paramUrl = schema["paramUrl"]
         self.properties: 'dict[str,(int,str)]' = dict([
-            (x["title"], (x["prpId"], x["source"] if "source" in x else None)) for x in schema["questions"]])
+            (x["title"], (x["prpId"], x["TypeID"] if "TypeID" in x else 0, x["source"] if "source" in x else None)) for x in schema["questions"]])
 
     def get_answer(self, params: 'dict[str,Any]'):
         properties = list()
-        for key, (id, source) in self.properties.items():
+        for key, (id, typeid, source) in self.properties.items():
             value = None
             try:
                 if source:
@@ -26,6 +26,7 @@ class LogSchema:
             if value is not None:
                 properties.append({
                     "prpId": id,
+                    "TypeID": typeid,
                     "answers": [
                         {
                             "parts": [
