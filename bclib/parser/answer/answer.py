@@ -26,13 +26,13 @@ class Answer:
         self.__answer_list = list()
         internal_prp_value_index = 1
         for data in self.json['properties']:
-            prp_id = data['propId'] if action_type != UserActionTypes.ANSWERS else data["prpId"]
             multi = data['multi'] if 'multi' in data else None
             ownerid = data["OwnerID"] if 'OwnerID' in data else 0
             typeid = data["TypeID"] if 'TypeID' in data else 0
-            wordid = data["wordid"] if 'wordid' in data else 0
+            wordid = data["wordId"] if 'wordid' in data else 0
             for action_type in UserActionTypes:
                 if action_type.value in list(data.keys()):
+                    prp_id = data['propId'] if action_type != UserActionTypes.ANSWERS else data["prpId"]
                     for actions in data[action_type.value]:
                         prp_value_id = actions['id'] if 'id' in actions.keys() else None
                         if 'parts' in actions.keys():
