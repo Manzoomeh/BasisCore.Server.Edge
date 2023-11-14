@@ -5,6 +5,7 @@ import datetime
 import json
 import sys
 import uuid
+import ssl
 from typing import Callable, Coroutine, TYPE_CHECKING
 
 from urllib.parse import unquote, parse_qs
@@ -22,9 +23,10 @@ if TYPE_CHECKING:
 class HttpListener:
     _id = 0
 
-    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[Message], Coroutine[Message]]'):
+    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[Message], Coroutine[Message]]',ssl_options:'dict'):
         self.__endpoint = endpoint
         self.on_message_receive_async = async_callback
+        self.ssl_options = ssl_options
 
     def initialize_task(self, event_loop: asyncio.AbstractEventLoop):
         event_loop.create_task(self.__server_task(event_loop))
@@ -66,12 +68,17 @@ class HttpListener:
         app = web.Application(loop=event_loop)
         app.add_routes(
             [web.route('*', '/{tail:.*}', on_request_receive_async)])
+        ssl_context= None
+        if self.ssl_options :
+            ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            ssl_context.load_cert_chain(certfile=self.ssl_options.certfile,keyfile=self.ssl_options.keyfile)
+        print(self.ssl_options)
         runner = web.AppRunner(app, handle_signals=True)
         await runner.setup()
-        site = web.TCPSite(runner, self.__endpoint.url, self.__endpoint.port)
+        site = web.TCPSite(runner, self.__endpoint.url, self.__endpoint.port, ssl_context=ssl_context)
         await site.start()
         print(
-            f"Development Edge server started at http://{self.__endpoint.url}:{self.__endpoint.port}")
+            f"Development Edge server started at http{'s' if self.ssl_options else ''}://{self.__endpoint.url}:{self.__endpoint.port}")
         try:
             while True:
                 await asyncio.sleep(.0001)
