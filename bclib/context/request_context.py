@@ -44,6 +44,7 @@ class RequestContext(Context):
             if 'error' in error_object:
                 error = error_object["error"].replace("\n", "</br>")
                 content += f"<hr/>{error}"
+        self.mime = HttpMimeTypes.HTML
         return self.generate_response(content)
 
     def generate_response(self, content: Any) -> dict:
