@@ -7,6 +7,7 @@ import sys
 import uuid
 import ssl
 from typing import Callable, Coroutine, TYPE_CHECKING
+from cryptography.hazmat.primitives.serialization import pkcs12
 
 from urllib.parse import unquote, parse_qs
 from ..endpoint import Endpoint
@@ -71,7 +72,17 @@ class HttpListener:
         ssl_context= None
         if self.ssl_options :
             ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-            ssl_context.load_cert_chain(certfile=self.ssl_options.certfile,keyfile=self.ssl_options.keyfile)
+            if('certfile' in self.ssl_options):
+                ssl_context.load_cert_chain(certfile=self.ssl_options.certfile,keyfile=self.ssl_options.keyfile)
+            elif('pfxPath' in self.ssl_options):
+                with open(self.ssl_options.pfxPath,"rb") as f:
+                    try:
+                        private_key, certificate, additional_certificates = pkcs12.load_key_and_certificates(f.read(), b"1234")
+                        ssl_context.use_certificate(certificate)
+                        ssl_context.use_privatekey(private_key)
+                    except Exception as e:
+                        raise Exception("Invalid PKCS12 or pastphrase for {0}: {1}".format(self.ssl_options.pfxPath, e))
+        
         print(self.ssl_options)
         runner = web.AppRunner(app, handle_signals=True)
         await runner.setup()
