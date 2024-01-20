@@ -3,8 +3,8 @@ import cgi
 import io
 import datetime
 import json
-import sys
 import uuid
+import base64
 from typing import Callable, Coroutine, TYPE_CHECKING
 
 from urllib.parse import unquote, parse_qs
@@ -57,8 +57,12 @@ class HttpListener:
                 ret_val = web.Response(
                     status=int(header_code.split(' ')[0]),
                     headers=headers,
-                    content_type=mime,
-                    text=cms[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT])
+                    content_type=mime)
+                if HttpBaseDataName.CONTENT in cms[HttpBaseDataType.CMS]:
+                    ret_val.text = cms[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT]
+                else:
+                    raw_blob_content = cms[HttpBaseDataType.CMS][HttpBaseDataName.BLOB_CONTENT]
+                    ret_val.body = base64.b64decode(raw_blob_content.encode("utf-8"))
             else:
                 ret_val = web.Response()
             return ret_val
