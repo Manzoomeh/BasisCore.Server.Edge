@@ -382,10 +382,12 @@ class Dispatcher(ABC):
         for dispatcher in self.__rabbit_dispatcher:
             dispatcher.initialize_task(self.event_loop)
 
-    def listening(self):
+    def listening(self, before_start: Coroutine=None, after_end: Coroutine=None):
         """Start listening to request for process"""
         for sig in (signal.SIGTERM, signal.SIGINT):
             signal.signal(sig, lambda sig, _: self.event_loop.stop())
+        if before_start != None:
+            self.event_loop.run_until_complete(self.event_loop.create_task(before_start()))
         self.initialize_task()
         self.event_loop.run_forever()
         tasks = asyncio.all_tasks(loop=self.event_loop)
@@ -393,6 +395,8 @@ class Dispatcher(ABC):
             task.cancel()
         group = asyncio.gather(*tasks, return_exceptions=True)
         self.event_loop.run_until_complete(group)
+        if after_end != None:
+            self.event_loop.run_until_complete(self.event_loop.create_task(after_end()))
         self.event_loop.close()
 
     async def log_async(self, **kwargs):
