@@ -26,13 +26,13 @@ class Dispatcher(ABC):
         self.options = DictEx(options)
         self.__look_up: 'dict[str, list[CallbackInfo]]' = dict()
         cache_options = self.options.cache if "cache" in self.options else None
-        self.cache_manager = CacheFactory.create(cache_options)
         if sys.platform == 'win32':
             # By default Windows can use only 64 sockets in asyncio loop. This is a limitation of underlying select() API call.
             # Use Windows version of proactor event loop using IOCP
             loop = asyncio.ProactorEventLoop()
             asyncio.set_event_loop(loop)
         self.event_loop = asyncio.get_event_loop()
+        self.cache_manager = CacheFactory.create(cache_options)
         self.db_manager = DbManager(self.options, self.event_loop)
         self.__logger: ILogger = LoggerFactory.create(self.options)
         self.log_error: bool = self.options.log_error if self.options.has(
