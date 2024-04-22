@@ -7,7 +7,9 @@ class DevServerDispatcher(RoutingDispatcher):
         super().__init__(options)
         self.__listener = HttpListener(
             Endpoint(self.options.server),
-            self._on_message_receive_async)
+            self._on_message_receive_async,
+            self.options.configuration
+            )
 
     def initialize_task(self):
         super().initialize_task()
