@@ -5,26 +5,46 @@ import datetime
 import json
 import uuid
 import base64
-from typing import Callable, Coroutine, TYPE_CHECKING
+from typing import Callable, Coroutine, TYPE_CHECKING, Optional
 
 from urllib.parse import unquote, parse_qs
 from ..endpoint import Endpoint
 from ..http_listener.http_base_data_name import HttpBaseDataName
 from ..http_listener.http_base_data_type import HttpBaseDataType
-
+from bclib.utility import DictEx
 from ..message_type import MessageType
 from ..message import Message
 
 if TYPE_CHECKING:
     from aiohttp import web
 
+from aiohttp.log import web_logger
 
 class HttpListener:
     _id = 0
+    LOGGER = "logger"
+    ROUTER = "router"
+    MIDDLEWARES = "middlewares"
+    HANDLER_ARGS = "handler_args"
+    CLIENT_MAX_SIZE = "client_max_size"
 
-    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[Message], Coroutine[Message]]'):
+    _DEFAULT_LOGGER = web_logger
+    _DEFAULT_ROUTER = None
+    _DEFAULT_MIDDLEWARES = ()
+    _DEFAULT_HANDLER_ARGS = None
+    _DEFAULT_CLIENT_MAX_SIZE = 1024 ** 2
+    
+
+    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[Message], Coroutine[Message]]', configuration: Optional[DictEx]):
         self.__endpoint = endpoint
         self.on_message_receive_async = async_callback
+        self.__config = configuration if configuration is not None else DictEx()
+        self.__logger = self.__config.get(HttpListener.LOGGER, HttpListener._DEFAULT_LOGGER)
+        self.__router = self.__config.get(HttpListener.ROUTER, HttpListener._DEFAULT_ROUTER)
+        self.__middlewares = self.__config.get(HttpListener.MIDDLEWARES, HttpListener._DEFAULT_MIDDLEWARES)
+        self.__handler_args = self.__config.get(HttpListener.HANDLER_ARGS, HttpListener._DEFAULT_HANDLER_ARGS)
+        self.__client_max_size = self.__config.get(HttpListener.CLIENT_MAX_SIZE, HttpListener._DEFAULT_CLIENT_MAX_SIZE)
+        
 
     def initialize_task(self, event_loop: asyncio.AbstractEventLoop):
         event_loop.create_task(self.__server_task(event_loop))
@@ -67,7 +87,14 @@ class HttpListener:
                 ret_val = web.Response()
             return ret_val
 
-        app = web.Application(loop=event_loop)
+        app = web.Application(
+            logger=self.__logger,
+            router=self.__router,
+            middlewares=self.__middlewares,
+            handler_args=self.__handler_args,
+            client_max_size=self.__client_max_size,
+            loop=event_loop
+        )
         app.add_routes(
             [web.route('*', '/{tail:.*}', on_request_receive_async)])
         runner = web.AppRunner(app, handle_signals=True)
