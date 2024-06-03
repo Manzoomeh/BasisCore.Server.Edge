@@ -3,7 +3,6 @@ import cgi
 import io
 import datetime
 import json
-import sys
 import uuid
 import ssl
 from typing import Callable, Coroutine, TYPE_CHECKING
