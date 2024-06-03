@@ -79,8 +79,7 @@ class HttpListener:
                     ssl_context.load_cert_chain(certfile=pem_file_path)
                 except Exception as e:
                     raise Exception("Invalid PKCS12 or pastphrase for {0}: {1}".format(self.ssl_options.pfxfile, e))
-        
-        print(self.ssl_options)
+
         runner = web.AppRunner(app, handle_signals=True)
         await runner.setup()
         site = web.TCPSite(runner, self.__endpoint.url, self.__endpoint.port, ssl_context=ssl_context)
