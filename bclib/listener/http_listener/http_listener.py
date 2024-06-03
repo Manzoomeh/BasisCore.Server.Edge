@@ -103,11 +103,11 @@ class HttpListener:
             try:
                 private_key, certificate, additional_certificates = pkcs12.load_key_and_certificates(f.read(), password.encode())
                 pem_file_path = '{0}.auto-generated.pem'.format(pfxfile)
-                with open(pem_file_path, 'wb') as key_file:
-                    key_file.write(certificate.public_bytes(Encoding.PEM))
+                with open(pem_file_path, 'wb') as pem_file:
+                    pem_file.write(certificate.public_bytes(Encoding.PEM))
                     for item in additional_certificates:
-                        key_file.write(item.public_bytes(Encoding.PEM))
-                    key_file.write(private_key.private_bytes(encoding= Encoding.PEM,format=PrivateFormat.TraditionalOpenSSL,encryption_algorithm=NoEncryption()))
+                        pem_file.write(item.public_bytes(Encoding.PEM))
+                    pem_file.write(private_key.private_bytes(encoding= Encoding.PEM,format=PrivateFormat.TraditionalOpenSSL,encryption_algorithm=NoEncryption()))
                 return pem_file_path
             except Exception as ex:
                 raise Exception("Error in create pen file from pfx {0}: {1}".format(self.ssl_options.pfxPath, ex))
