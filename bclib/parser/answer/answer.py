@@ -110,7 +110,8 @@ class Answer:
         if view_type in ["select", "checklist", "radio"]:
             if has_link == True:
                 result = "urlvalue"
-            result = "fixvalue"
+            else:
+                result = "fixvalue"
         elif view_type == "textarea":
             result = "ntextvalue"
         elif view_type == "text" and datatype in ["text", "None", None]:

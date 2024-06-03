@@ -7,6 +7,7 @@ from bclib.exception import ShortCircuitErr
 from bclib.db_manager import SqlDb, SQLiteDb, MongoDb, RabbitConnection, RESTfulConnection
 from bclib.utility import DictEx, HttpStatusCodes, HttpStatusCodes
 from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
+import base64
 
 if TYPE_CHECKING:
     from .. import dispatcher
@@ -65,7 +66,7 @@ class Context(ABC):
 
     @staticmethod
     def _generate_response_cms(
-            content: 'str',
+            content: 'str|bytes',
             response_type: 'str',
             status_code: 'str',
             mime: 'str',
@@ -81,7 +82,10 @@ class Context(ABC):
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["index"] = response_type
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["headercode"] = status_code
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["mime"] = mime
-        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT] = content
+        if isinstance(content,bytes):
+            ret_val[HttpBaseDataType.CMS][HttpBaseDataName.BLOB_CONTENT] = base64.b64encode(content).decode("utf-8")  
+        else:
+            ret_val[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT] = content
         if headers is not None:
             Context.__add_user_defined_headers(ret_val, headers)
         return ret_val

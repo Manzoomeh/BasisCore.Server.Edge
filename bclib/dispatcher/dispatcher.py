@@ -3,6 +3,7 @@ import asyncio
 import inspect
 from abc import ABC
 import signal
+import sys
 import traceback
 from typing import Callable, Any, Coroutine
 from functools import wraps
@@ -25,8 +26,13 @@ class Dispatcher(ABC):
         self.options = DictEx(options)
         self.__look_up: 'dict[str, list[CallbackInfo]]' = dict()
         cache_options = self.options.cache if "cache" in self.options else None
-        self.cache_manager = CacheFactory.create(cache_options)
+        if sys.platform == 'win32':
+            # By default Windows can use only 64 sockets in asyncio loop. This is a limitation of underlying select() API call.
+            # Use Windows version of proactor event loop using IOCP
+            loop = asyncio.ProactorEventLoop()
+            asyncio.set_event_loop(loop)
         self.event_loop = asyncio.get_event_loop()
+        self.cache_manager = CacheFactory.create(cache_options)
         self.db_manager = DbManager(self.options, self.event_loop)
         self.__logger: ILogger = LoggerFactory.create(self.options)
         self.log_error: bool = self.options.log_error if self.options.has(
@@ -382,10 +388,12 @@ class Dispatcher(ABC):
         for dispatcher in self.__rabbit_dispatcher:
             dispatcher.initialize_task(self.event_loop)
 
-    def listening(self):
+    def listening(self, before_start: Coroutine=None, after_end: Coroutine=None):
         """Start listening to request for process"""
         for sig in (signal.SIGTERM, signal.SIGINT):
             signal.signal(sig, lambda sig, _: self.event_loop.stop())
+        if before_start != None:
+            self.event_loop.run_until_complete(self.event_loop.create_task(before_start()))
         self.initialize_task()
         self.event_loop.run_forever()
         tasks = asyncio.all_tasks(loop=self.event_loop)
@@ -393,6 +401,8 @@ class Dispatcher(ABC):
             task.cancel()
         group = asyncio.gather(*tasks, return_exceptions=True)
         self.event_loop.run_until_complete(group)
+        if after_end != None:
+            self.event_loop.run_until_complete(self.event_loop.create_task(after_end()))
         self.event_loop.close()
 
     async def log_async(self, **kwargs):

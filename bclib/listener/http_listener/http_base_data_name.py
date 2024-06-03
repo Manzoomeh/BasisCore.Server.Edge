@@ -21,3 +21,4 @@ class HttpBaseDataName:
     HTTP = "http"
     WEB_SERVER = "webserver"
     CONTENT = "content"
+    BLOB_CONTENT = "blob-content"
