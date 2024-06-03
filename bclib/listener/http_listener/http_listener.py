@@ -102,7 +102,6 @@ class HttpListener:
         with open(pfxfile,"rb") as f:
             try:
                 private_key, certificate, additional_certificates = pkcs12.load_key_and_certificates(f.read(), password.encode())
-                print(additional_certificates)
                 pem_file_path = '{0}.auto-generated.pem'.format(pfxfile)
                 with open(pem_file_path, 'wb') as key_file:
                     key_file.write(certificate.public_bytes(Encoding.PEM))
