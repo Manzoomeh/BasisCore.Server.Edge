@@ -7,7 +7,7 @@ import sys
 import uuid
 import ssl
 from typing import Callable, Coroutine, TYPE_CHECKING
-from cryptography.hazmat.primitives.serialization import pkcs12
+from cryptography.hazmat.primitives.serialization import pkcs12,Encoding,PrivateFormat,NoEncryption
 
 from urllib.parse import unquote, parse_qs
 from ..endpoint import Endpoint
@@ -74,14 +74,12 @@ class HttpListener:
             ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
             if('certfile' in self.ssl_options):
                 ssl_context.load_cert_chain(certfile=self.ssl_options.certfile,keyfile=self.ssl_options.keyfile)
-            elif('pfxPath' in self.ssl_options):
-                with open(self.ssl_options.pfxPath,"rb") as f:
-                    try:
-                        private_key, certificate, additional_certificates = pkcs12.load_key_and_certificates(f.read(), b"1234")
-                        ssl_context.use_certificate(certificate)
-                        ssl_context.use_privatekey(private_key)
-                    except Exception as e:
-                        raise Exception("Invalid PKCS12 or pastphrase for {0}: {1}".format(self.ssl_options.pfxPath, e))
+            elif('pfxfile' in self.ssl_options):
+                try:
+                    pem_file_path = HttpListener.convert_pfx_to_pem_file(self.ssl_options.pfxfile,self.ssl_options.password)
+                    ssl_context.load_cert_chain(certfile=pem_file_path)
+                except Exception as e:
+                    raise Exception("Invalid PKCS12 or pastphrase for {0}: {1}".format(self.ssl_options.pfxfile, e))
         
         print(self.ssl_options)
         runner = web.AppRunner(app, handle_signals=True)
@@ -100,6 +98,22 @@ class HttpListener:
             await site.stop()
             await runner.cleanup()
             await runner.shutdown()
+
+    @staticmethod
+    def convert_pfx_to_pem_file(pfxfile:str,password:str)->str:
+        with open(pfxfile,"rb") as f:
+            try:
+                private_key, certificate, additional_certificates = pkcs12.load_key_and_certificates(f.read(), password.encode())
+                print(additional_certificates)
+                pem_file_path = '{0}.auto-generated.pem'.format(pfxfile)
+                with open(pem_file_path, 'wb') as key_file:
+                    key_file.write(certificate.public_bytes(Encoding.PEM))
+                    for item in additional_certificates:
+                        key_file.write(item.public_bytes(Encoding.PEM))
+                    key_file.write(private_key.private_bytes(encoding= Encoding.PEM,format=PrivateFormat.TraditionalOpenSSL,encryption_algorithm=NoEncryption()))
+                return pem_file_path
+            except Exception as ex:
+                raise Exception("Error in create pen file from pfx {0}: {1}".format(self.ssl_options.pfxPath, ex))
 
     @staticmethod
     async def create_cms_async(request: 'web.Request') -> dict:
