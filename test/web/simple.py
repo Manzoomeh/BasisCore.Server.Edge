@@ -31,7 +31,7 @@ async def process_web_remain_request(context: edge.WebContext):
 <input type="file" name="my_files" multiple="multiple"/>
 <input type="submit"/>
 </form>
-            """*500
+            """
 
 
 app.listening()

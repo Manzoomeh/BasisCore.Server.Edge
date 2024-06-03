@@ -8,6 +8,7 @@ class DevServerDispatcher(RoutingDispatcher):
         self.__listener = HttpListener(
             Endpoint(self.options.server),
             self._on_message_receive_async,
+            self.options.ssl,
             self.options.configuration
             )
 

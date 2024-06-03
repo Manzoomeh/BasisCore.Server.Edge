@@ -9,13 +9,14 @@ def main():
         pika.URLParameters('amqp://guest:guest@localhost:5672'))
     channel = connection.channel()
 
-    channel.queue_declare(queue='hello')
+    #channel.queue_declare(queue='hello')
 
     def callback(ch, method, properties, body):
         print(" [x] Received %r" % body)
-        cmd = json.loads(body)
-        print(" [x] Received %r" % cmd)
-        print(" [x] Received %r" % cmd["key"])
+        #cmd = json.loads(body)
+        #print(" [x] Received %r" % cmd)
+        
+        #print(" [x] Received %r" % cmd["key"])
 
     channel.basic_consume(
         queue='hello', on_message_callback=callback, auto_ack=True)
