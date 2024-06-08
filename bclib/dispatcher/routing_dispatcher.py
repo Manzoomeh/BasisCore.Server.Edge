@@ -82,7 +82,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
             response = await self.dispatch_async(context)
             ret_val: Message = None
             if context.is_adhoc:
-                message_result = json.dumps(response).encode("utf-8")
+                message_result = json.dumps(response, ensure_ascii=False).encode("utf-8")
                 ret_val = Message.create_add_hock(
                     message.session_id, message_result)
             return ret_val
