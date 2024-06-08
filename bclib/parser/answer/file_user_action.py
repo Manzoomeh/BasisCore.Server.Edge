@@ -1,6 +1,6 @@
 class FileUserAction:
 
-    def __init__(self, prp_id: "int", prp_value_id: "int", value_id: "int", name: "str", type: "str", size: "int", content: "str") -> None:
+    def __init__(self, prp_id: "int", prp_value_id: "int", value_id: "int", name: "str", type: "str", size: "int", content: "str", upload_token:"str|None") -> None:
         self.prp_id = prp_id
         self.prp_value_id = prp_value_id
         self.value_id = value_id
@@ -8,6 +8,8 @@ class FileUserAction:
         self.type = type
         self.size = size
         self.content = content
+        self.is_blob = upload_token is not None
+
 
     def as_tuple(self) -> tuple:
         return (self.prp_id, self.prp_value_id, self.value_id, self.name, self.type, self.size, self.content)
