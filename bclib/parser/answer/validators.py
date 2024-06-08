@@ -9,10 +9,10 @@ class Validator(ABC):
 
         check_validation = {
             "required": Validator.required_validator(value, validators["required"]) if 'required' in validators else None,
-            "minLength": Validator.min_length_validator(value, validators["minLength"]) if 'minLength' in validators else None,
-            "maxLength": Validator.max_length_validator(value, validators["maxLength"]) if 'maxLength' in validators else None, 
-            "min": Validator.min_validator(value, validators["min"]) if 'min' in validators else None, 
-            "max": Validator.max_validator(value, validators["max"]) if 'max' in validators else None, 
+            "minLength": Validator.min_length_validator(value, validators["minLength"]) if validators.get('minLength') is not None else None,
+            "maxLength": Validator.max_length_validator(value, validators["maxLength"]) if validators.get('maxLength') is not None else None, 
+            "min": Validator.min_validator(value, validators["min"]) if validators.get('min') is not None else None, 
+            "max": Validator.max_validator(value, validators["max"]) if validators.get('max') is not None else None, 
             "dataType": Validator.data_type_validator(value, validators["dataType"]) if 'dataType' in validators else None,
             "regex": Validator.regex_validator(value, validators["regex"]) if 'regex' in validators else None
         }
@@ -20,9 +20,11 @@ class Validator(ABC):
         
         for validator in validators:
             if validator in check_validation:
-                checked, message = check_validation[validator] 
-                if not checked:
-                    validations_message.append(message)
+                checked = check_validation[validator]
+                if checked is not None:
+                    checked_status, checked_message = checked
+                    if not checked_status:
+                        validations_message.append(checked_message)
 
         validation_status = True if len(validations_message) == 0 else False
         return validation_status, validations_message
@@ -37,7 +39,7 @@ class Validator(ABC):
     def min_length_validator(value:"any", min_length:"any") -> "tuple[bool, list[str]|None]":
         try:
             min_length = min_length if isinstance(min_length, int) else int(min_length)
-            status = len(value) > min_length
+            status = len(value) >= min_length
         except Exception:
             status = False
 
@@ -48,7 +50,7 @@ class Validator(ABC):
     def max_length_validator(value:"any", max_length:"any") -> "tuple[bool, list[str]|None]":
         try:
             max_length = max_length if isinstance(max_length, int) else int(max_length)
-            status = len(value) < max_length
+            status = len(value) <= max_length
         except Exception:
             status = False
 
@@ -58,7 +60,7 @@ class Validator(ABC):
     @staticmethod
     def min_validator(value:"any", min_value:"int") -> "tuple[bool, list[str]|None]":
         try:
-            status = int(value) > min_value
+            status = int(value) >= min_value
         except Exception as ex:
             status = False
         
@@ -68,7 +70,7 @@ class Validator(ABC):
     @staticmethod
     def max_validator(value:"any", max_value:"int") -> "tuple[bool, list[str]|None]":
         try:
-            status = int(value) < max_value
+            status = int(value) <= max_value
         except Exception as ex:
             status = False
         
@@ -100,7 +102,7 @@ class Validator(ABC):
     @staticmethod
     def regex_validator(value:"any", regex_expression:"str") -> "tuple[bool, list[str]|None]":
         try:
-            status = re.search(value, regex_expression) != None
+            status = re.match(regex_expression, value.strip()) != None
         except Exception as ex:
             status = False
         
