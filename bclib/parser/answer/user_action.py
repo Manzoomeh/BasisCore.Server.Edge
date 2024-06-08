@@ -59,15 +59,12 @@ class UserAction:
         }
 
     def is_file_content(self):
-        is_file = False
-        if isinstance(self.value, dict):
-            is_file = {"name", "size", "type"}.issubset(set(self.value.keys()))
-        return is_file
+        return self.datatype == "files"
 
     def as_file_content(self) -> 'FileUserAction':
         if self.is_file_content():
             value = self.value
-            return FileUserAction(self.prp_id, self.prp_value_id, self.value_id, value["name"], value["type"], value["size"], value["content"])
+            return FileUserAction(self.prp_id, self.prp_value_id, self.value_id, value["name"], value["type"], value["size"], value["content"], value.get("uploadToken"))
 
     def __str__(self) -> str:
         return str(self.as_tuple())
