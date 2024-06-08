@@ -10,6 +10,7 @@ from bclib.parser.answer.validators import Validator
 from bclib.utility import DictEx
 from ..answer.user_action_types import UserActionTypes
 from ..answer.user_action import UserAction
+import asyncio
 
 class Answer:
     """BasisJsonParser is a tool to parse basis_core components json objects. This tool is developed based on
@@ -69,7 +70,7 @@ class Answer:
                             for validations in parts.parts
                         ]
                         questions_info.append(
-                            QuestionData(parts.prpId, parts.OwnerID, parts.TypeID, parts.wordId, enriched_data_list)
+                            QuestionData(parts.prpId, parts.OwnerID, parts.TypeID if "TypeID" in parts else parts.typeid, parts.wordId, enriched_data_list)
                         )
         if len(questions_info) > 0:
             for values in self.__answer_list:
@@ -122,7 +123,7 @@ class Answer:
             result = "floatvalue"
         elif view_type == "autocomplete":
             result = "urlvalue"
-        elif view_type == "upload":
+        elif view_type in ["upload", "blob"]:
             result = "files"
         elif view_type == "color":
             result = "textvalue"
@@ -206,6 +207,7 @@ class Answer:
         is_valid = True
         for user_action in self.__answer_list:
             if user_action.validation_status == False:
+                print(user_action.validation_message)
                 is_valid = False
                 break
         return is_valid
