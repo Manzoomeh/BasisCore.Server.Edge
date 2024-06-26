@@ -2,8 +2,7 @@ import asyncio
 from abc import ABC, abstractmethod
 from bclib.utility import DictEx
 import pika
-from pika.exceptions import AMQPConnectionError
-
+from pika.exceptions import AMQPConnectionError, AMQPHeartbeatTimeout
 
 class RabbitListener(ABC):
     def __init__(self, connection_options: DictEx) -> None:
@@ -19,9 +18,8 @@ class RabbitListener(ABC):
                 "exclusive") else False
             self.__auto_delete = connection_options.auto_delete if connection_options.has(
                 "auto_delete") else False
-            self.__retry_delay: int = int(
+            self.__retry_delay = int(
                 connection_options.retry_delay) if connection_options.has("retry_delay") else 60
-            self.__try_to_apply_connection()
         except Exception as ex:
             print(f"Error in config rabbit-mq ({ex})")
             raise ex
@@ -50,6 +48,7 @@ class RabbitListener(ABC):
     async def __consuming_task(self):
         while True:
             try:
+                self.__try_to_apply_connection()
                 print(
                     f'Rabbit listener waiting for messages from "{self._host}:{self._queue_name}."')
                 loop = asyncio.get_running_loop()
@@ -67,6 +66,7 @@ class RabbitListener(ABC):
                 except:
                     pass
                 break
-            except AMQPConnectionError as ex:
-                print("Rabbit listener disconnected!")
-                await asyncio.sleep(self.__retry_delay)
+            except Exception as ex:
+                print(f"[{ex.__class__.__name__}]", str(ex))
+            print(f"Reconnecting in {self.__retry_delay} seconds...")
+            await asyncio.sleep(self.__retry_delay)
