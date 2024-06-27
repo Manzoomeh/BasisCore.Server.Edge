@@ -6,13 +6,12 @@ import json
 import uuid
 import ssl
 import base64
-from typing import Callable, Coroutine, TYPE_CHECKING, Optional, Awaitable
+from typing import Callable, TYPE_CHECKING, Optional, Awaitable
 from urllib.parse import unquote, parse_qs
 from ..endpoint import Endpoint
 from ..http_listener.http_base_data_name import HttpBaseDataName
 from ..http_listener.http_base_data_type import HttpBaseDataType
 from bclib.utility import DictEx, ResponseTypes
-from ..message_type import MessageType
 from ..message import Message
 import pathlib
 
@@ -56,8 +55,6 @@ class HttpListener:
         from multidict import MultiDict
 
         async def on_request_receive_async(request: 'web.Request') -> web.Response:
-            import time
-            st = time.time()
             ret_val: web.Response = None
             request_cms = await self.create_cms_async(request)
             msg = Message.create_add_hock(
@@ -86,7 +83,6 @@ class HttpListener:
                     try:
                         path = pathlib.Path(cms_cms_webserver[HttpBaseDataName.FILE_PATH])
                         path.stat()
-                        
                         ret_val = web.FileResponse(
                             path=path,
                             chunk_size=256*1024,
@@ -101,8 +97,7 @@ class HttpListener:
                 else:
                     ret_val = web.Response(
                         status=int(header_code.split(' ')[0]),
-                        headers=headers,
-                        content_type=mime
+                        headers=headers
                     )
                     if HttpBaseDataName.CONTENT in cms_cms:
                         ret_val.text = cms_cms[HttpBaseDataName.CONTENT]
