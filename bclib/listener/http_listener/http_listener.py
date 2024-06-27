@@ -6,16 +6,14 @@ import json
 import uuid
 import ssl
 import base64
-from typing import Callable, Coroutine, TYPE_CHECKING, Optional
-from cryptography.hazmat.primitives.serialization import pkcs12,Encoding,PrivateFormat,NoEncryption
-
+from typing import Callable, TYPE_CHECKING, Optional, Awaitable
 from urllib.parse import unquote, parse_qs
 from ..endpoint import Endpoint
 from ..http_listener.http_base_data_name import HttpBaseDataName
 from ..http_listener.http_base_data_type import HttpBaseDataType
-from bclib.utility import DictEx
-from ..message_type import MessageType
+from bclib.utility import DictEx, ResponseTypes
 from ..message import Message
+import pathlib
 
 if TYPE_CHECKING:
     from aiohttp import web
@@ -37,7 +35,7 @@ class HttpListener:
     _DEFAULT_CLIENT_MAX_SIZE = 1024 ** 2
     
 
-    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[Message], Coroutine[Message]]',ssl_options:'dict', configuration: Optional[DictEx]):
+    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[Message], Awaitable[Message]]',ssl_options:'dict', configuration: Optional[DictEx]):
         self.__endpoint = endpoint
         self.on_message_receive_async = async_callback
         self.ssl_options = ssl_options
@@ -58,34 +56,54 @@ class HttpListener:
 
         async def on_request_receive_async(request: 'web.Request') -> web.Response:
             ret_val: web.Response = None
-            cms_object = await self.create_cms_async(request)
-            msg = Message(str(uuid.uuid4()), MessageType.AD_HOC,
-                          json.dumps(cms_object).encode())
+            request_cms = await self.create_cms_async(request)
+            msg = Message.create_add_hock(
+                str(uuid.uuid4()),
+                json.dumps(request_cms, ensure_ascii=False).encode(encoding="utf-8")
+            )
             result = await self.on_message_receive_async(msg)
             if result:
                 cms: dict = json.loads(result.buffer.decode("utf-8"))
-                header_code: str = cms[HttpBaseDataType.CMS][HttpBaseDataType.WEB_SERVER]["headercode"]
-                mime = cms[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["mime"]
-                headers: MultiDict = None
-                if HttpBaseDataName.HTTP in cms[HttpBaseDataType.CMS]:
-                    http: dict = cms[HttpBaseDataType.CMS][HttpBaseDataName.HTTP]
-                    if http:
-                        headers = MultiDict()
-                        for key, value in http.items():
-                            if isinstance(value, list):
-                                for item in value:
-                                    headers.add(key, item)
-                            else:
-                                headers.add(key, value)
-                ret_val = web.Response(
-                    status=int(header_code.split(' ')[0]),
-                    headers=headers,
-                    content_type=mime)
-                if HttpBaseDataName.CONTENT in cms[HttpBaseDataType.CMS]:
-                    ret_val.text = cms[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT]
+                cms_cms = cms[HttpBaseDataType.CMS]
+                cms_cms_webserver = cms_cms[HttpBaseDataType.WEB_SERVER]
+                index = cms_cms_webserver[HttpBaseDataName.INDEX]
+                header_code: str = cms_cms_webserver[HttpBaseDataName.HEADER_CODE]
+                mime = cms_cms[HttpBaseDataName.WEB_SERVER][HttpBaseDataName.MIME]
+                headers = MultiDict()
+                if HttpBaseDataName.HTTP in cms_cms:
+                    http: dict = cms_cms[HttpBaseDataName.HTTP]
+                    for key, value in http.items():
+                        if isinstance(value, list):
+                            for item in value:
+                                headers.add(key, item)
+                        else:
+                            headers.add(key, value)
+                headers.add("Content-Type", mime)
+                if index == ResponseTypes.STATIC_FILE:
+                    try:
+                        path = pathlib.Path(cms_cms_webserver[HttpBaseDataName.FILE_PATH])
+                        path.stat()
+                        ret_val = web.FileResponse(
+                            path=path,
+                            chunk_size=256*1024,
+                            status=int(header_code.split(' ')[0]),
+                            headers=headers
+                        )
+                    except FileNotFoundError:
+                        ret_val = web.Response(
+                            status=404,
+                            reason="File not found"
+                        )
                 else:
-                    raw_blob_content = cms[HttpBaseDataType.CMS][HttpBaseDataName.BLOB_CONTENT]
-                    ret_val.body = base64.b64decode(raw_blob_content.encode("utf-8"))
+                    ret_val = web.Response(
+                        status=int(header_code.split(' ')[0]),
+                        headers=headers
+                    )
+                    if HttpBaseDataName.CONTENT in cms_cms:
+                        ret_val.text = cms_cms[HttpBaseDataName.CONTENT]
+                    else:
+                        raw_blob_content = cms_cms[HttpBaseDataName.BLOB_CONTENT]
+                        ret_val.body = base64.b64decode(raw_blob_content.encode("utf-8"))
             else:
                 ret_val = web.Response()
             return ret_val
@@ -101,13 +119,19 @@ class HttpListener:
         app.add_routes(
             [web.route('*', '/{tail:.*}', on_request_receive_async)])
         ssl_context= None
-        if self.ssl_options :
+        if self.ssl_options:
             ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-            if('certfile' in self.ssl_options):
-                ssl_context.load_cert_chain(certfile=self.ssl_options.certfile,keyfile=self.ssl_options.keyfile)
-            elif('pfxfile' in self.ssl_options):
+            if 'certfile' in self.ssl_options:
+                ssl_context.load_cert_chain(
+                    certfile=self.ssl_options.certfile,
+                    keyfile=self.ssl_options.keyfile
+                )
+            elif 'pfxfile' in self.ssl_options:
                 try:
-                    pem_file_path = HttpListener.convert_pfx_to_pem_file(self.ssl_options.pfxfile,self.ssl_options.password)
+                    pem_file_path = HttpListener.convert_pfx_to_pem_file(
+                        self.ssl_options.pfxfile,
+                        self.ssl_options.password
+                    )
                     ssl_context.load_cert_chain(certfile=pem_file_path)
                 except Exception as e:
                     raise Exception("Invalid PKCS12 or pastphrase for {0}: {1}".format(self.ssl_options.pfxfile, e))
@@ -120,7 +144,7 @@ class HttpListener:
             f"Development Edge server started at http{'s' if self.ssl_options else ''}://{self.__endpoint.url}:{self.__endpoint.port}")
         try:
             while True:
-                await asyncio.sleep(.0001)
+                await asyncio.Future()
         except asyncio.CancelledError:
             pass
         finally:
@@ -131,6 +155,7 @@ class HttpListener:
 
     @staticmethod
     def convert_pfx_to_pem_file(pfxfile:str,password:str)->str:
+        from cryptography.hazmat.primitives.serialization import pkcs12, Encoding, PrivateFormat, NoEncryption
         with open(pfxfile,"rb") as f:
             try:
                 private_key, certificate, additional_certificates = pkcs12.load_key_and_certificates(f.read(), password.encode())
@@ -142,7 +167,7 @@ class HttpListener:
                     pem_file.write(private_key.private_bytes(encoding= Encoding.PEM,format=PrivateFormat.TraditionalOpenSSL,encryption_algorithm=NoEncryption()))
                 return pem_file_path
             except Exception as ex:
-                raise Exception("Error in create pen file from pfx {0}: {1}".format(self.ssl_options.pfxPath, ex))
+                raise Exception("Error in create pem file from pfx {0}: {1}".format(pfxfile, ex))
 
     @staticmethod
     async def create_cms_async(request: 'web.Request') -> dict:

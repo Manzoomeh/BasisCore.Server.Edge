@@ -1,11 +1,11 @@
-from typing import Any, Callable, Coroutine
+from typing import Any, Callable, Awaitable
 from ..context import Context
 from ..predicate import Predicate
 from bclib.exception import ShortCircuitErr
 
 
 class CallbackInfo:
-    def __init__(self, predicates: 'list[Predicate]',  async_callback: 'Callable[[Context], Coroutine[Any]]') -> Any:
+    def __init__(self, predicates: 'list[Predicate]',  async_callback: 'Callable[[Context], Awaitable[Any]]') -> Any:
         self.__async_callback = async_callback
         self.__predicates = predicates
 

@@ -22,3 +22,8 @@ class HttpBaseDataName:
     WEB_SERVER = "webserver"
     CONTENT = "content"
     BLOB_CONTENT = "blob-content"
+    INDEX = "index"
+    HEADER_CODE = "headercode"
+    FILE_PATH = "filepath"
+    MIME = "mime"
+    GZIP = "gzip"

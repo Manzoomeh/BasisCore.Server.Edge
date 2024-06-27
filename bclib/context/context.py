@@ -79,9 +79,9 @@ class Context(ABC):
             ret_val[HttpBaseDataType.CMS] = {}
         if HttpBaseDataName.WEB_SERVER not in ret_val[HttpBaseDataType.CMS]:
             ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER] = DictEx()
-        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["index"] = response_type
-        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["headercode"] = status_code
-        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER]["mime"] = mime
+        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER][HttpBaseDataName.INDEX] = response_type
+        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER][HttpBaseDataName.HEADER_CODE] = status_code
+        ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER][HttpBaseDataName.MIME] = mime
         if isinstance(content,bytes):
             ret_val[HttpBaseDataType.CMS][HttpBaseDataName.BLOB_CONTENT] = base64.b64encode(content).decode("utf-8")  
         else:
