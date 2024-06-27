@@ -82,9 +82,10 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
             response = await self.dispatch_async(context)
             ret_val: Message = None
             if context.is_adhoc:
-                message_result = json.dumps(response, ensure_ascii=False).encode("utf-8")
                 ret_val = Message.create_add_hock(
-                    message.session_id, message_result)
+                    message.session_id, 
+                    json.dumps(response, ensure_ascii=False).encode("utf-8")
+                )
             return ret_val
         except Exception as ex:
             print(f"Error in process received message {ex}")
@@ -100,9 +101,8 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
         request_id: Optional[str] = None
         method: Optional[str] = None
         message_json: Optional[dict] = None
-        if message.buffer:
-            message_string = message.buffer.decode("utf-8")
-            message_json = json.loads(message_string)
+        if message.buffer is not None:
+            message_json = json.loads(message.buffer)
             cms_object = message_json[HttpBaseDataType.CMS] if HttpBaseDataType.CMS in message_json else None
             if cms_object:
                 if 'request' in cms_object:
@@ -112,7 +112,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
                 if 'full-url' in req:
                     url = req["full-url"]
                 else:
-                    raise KeyError("request key not found in cms object")
+                    raise KeyError("full-url key not found in request")
                 request_id = req['request-id'] if 'request-id' in req else 'none'
                 method = req['methode'] if 'methode' in req else 'none'
         if message.type == MessageType.AD_HOC:
@@ -137,7 +137,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
         elif context_type == "socket":
             ret_val = SocketContext(cms_object, self, message, message_json)
         elif context_type == "named_pipe":
-            ret_val = NamedPipeContext(message_json, message_string, self)
+            ret_val = NamedPipeContext(message_json, message.buffer.decode("utf-8"), self)
         elif context_type is None:
             raise NameError(f"No context found for '{url}'")
         else:
