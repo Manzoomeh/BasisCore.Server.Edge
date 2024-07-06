@@ -2,7 +2,6 @@ import asyncio
 from abc import ABC, abstractmethod
 from bclib.utility import DictEx
 import pika
-from pika.exceptions import AMQPConnectionError, AMQPHeartbeatTimeout
 
 class RabbitListener(ABC):
     def __init__(self, connection_options: DictEx) -> None:

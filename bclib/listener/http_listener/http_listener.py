@@ -8,11 +8,14 @@ import ssl
 import base64
 from typing import Callable, TYPE_CHECKING, Optional, Awaitable
 from urllib.parse import unquote, parse_qs
+
+from bclib.listener.message_type import MessageType
 from ..endpoint import Endpoint
 from ..http_listener.http_base_data_name import HttpBaseDataName
 from ..http_listener.http_base_data_type import HttpBaseDataType
 from bclib.utility import DictEx, ResponseTypes
 from ..message import Message
+from ..web_message import WebMessage
 import pathlib
 
 if TYPE_CHECKING:
@@ -35,7 +38,7 @@ class HttpListener:
     _DEFAULT_CLIENT_MAX_SIZE = 1024 ** 2
     
 
-    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[Message], Awaitable[Message]]',ssl_options:'dict', configuration: Optional[DictEx]):
+    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[WebMessage], Awaitable[WebMessage]]',ssl_options:'dict', configuration: Optional[DictEx]):
         self.__endpoint = endpoint
         self.on_message_receive_async = async_callback
         self.ssl_options = ssl_options
@@ -54,15 +57,52 @@ class HttpListener:
         from aiohttp import web
         from multidict import MultiDict
 
+        async def uptime_handler(request):
+            # http://HOST:PORT/?interval=90
+            interval = 1;#int(request.GET.get('interval', 1))
+            
+            # Without the Content-Type, most (all?) browsers will not render 
+            # partially downloaded content. Note, the response type is 
+            # StreamResponse not Response.
+            resp = web.StreamResponse(status=200, 
+                                    reason='OK', 
+                                    headers={'Content-Type': 'text/html; charset=utf-8'})
+            
+            # The StreamResponse is a FSM. Enter it with a call to prepare.
+            await resp.prepare(request)
+            
+        
+            i=3
+            while i>0:
+                i=i-1
+                try:
+                    print("hi " + str(i))
+                    # Technically, subprocess blocks, so this is a dumb call 
+                    # to put in an async example. But, it's a tiny block and 
+                    # still mocks instantaneous for this example.
+                    await resp.write(b"<strong>")
+                    await resp.write(str(i).encode())#subprocess.check_output('uptime'))
+                    await resp.write(b"</strong>sdsdsds<br/>\n")
+                    
+                    # Yield to the scheduler so other processes do stuff.
+                    await resp.drain()
+                    
+                    # This also yields to the scheduler, but your server 
+                    # probably won't do something like this. 
+                    await asyncio.sleep(interval)
+                except Exception as e:
+                    # So you can observe on disconnects and such.
+                    print(repr(e))
+                    raise
+            
+            return resp
+        
         async def on_request_receive_async(request: 'web.Request') -> web.Response:
             ret_val: web.Response = None
             request_cms = await self.create_cms_async(request)
-            msg = Message.create_add_hock(
-                str(uuid.uuid4()),
-                json.dumps(request_cms, ensure_ascii=False).encode(encoding="utf-8")
-            )
+            msg = WebMessage(request, str(uuid.uuid4()),MessageType.AD_HOC,json.dumps(request_cms, ensure_ascii=False).encode(encoding="utf-8"))
             result = await self.on_message_receive_async(msg)
-            if result:
+            if result and result.Response is None:
                 cms: dict = json.loads(result.buffer.decode("utf-8"))
                 cms_cms = cms[HttpBaseDataType.CMS]
                 cms_cms_webserver = cms_cms[HttpBaseDataType.WEB_SERVER]
@@ -105,7 +145,7 @@ class HttpListener:
                         raw_blob_content = cms_cms[HttpBaseDataName.BLOB_CONTENT]
                         ret_val.body = base64.b64decode(raw_blob_content.encode("utf-8"))
             else:
-                ret_val = web.Response()
+                ret_val =  web.Response() if result.Response is None else result.Response
             return ret_val
 
         app = web.Application(
