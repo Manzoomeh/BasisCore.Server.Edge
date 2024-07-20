@@ -74,7 +74,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
                 print("Error in detect context from routing options!", ex)
         return context_type if context_type else self.__default_router
 
-    async def _on_message_receive_async(self, message: ReceiveMessage) -> Message:
+    async def _on_message_receive_async(self, message: Message) -> Message:
         """Process received message"""
 
         try:
@@ -82,7 +82,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
             response = await self.dispatch_async(context)
             ret_val: Message = None
             if context.is_adhoc:
-                ret_val = Message.create_add_hock(
+                ret_val = message.create_response_message(
                     message.session_id, 
                     json.dumps(response, ensure_ascii=False).encode("utf-8")
                 )
@@ -91,7 +91,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
             print(f"Error in process received message {ex}")
             raise ex
 
-    def __context_factory(self, message: ReceiveMessage) -> Context:
+    def __context_factory(self, message: Message) -> Context:
         """Create context from message object"""
 
         ret_val: RequestContext = None
@@ -133,7 +133,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
         elif context_type == "server_source":
             ret_val = ServerSourceContext(message_json, self)
         elif context_type == "web":
-            ret_val = WebContext(cms_object, self)
+            ret_val = WebContext(cms_object, self,message)
         elif context_type == "socket":
             ret_val = SocketContext(cms_object, self, message, message_json)
         elif context_type == "named_pipe":

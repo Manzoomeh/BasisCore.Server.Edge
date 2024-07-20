@@ -1,9 +1,8 @@
 import asyncio
 import json
 from typing import Any
-
-
 from bclib.listener.message_type import MessageType
+from abc import abstractmethod
 
 
 class Message:
@@ -11,6 +10,11 @@ class Message:
         self.session_id = sessionId
         self.type = messageType
         self.buffer = buffer
+
+    @abstractmethod
+    def create_response_message(self, session_id: str, buffer: bytes) -> "Message":
+        return Message.create_add_hock(session_id,buffer)
+
 
     async def write_to_stream_async(self, stream: asyncio.StreamWriter) -> bool:
         is_send = True
