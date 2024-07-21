@@ -1,5 +1,7 @@
 """Main module of bclib.wrapper for all exist module that need in basic coding"""
 
+import asyncio
+from bclib.db_manager import *
 from bclib.dispatcher import RoutingDispatcher, IDispatcher, SocketDispatcher, DevServerDispatcher, NamedPipeDispatcher, EndpointDispatcher
 from bclib.context import Context, WebContext, SocketContext, ClientSourceContext, ClientSourceMemberContext, RabbitContext, RESTfulContext, RequestContext, MergeType, ServerSourceContext, ServerSourceMemberContext, SourceContext, SourceMemberContext, NamedPipeContext
 from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes, HttpHeaders, WindowsNamedPipeHelper
@@ -36,7 +38,7 @@ def from_list(hosts: 'dict[str,list[str]]'):
             print(ex)
 
 
-def from_options(options: dict) -> RoutingDispatcher:
+def from_options(options: dict,loop:asyncio.AbstractEventLoop = None) -> RoutingDispatcher:
     """Create related RoutingDispatcher obj from config object"""
 
     import sys
@@ -63,13 +65,13 @@ def from_options(options: dict) -> RoutingDispatcher:
         __print_splash(False)
     ret_val: RoutingDispatcher = None
     if "server" in options:
-        ret_val = DevServerDispatcher(options)
+        ret_val = DevServerDispatcher(options=options,loop=loop)
     elif "named_pipe" in options:
-        ret_val = NamedPipeDispatcher(options)
+        ret_val = NamedPipeDispatcher(options=options,loop=loop)
     elif "endpoint" in options:
-        ret_val = EndpointDispatcher(options)
+        ret_val = EndpointDispatcher(options=options,loop=loop)
     else:
-        ret_val = SocketDispatcher(options)
+        ret_val = SocketDispatcher(options=options,loop=loop)
     return ret_val
 
 

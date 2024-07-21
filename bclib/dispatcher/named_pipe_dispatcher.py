@@ -5,8 +5,8 @@ from bclib.listener import Message
 
 
 class NamedPipeDispatcher(RoutingDispatcher):
-    def __init__(self, options: dict):
-        super().__init__(options)
+    def __init__(self, options: dict,loop:asyncio.AbstractEventLoop=None):
+        super().__init__(options=options,loop=loop)
         self.__lock = asyncio.Lock()
         # https://docs.python.org/3/library/sys.html#sys.platform
         if platform == "linux" or platform == "linux2":

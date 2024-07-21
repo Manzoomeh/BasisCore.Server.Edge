@@ -16,8 +16,8 @@ from bclib.dispatcher.dispatcher import Dispatcher
 
 class RoutingDispatcher(Dispatcher, DispatcherHelper):
 
-    def __init__(self, options: dict):
-        super().__init__(options)
+    def __init__(self, options: dict,loop:asyncio.AbstractEventLoop=None):
+        super().__init__(options=options,loop=loop)
         self.__default_router = self.options.defaultRouter\
             if 'defaultRouter' in self.options and isinstance(self.options.defaultRouter, str)\
             else None

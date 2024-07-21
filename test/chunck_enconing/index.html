@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <input type="button" onclick="javascript:onClick()" value="get data..." />
+    <script>
+        async function onClick() {
+            const url = "/stream";
+            fetch(url)
+                // Retrieve its body as ReadableStream
+                .then((response) => {
+                    const reader = response.body.getReader();
+                    return new ReadableStream({
+                        start(controller) {
+                            return pump();
+                            function pump() {
+                                return reader.read().then(({ done, value }) => {
+                                    // When no more data needs to be consumed, close the stream
+                                    if (done) {
+                                        controller.close();
+                                        return;
+                                    }
+                                    // Enqueue the next data chunk into our target stream
+                                    console.table(JSON.parse(new TextDecoder().decode(value)));
+                                    controller.enqueue(value);
+                                    return pump();
+                                });
+                            }
+                        },
+                    });
+                })
+                .catch((err) => console.error(err));
+        }
+    </script>
+</body>
+
+</html>
