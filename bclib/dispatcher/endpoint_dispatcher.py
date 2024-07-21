@@ -5,8 +5,8 @@ from .routing_dispatcher import RoutingDispatcher
 
 
 class EndpointDispatcher(RoutingDispatcher):
-    def __init__(self, options: dict):
-        super().__init__(options)
+    def __init__(self, options: dict,loop:asyncio.AbstractEventLoop=None):
+        super().__init__(options=options,loop=loop)
         self.__endpoint = Endpoint(self.options.endpoint)
 
     def initialize_task(self):

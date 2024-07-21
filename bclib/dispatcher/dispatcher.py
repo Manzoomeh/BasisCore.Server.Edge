@@ -22,16 +22,16 @@ from ..dispatcher.callback_info import CallbackInfo
 class Dispatcher(ABC):
     """Base class for dispatching request"""
 
-    def __init__(self, options: dict = None):
+    def __init__(self, options: dict = None,loop:asyncio.AbstractEventLoop = None):
         self.options = DictEx(options)
         self.__look_up: 'dict[str, list[CallbackInfo]]' = dict()
         cache_options = self.options.cache if "cache" in self.options else None
-        if sys.platform == 'win32':
+        if loop is None and sys.platform == 'win32':
             # By default Windows can use only 64 sockets in asyncio loop. This is a limitation of underlying select() API call.
             # Use Windows version of proactor event loop using IOCP
             loop = asyncio.ProactorEventLoop()
             asyncio.set_event_loop(loop)
-        self.event_loop = asyncio.get_event_loop()
+        self.event_loop =  asyncio.get_event_loop() if loop is None else loop
         self.cache_manager = CacheFactory.create(cache_options)
         self.db_manager = DbManager(self.options, self.event_loop)
         self.__logger: ILogger = LoggerFactory.create(self.options)
@@ -388,22 +388,23 @@ class Dispatcher(ABC):
         for dispatcher in self.__rabbit_dispatcher:
             dispatcher.initialize_task(self.event_loop)
 
-    def listening(self, before_start: Coroutine=None, after_end: Coroutine=None):
+    def listening(self, before_start: Coroutine=None, after_end: Coroutine=None,with_block:bool = True):
         """Start listening to request for process"""
         for sig in (signal.SIGTERM, signal.SIGINT):
             signal.signal(sig, lambda sig, _: self.event_loop.stop())
         if before_start != None:
             self.event_loop.run_until_complete(self.event_loop.create_task(before_start()))
         self.initialize_task()
-        self.event_loop.run_forever()
-        tasks = asyncio.all_tasks(loop=self.event_loop)
-        for task in tasks:
-            task.cancel()
-        group = asyncio.gather(*tasks, return_exceptions=True)
-        self.event_loop.run_until_complete(group)
-        if after_end != None:
-            self.event_loop.run_until_complete(self.event_loop.create_task(after_end()))
-        self.event_loop.close()
+        if with_block:
+            self.event_loop.run_forever()
+            tasks = asyncio.all_tasks(loop=self.event_loop)
+            for task in tasks:
+                task.cancel()
+            group = asyncio.gather(*tasks, return_exceptions=True)
+            self.event_loop.run_until_complete(group)
+            if after_end != None:
+                self.event_loop.run_until_complete(self.event_loop.create_task(after_end()))
+            self.event_loop.close()
 
     async def log_async(self, **kwargs):
         """log params"""

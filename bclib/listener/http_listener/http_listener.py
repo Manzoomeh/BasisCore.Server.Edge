@@ -188,7 +188,7 @@ class HttpListener:
         except asyncio.CancelledError:
             pass
         finally:
-            print("Development Edge server stopped.")
+            print(f"Development Edge server for http{'s' if self.ssl_options else ''}://{self.__endpoint.url}:{self.__endpoint.port} stopped.")
             await site.stop()
             await runner.cleanup()
             await runner.shutdown()
