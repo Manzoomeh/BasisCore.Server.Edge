@@ -94,6 +94,7 @@ async def process_web_action_async(context: edge.RESTfulContext):
 async def process_web_action_async(context: edge.RESTfulContext):
     print("start")
     await context.start_stream_response_async( headers={'Content-Type': 'application/json; charset=utf-8'})
+    await context.write_and_drain_async("[null,".encode())
     try:
         service_list =[
             ("service1",context.open_restful_connection("service1")),
@@ -116,9 +117,11 @@ async def process_web_action_async(context: edge.RESTfulContext):
                 }],
             }
             await context.write_and_drain_async(json.dumps(data).encode())
+            await context.write_and_drain_async(",".encode())
 
         tasks = [get_result_async(item[0],item[1]) for item in service_list]
         await asyncio.gather(*tasks)
+        await context.write_and_drain_async("null]".encode())
         print("end")
         return True
     except Exception as ex:
