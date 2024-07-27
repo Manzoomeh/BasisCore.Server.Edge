@@ -105,7 +105,10 @@ async def process_web_action_async(context: edge.RESTfulContext):
             ("service6",context.open_restful_connection("service6")),
         ]   
         async def get_result_async(name:str, service:edge.RESTfulConnection):
-            result = await service.get_async(f"/{name}")
+            try:
+                result = await service.get_async(f"/{name}")
+            except Exception as ex:
+                result = {"err" : str(ex)}
             data = {
                 "sources": [
                 {
@@ -118,15 +121,18 @@ async def process_web_action_async(context: edge.RESTfulContext):
             }
             await context.write_and_drain_async(json.dumps(data).encode())
             await context.write_and_drain_async(",".encode())
-
+            
         tasks = [get_result_async(item[0],item[1]) for item in service_list]
         await asyncio.gather(*tasks)
         await context.write_and_drain_async("null]".encode())
         print("end")
         return True
+    except asyncio.CancelledError as ex:
+        return False
     except Exception as ex:
         print(ex)
-        return ex
+        await context.write_and_drain_async(f"'{ex}',null]".encode())
+        return False
 
 @mani_app.web_action()
 async def process_web_action_async(context: edge.WebContext):

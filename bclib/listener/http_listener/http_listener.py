@@ -56,47 +56,6 @@ class HttpListener:
     async def __server_task(self, event_loop: asyncio.AbstractEventLoop):
         from aiohttp import web
         from multidict import MultiDict
-
-        async def uptime_handler(request):
-            # http://HOST:PORT/?interval=90
-            interval = 1;#int(request.GET.get('interval', 1))
-            
-            # Without the Content-Type, most (all?) browsers will not render 
-            # partially downloaded content. Note, the response type is 
-            # StreamResponse not Response.
-            resp = web.StreamResponse(status=200, 
-                                    reason='OK', 
-                                    headers={'Content-Type': 'text/html; charset=utf-8'})
-            
-            # The StreamResponse is a FSM. Enter it with a call to prepare.
-            await resp.prepare(request)
-            
-        
-            i=3
-            while i>0:
-                i=i-1
-                try:
-                    print("hi " + str(i))
-                    # Technically, subprocess blocks, so this is a dumb call 
-                    # to put in an async example. But, it's a tiny block and 
-                    # still mocks instantaneous for this example.
-                    await resp.write(b"<strong>")
-                    await resp.write(str(i).encode())#subprocess.check_output('uptime'))
-                    await resp.write(b"</strong>sdsdsds<br/>\n")
-                    
-                    # Yield to the scheduler so other processes do stuff.
-                    await resp.drain()
-                    
-                    # This also yields to the scheduler, but your server 
-                    # probably won't do something like this. 
-                    await asyncio.sleep(interval)
-                except Exception as e:
-                    # So you can observe on disconnects and such.
-                    print(repr(e))
-                    raise
-            
-            return resp
-        
         async def on_request_receive_async(request: 'web.Request') -> web.Response:
             ret_val: web.Response = None
             request_cms = await self.create_cms_async(request)
@@ -184,7 +143,7 @@ class HttpListener:
             f"Development Edge server started at http{'s' if self.ssl_options else ''}://{self.__endpoint.url}:{self.__endpoint.port}")
         try:
             while True:
-                await asyncio.Future()
+                await asyncio.sleep(1)
         except asyncio.CancelledError:
             pass
         finally:
