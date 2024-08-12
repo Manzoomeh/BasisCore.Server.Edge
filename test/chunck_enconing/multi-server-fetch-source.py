@@ -2,10 +2,11 @@ import asyncio
 import json
 import random
 from bclib import edge
+import gzip
 
 main_service_options = {
     "server": "localhost:8080",
-    "router": "web",
+    "router": "restful",
      "settings": {
         "connections.rest.service1": "http://localhost:8081",
         "connections.rest.service2": "http://localhost:8082",
@@ -55,28 +56,18 @@ service6_app = edge.from_options(service6_options,mani_app.event_loop)
 @service4_app.restful_action(service1_app.url(":service_name"))
 @service5_app.restful_action(service1_app.url(":service_name"))
 @service6_app.restful_action(service1_app.url(":service_name"))
-async def process_web_action_async(context: edge.RequestContext):
-    delay=random.randint(1,5)
+async def process_restful_action_async(context: edge.RequestContext):
+    delay=random.randint(1,2)
     await asyncio.sleep(delay)
-    return [{
-        "id":random.randint(10,99),
-        "message":f"Data 1 {context.url_segments.service_name} restful after {delay} sec..."
-    },
-    {
-        "id":random.randint(10,99),
-        "message":f"Data 2 {context.url_segments.service_name} restful after {delay} sec..."
-    },
-    {
-        "id":random.randint(10,99),
-        "message":f"Data 3 {context.url_segments.service_name} restful after {delay} sec..."
-    },
-    {
-        "id":random.randint(10,99),
-        "message":f"Data 4 {context.url_segments.service_name} restful after {delay} sec..."
-    }]
+    return [ {
+        "id":i,
+        "delay":delay,
+        "message":context.url_segments.service_name
+    } for i in range(1000)]
 
-@mani_app.web_action(mani_app.get("stream"))
-async def process_web_action_async(context: edge.RESTfulContext):
+
+@mani_app.restful_action(mani_app.get("stream"))
+async def process_restful_action_async(context: edge.RESTfulContext ):
     print("start")
     await context.start_stream_response_async(headers={'Content-Type': 'text/html; charset=utf-8'})
     await context.write_and_drain_async(b"start of data<br/>")
@@ -90,11 +81,11 @@ async def process_web_action_async(context: edge.RESTfulContext):
     print("end")
     return True
 
-@mani_app.web_action(mani_app.get("stream-2"))
-async def process_web_action_async(context: edge.RESTfulContext):
+@mani_app.restful_action(mani_app.get("stream-2"))
+async def process_restful_action_async(context: edge.RESTfulContext):
     print("start")
     await context.start_stream_response_async( headers={'Content-Type': 'application/json; charset=utf-8'})
-    await context.write_and_drain_async("[null,".encode())
+    await context.write_and_drain_async("[".encode())
     try:
         service_list =[
             ("service1",context.open_restful_connection("service1")),
@@ -119,8 +110,7 @@ async def process_web_action_async(context: edge.RESTfulContext):
                     "data": result
                 }],
             }
-            await context.write_and_drain_async(json.dumps(data).encode())
-            await context.write_and_drain_async(",".encode())
+            await context.write_and_drain_async(f"{json.dumps(data)},".encode())
             
         tasks = [get_result_async(item[0],item[1]) for item in service_list]
         await asyncio.gather(*tasks)
@@ -131,11 +121,11 @@ async def process_web_action_async(context: edge.RESTfulContext):
         return False
     except Exception as ex:
         print(ex)
-        await context.write_and_drain_async(f"'{ex}',null]".encode())
+        await context.write_and_drain_async(f"'{ex}']".encode())
         return False
 
-@mani_app.web_action()
-async def process_web_action_async(context: edge.WebContext):
+@mani_app.restful_action()
+async def process_restful_action_async(context: edge.RESTfulContext):
     return "Hi from simple web server"
 
 service1_app.listening(with_block=False)

@@ -1,5 +1,6 @@
-from typing import Any, Coroutine, Optional
+from typing import Any, Coroutine, Optional, Union
 from aiohttp import web
+from aiohttp.web_response import ContentCoding
 from bclib.listener.message import Message
 from bclib.listener.message_type import MessageType
 
@@ -34,3 +35,8 @@ class WebMessage(Message):
         if self.Response is None:
             raise Exception('StreamResponse not started')
         await self.Response.drain()
+
+    async def  enable_compression(self,force: Optional[Union[bool, ContentCoding]] = None) -> None:
+        if self.Response is None:
+            raise Exception('StreamResponse not started')
+        await self.Response.enable_compression(force)

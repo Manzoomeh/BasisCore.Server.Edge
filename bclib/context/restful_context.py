@@ -6,11 +6,12 @@ from urllib.parse import parse_qsl
 
 if TYPE_CHECKING:
     from .. import dispatcher
+    from .. import listener
 
 
 class RESTfulContext(JsonBaseRequestContext):
-    def __init__(self, cms_object: dict, dispatcher: 'dispatcher.IDispatcher') -> None:
-        super().__init__(cms_object, dispatcher)
+    def __init__(self, cms_object: dict, dispatcher: 'dispatcher.IDispatcher',message_object: 'listener.WebMessage') -> None:
+        super().__init__(cms_object, dispatcher,message_object)
         temp_data = None
         if self.cms.form:
             temp_data = self.cms.form

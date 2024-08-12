@@ -127,9 +127,9 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
                 f"{self.__log_name}({context_type}::{message.type.name}){f' - {request_id} {method} {url} ' if cms_object else ''}")
 
         if context_type == "client_source":
-            ret_val = ClientSourceContext(cms_object, self)
+            ret_val = ClientSourceContext(cms_object, self,message)
         elif context_type == "restful":
-            ret_val = RESTfulContext(cms_object, self)
+            ret_val = RESTfulContext(cms_object, self,message)
         elif context_type == "server_source":
             ret_val = ServerSourceContext(message_json, self)
         elif context_type == "web":
