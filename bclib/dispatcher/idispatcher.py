@@ -7,7 +7,7 @@ from bclib.db_manager import DbManager
 from bclib.cache import CacheManager
 from bclib.listener import Message
 from bclib.utility import DictEx
-
+from bclib.logger import LogObject
 if TYPE_CHECKING:
     from context import Context
 
@@ -60,8 +60,11 @@ class IDispatcher(ABC):
     def run_in_background(self, callback: Callable, *args: Any) -> asyncio.Future:
         """helper for run function in background thread"""
 
-    def log_async(self, **kwargs: 'dict[str,Any]'):
+    def new_object_log(self, **kwargs) -> LogObject:
+        """Create new log object"""
+
+    async def log_async(self, log_object: LogObject = None, **kwargs):
         """log params"""
 
-    def log_in_background(self, **kwargs: 'dict[str,Any]') -> Coroutine:
+    def log_in_background(self, log_object: LogObject = None, **kwargs) -> Coroutine:
         """log params in background precess"""

@@ -7,8 +7,7 @@ import sys
 import traceback
 from typing import Callable, Any, Coroutine
 from functools import wraps
-
-from bclib.logger import ILogger, LoggerFactory
+from bclib.logger import ILogger, LoggerFactory, LogObject
 from bclib.cache import CacheFactory
 from bclib.listener import RabbitBusListener
 from bclib.predicate import Predicate
@@ -406,11 +405,18 @@ class Dispatcher(ABC):
                 self.event_loop.run_until_complete(self.event_loop.create_task(after_end()))
             self.event_loop.close()
 
-    async def log_async(self, **kwargs):
-        """log params"""
-        await self.__logger.log_async(**kwargs)
+    def new_object_log(self, **kwargs) -> LogObject:
+        return self.__logger.new_object_log(**kwargs)
 
-    def log_in_background(self, **kwargs) -> Coroutine:
+    async def log_async(self, log_object: LogObject = None, **kwargs):
+        """log params"""
+        if log_object is None:
+            log_object = self.new_object_log(**kwargs)
+        await self.__logger.log_async(log_object)
+
+    def log_in_background(self, log_object: LogObject = None, **kwargs) -> Coroutine:
         """log params in background precess"""
+        if log_object is None:
+            log_object = self.new_object_log(**kwargs)
         return self.event_loop.create_task(
-            self.__logger.log_async(**kwargs))
+            self.__logger.log_async(log_object))
