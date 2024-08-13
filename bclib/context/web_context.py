@@ -1,7 +1,8 @@
-from typing import Any, TYPE_CHECKING, Coroutine, Optional, Union
+from itertools import islice
+import json
+from typing import Any, TYPE_CHECKING, Coroutine, Iterator, Optional, Union
 from aiohttp.web_response import ContentCoding
 
-from bclib.utility import HttpMimeTypes
 from ..context.request_context import RequestContext
 
 if TYPE_CHECKING:
@@ -32,3 +33,21 @@ class WebContext(RequestContext):
 
     async def enable_compression(self,force: Optional[Union[bool, ContentCoding]] = None) ->  None:
         await self.__message.enable_compression(force)
+
+    async def drain_array_async(self,data_list:Iterator,source_name:str, chunk_size:int)-> Coroutine[Any, Any, None]:
+        total_len =len(data_list)
+        current:int = 0
+        while current < total_len:
+            temp_list = list(islice(data_list,current,current + chunk_size))
+            current+= len(temp_list)
+            data = {
+                "sources": [
+                {
+                    "options": {
+                    "tableName": source_name,
+                    "mergeType": 0 #MergeType append,
+                    },
+                    "data": temp_list
+                }],
+            }
+            await self.write_and_drain_async(f"{json.dumps(data)},".encode())
