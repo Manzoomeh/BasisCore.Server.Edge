@@ -26,7 +26,7 @@ class RabbitSchemaBaseLogger(SchemaBaseLogger):
             channel.queue_declare(queue=queue, durable=durable, passive=passive, exclusive=exclusive, auto_delete=auto_delete)
             channel = connection.channel()
             channel.basic_publish(
-                exchange='', routing_key=queue, body=json.dumps(schema))
+                exchange='', routing_key=queue, body=json.dumps(schema, ensure_ascii=False))
         loop = asyncio.get_running_loop()
         future = loop.run_in_executor(None, send_to_rabbit, self.options)
         await future

@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from urllib.parse import urljoin
+from bclib.logger.log_object import LogObject
 from bclib.utility import DictEx
 
 from ..logger.log_schema import LogSchema
@@ -38,16 +39,17 @@ class SchemaBaseLogger(ILogger):
             self.__schemas[schema_name] = schema
         return self.__schemas[schema_name]
 
-    async def log_async(self,  **kwargs):
+    async def log_async(self, log_object: LogObject):
         """log data async"""
         try:
-            if 'schema_name' in kwargs:
-                schema_name = kwargs["schema_name"]
-                questions = await self.__get_dict_async(schema_name)
-                answer = questions.get_answer(kwargs)
-                await self._save_schema_async(answer)
-            else:
-                raise Exception("'schema_name' not set for apply logging!")
+            questions = await self.__get_dict_async(
+                schema_name=log_object.schema_name
+            )
+            answer = questions.get_answer(
+                params=log_object.properties
+            )
+            print("[ANSWER]", answer)
+            await self._save_schema_async(answer)
         except Exception as ex:
             print(
                 f"Error in log with schema logger: {repr(ex)}")
