@@ -405,18 +405,20 @@ class Dispatcher(ABC):
                 self.event_loop.run_until_complete(self.event_loop.create_task(after_end()))
             self.event_loop.close()
 
-    def new_object_log(self, **kwargs) -> LogObject:
-        return self.__logger.new_object_log(**kwargs)
+    def new_object_log(self, schema_name: str, **kwargs) -> LogObject:
+        return self.__logger.new_object_log(schema_name, **kwargs)
 
     async def log_async(self, log_object: LogObject = None, **kwargs):
         """log params"""
         if log_object is None:
-            log_object = self.new_object_log(**kwargs)
+            if "schema_name" not in kwargs:
+                raise Exception("'schema_name' not set for apply logging!")
+            schema_name = kwargs.pop("schema_name")
+            log_object = self.new_object_log(schema_name, **kwargs)
         await self.__logger.log_async(log_object)
 
     def log_in_background(self, log_object: LogObject = None, **kwargs) -> Coroutine:
         """log params in background precess"""
-        if log_object is None:
-            log_object = self.new_object_log(**kwargs)
         return self.event_loop.create_task(
-            self.__logger.log_async(log_object))
+            self.log_async(log_object, **kwargs)
+        )

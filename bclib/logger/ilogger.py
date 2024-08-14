@@ -8,6 +8,6 @@ class ILogger(ABC):
     async def log_async(self, log_object: LogObject):
         """log data async"""
 
-    def new_object_log(self, **kwargs) -> LogObject:
+    def new_object_log(self, schema_name: str, **kwargs) -> LogObject:
         """New object log"""
-        return LogObject(**kwargs)
+        return LogObject(schema_name, **kwargs)

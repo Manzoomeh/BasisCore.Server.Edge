@@ -48,7 +48,6 @@ class SchemaBaseLogger(ILogger):
             answer = questions.get_answer(
                 params=log_object.properties
             )
-            print("[ANSWER]", answer)
             await self._save_schema_async(answer)
         except Exception as ex:
             print(
