@@ -1,8 +1,7 @@
 import asyncio
 import json
 import random
-from bclib import edge
-import gzip
+from bclib import edge,utility
 
 main_service_options = {
     "server": "localhost:8080",
@@ -62,7 +61,9 @@ async def process_restful_action_async(context: edge.RequestContext):
     return [ {
         "id":i,
         "delay":delay,
-        "message":context.url_segments.service_name
+        "message":context.url_segments.service_name,
+        "name":context.url_segments.service_name,
+        "age":i
     } for i in range(1000)]
 
 
@@ -105,7 +106,7 @@ async def process_restful_action_async(context: edge.RESTfulContext):
                 {
                     "options": {
                     "tableName": "user.list",
-                    "mergeType": 0 #MergeType append,
+                    "mergeType": 1 #MergeType append,
                     },
                     "data": result
                 }],
@@ -127,8 +128,17 @@ async def process_restful_action_async(context: edge.RESTfulContext):
 @mani_app.restful_action(mani_app.get("stream-2"))
 async def process_restful_action_async(context: edge.RESTfulContext):
     print("start")
-    await context.start_stream_response_async( headers={'Content-Type': 'application/json; charset=utf-8'})
-    await context.write_and_drain_async("[".encode())
+    
+    delimiter = "___delimiter__"
+    await context.start_stream_response_async( headers= {
+        'Content-Type': 'text/html; charset=utf-8',
+        'X-Delimiter': delimiter,
+       
+       utility.HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN:'*',
+       utility.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS:'X-Delimiter',
+       utility.HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS:
+                           "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With"
+        })
     try:
         service_list =[
             ("service1",context.open_restful_connection("service1")),
@@ -143,18 +153,17 @@ async def process_restful_action_async(context: edge.RESTfulContext):
                 result:list = await service.get_async(f"/{name}")
             except Exception as ex:
                 result = [{"err" : str(ex)}]
-            await context.drain_array_async(result,"user.list",27)
+            await context.drain_array_async(result,"user.list",27,delimiter)
             
         tasks = [get_result_async(item[0],item[1]) for item in service_list]
         await asyncio.gather(*tasks)
-        await context.write_and_drain_async("null]".encode())
         print("end")
         return True
     except asyncio.CancelledError as ex:
         return False
     except Exception as ex:
         print(ex)
-        await context.write_and_drain_async(f"'{ex}']".encode())
+        await context.write_and_drain_async(f"'{ex}'".encode())
         return False
 
 @mani_app.restful_action()
