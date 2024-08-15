@@ -34,7 +34,7 @@ class WebContext(RequestContext):
     async def enable_compression(self,force: Optional[Union[bool, ContentCoding]] = None) ->  None:
         await self.__message.enable_compression(force)
 
-    async def drain_array_async(self,data_list:Iterator,source_name:str, chunk_size:int)-> Coroutine[Any, Any, None]:
+    async def drain_array_async(self,data_list:Iterator,source_name:str, chunk_size:int,delimiter:str=',')-> Coroutine[Any, Any, None]:
         total_len =len(data_list)
         current:int = 0
         while current < total_len:
@@ -45,9 +45,9 @@ class WebContext(RequestContext):
                 {
                     "options": {
                     "tableName": source_name,
-                    "mergeType": 0 #MergeType append,
+                    "mergeType": 1 #MergeType append,
                     },
                     "data": temp_list
                 }],
             }
-            await self.write_and_drain_async(f"{json.dumps(data)},".encode())
+            await self.write_and_drain_async(f"{json.dumps(data)}{delimiter}".encode())
