@@ -101,17 +101,7 @@ async def process_restful_action_async(context: edge.RESTfulContext):
                 result = await service.get_async(f"/{name}")
             except Exception as ex:
                 result = {"err" : str(ex)}
-            data = {
-                "sources": [
-                {
-                    "options": {
-                    "tableName": "user.list",
-                    "mergeType": 1 #MergeType append,
-                    },
-                    "data": result
-                }],
-            }
-            await context.write_and_drain_async(f"{json.dumps(data)},".encode())
+            await context.drain_array_async(result,"user.list",2)
             
         tasks = [get_result_async(item[0],item[1]) for item in service_list]
         await asyncio.gather(*tasks)
@@ -125,47 +115,6 @@ async def process_restful_action_async(context: edge.RESTfulContext):
         await context.write_and_drain_async(f"'{ex}']".encode())
         return False
     
-@mani_app.restful_action(mani_app.get("stream-2"))
-async def process_restful_action_async(context: edge.RESTfulContext):
-    print("start")
-    
-    delimiter = "___delimiter__"
-    await context.start_stream_response_async( headers= {
-        'Content-Type': 'text/html; charset=utf-8',
-        'X-Delimiter': delimiter,
-       
-       utility.HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN:'*',
-       utility.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS:'X-Delimiter',
-       utility.HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS:
-                           "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With"
-        })
-    try:
-        service_list =[
-            ("service1",context.open_restful_connection("service1")),
-            ("service2",context.open_restful_connection("service2")),
-            ("service3",context.open_restful_connection("service3")),
-            ("service4",context.open_restful_connection("service4")),
-            ("service5",context.open_restful_connection("service5")),
-            ("service6",context.open_restful_connection("service6")),
-        ]   
-        async def get_result_async(name:str, service:edge.RESTfulConnection):
-            try:
-                result:list = await service.get_async(f"/{name}")
-            except Exception as ex:
-                result = [{"err" : str(ex)}]
-            await context.drain_array_async(result,"user.list",27,delimiter)
-            
-        tasks = [get_result_async(item[0],item[1]) for item in service_list]
-        await asyncio.gather(*tasks)
-        print("end")
-        return True
-    except asyncio.CancelledError as ex:
-        return False
-    except Exception as ex:
-        print(ex)
-        await context.write_and_drain_async(f"'{ex}'".encode())
-        return False
-
 @mani_app.restful_action()
 async def process_restful_action_async(context: edge.RESTfulContext):
     return "Hi from simple web server"
