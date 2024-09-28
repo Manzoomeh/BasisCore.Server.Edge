@@ -108,27 +108,32 @@ class Answer:
         return self.__data_type_checker(validations.viewType, data_type, has_link)
 
     def __data_type_checker(self, view_type: str, datatype: str = None, has_link: bool = None):
-        if view_type in ["select", "checklist", "radio"]:
+        view_type = view_type.lower()
+        if view_type in ("select", "checklist", "radio"):
             if has_link == True:
                 result = "urlvalue"
             else:
                 result = "fixvalue"
         elif view_type == "textarea":
             result = "ntextvalue"
-        elif view_type == "text" and datatype in ["text", "None", None]:
+        elif view_type == "text" and datatype in ("text", "None", None):
             result = "textvalue"
         elif view_type == "text" and datatype == "int":
             result = "numvalue"
         elif view_type == "text" and datatype == "float":
             result = "floatvalue"
-        elif view_type == "autocomplete":
+        elif view_type in ("autocomplete", "simpleautocomplete"):
             result = "urlvalue"
-        elif view_type in ["upload", "blob"]:
+        elif view_type in ("upload", "blob"):
             result = "files"
         elif view_type == "color":
             result = "textvalue"
-        elif view_type == "reference":
+        elif view_type in ("reference", "simplereference"):
             result = "reference"
+        elif view_type == "component.calendar.datepicker":
+            result = "datevalue"
+        elif view_type == "component.bc.timepicker":
+            result = "timevalue"
         else:
             result = "None"
         return result

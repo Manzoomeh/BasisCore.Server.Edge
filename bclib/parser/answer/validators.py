@@ -102,8 +102,8 @@ class Validator(ABC):
     @staticmethod
     def regex_validator(value:"any", regex_expression:"str") -> "tuple[bool, list[str]|None]":
         try:
-            status = re.match(regex_expression, value.strip()) != None
-        except Exception as ex:
+            status = re.match(fr"{regex_expression}", value.strip()) != None
+        except:
             status = False
         
         message = None if status else "regex error"
