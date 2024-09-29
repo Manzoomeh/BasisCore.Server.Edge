@@ -3,6 +3,8 @@ if TYPE_CHECKING:
     from bclib.parser.answer.answer import Answer
 from ..answer.user_action_types import UserActionTypes
 from ..answer.file_user_action import FileUserAction
+from ..answer.date_user_action import DateUserAction
+from ..answer.time_user_action import TimeUserAction
 
 
 class UserAction:
@@ -58,6 +60,35 @@ class UserAction:
             "validation_message": self.validation_message
         }
 
+    def is_date_useraction(self):
+        return self.datatype == "datevalue"
+    
+    def as_date_useraction(self):
+        if self.is_date_useraction():
+            value = self.value
+            return DateUserAction(
+                self.prp_id,
+                self.prp_value_id,
+                self.value_id,
+                value["mstring"],
+                value["sstring"],
+                int(value["dateid"])
+            )
+
+    def is_time_useraction(self):
+        return self.datatype == "timevalue"
+
+    def as_time_useraction(self):
+        if self.is_time_useraction():
+            value = self.value
+            return TimeUserAction(
+                self.prp_id,
+                self.prp_value_id,
+                self.value_id,
+                value["time"],
+                int(value["timeid"])
+            )
+        
     def is_file_content(self):
         return self.datatype == "files"
 
