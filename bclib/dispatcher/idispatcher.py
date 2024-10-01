@@ -1,7 +1,7 @@
 """Dispatcher base class module"""
 from abc import ABC, abstractmethod
 import asyncio
-from typing import Callable, Any, TYPE_CHECKING, Coroutine
+from typing import Callable, Any, TYPE_CHECKING, Coroutine, Optional
 
 from bclib.db_manager import DbManager
 from bclib.cache import CacheManager
@@ -60,7 +60,7 @@ class IDispatcher(ABC):
     def run_in_background(self, callback: Callable, *args: Any) -> asyncio.Future:
         """helper for run function in background thread"""
 
-    def new_object_log(self, **kwargs) -> LogObject:
+    def new_object_log(self, schema_name: str, routing_key: Optional[str] = None, **kwargs) -> LogObject:
         """Create new log object"""
 
     async def log_async(self, log_object: LogObject = None, **kwargs):

@@ -5,7 +5,7 @@ from abc import ABC
 import signal
 import sys
 import traceback
-from typing import Callable, Any, Coroutine
+from typing import Callable, Any, Coroutine, Optional
 from functools import wraps
 from bclib.logger import ILogger, LoggerFactory, LogObject
 from bclib.cache import CacheFactory
@@ -405,8 +405,8 @@ class Dispatcher(ABC):
                 self.event_loop.run_until_complete(self.event_loop.create_task(after_end()))
             self.event_loop.close()
 
-    def new_object_log(self, schema_name: str, **kwargs) -> LogObject:
-        return self.__logger.new_object_log(schema_name, **kwargs)
+    def new_object_log(self, schema_name: str, routing_key: Optional[str] = None, **kwargs) -> LogObject:
+        return self.__logger.new_object_log(schema_name, routing_key, **kwargs)
 
     async def log_async(self, log_object: LogObject = None, **kwargs):
         """log params"""

@@ -1,5 +1,6 @@
 import asyncio
 import json
+from typing import Optional
 from ..logger.schema_base_logger import SchemaBaseLogger
 from bclib.utility import DictEx
 
@@ -7,26 +8,46 @@ from bclib.utility import DictEx
 class RabbitSchemaBaseLogger(SchemaBaseLogger):
     def __init__(self, options: DictEx) -> None:
         super().__init__(options)
-        if not options.has("connection") or not options.connection.has("url") or not options.connection.has("queue"):
-            raise Exception(
-                "connection part of schema logger not set.")
+        if "connection" not in options:
+            raise Exception("connection not set in logger option.")
+        self.__connection_options = options.connection
+        if "url" not in self.__connection_options:
+            raise Exception("url not set in connection option.")
+        if "queue" in self.__connection_options and "exchange" in self.__connection_options:
+            raise Exception("'queue' not acceptable when 'exchange' is set")
+        elif "queue" not in self.__connection_options and "exchange" not in self.__connection_options:
+            raise Exception("'exchange' or 'queue' must be set in connection option")
+        
+    async def _save_schema_async(self, schema: dict, routing_key: Optional[str] = None):
+        if routing_key is not None and self.__connection_options.queue is not None:
+            raise Exception("'routing key' is not acceptable when 'queue' is in options")
 
-    async def _save_schema_async(self, schema: dict):
-        def send_to_rabbit(options):
+        def send_to_rabbit():
             import pika
-            connection_options = options.connection
-            queue = connection_options.queue
-            durable = connection_options.durable if connection_options.has("durable") else False
-            passive=connection_options.passive if connection_options.has("passive") else False
-            exclusive=connection_options.exclusive if connection_options.has("exclusive") else False
-            auto_delete=connection_options.auto_delete if connection_options.has("auto_delete") else False
             connection = pika.BlockingConnection(
-                pika.URLParameters(connection_options.url))
+                pika.URLParameters(
+                    self.__connection_options.url
+                )
+            )
             channel = connection.channel()
-            channel.queue_declare(queue=queue, durable=durable, passive=passive, exclusive=exclusive, auto_delete=auto_delete)
-            channel = connection.channel()
+            queue = self.__connection_options.queue
+            if queue is not None:
+                channel.queue_declare(
+                    queue=queue,
+                    passive=self.__connection_options.passive or False,
+                    durable=self.__connection_options.durable or False,
+                    exclusive=self.__connection_options.exclusive or False,
+                    auto_delete=self.__connection_options.auto_delete or False
+                )
             channel.basic_publish(
-                exchange='', routing_key=queue, body=json.dumps(schema, ensure_ascii=False))
+                exchange=self.__connection_options.exchange or "", 
+                routing_key=routing_key or queue or "", 
+                body=json.dumps(schema, ensure_ascii=False),
+                properties=pika.BasicProperties(
+                    content_type="application/json",
+                    content_encoding="utf-8"
+                )
+            )
         loop = asyncio.get_running_loop()
-        future = loop.run_in_executor(None, send_to_rabbit, self.options)
+        future = loop.run_in_executor(None, send_to_rabbit)
         await future
