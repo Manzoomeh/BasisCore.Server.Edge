@@ -30,7 +30,7 @@ class SchemaBaseLogger(ILogger):
                 return LogSchema(schema_source["sources"][0]["data"][0])
 
     @abstractmethod
-    async def _save_schema_async(self, schema: dict):
+    async def _save_schema_async(self, schema: dict, routing_key: str = None):
         """Save scheme async"""
 
     async def __get_dict_async(self, schema_name: int) -> LogSchema:
@@ -48,7 +48,7 @@ class SchemaBaseLogger(ILogger):
             answer = questions.get_answer(
                 params=log_object.properties
             )
-            await self._save_schema_async(answer)
+            await self._save_schema_async(answer, log_object.routingKey)
         except Exception as ex:
             print(
                 f"Error in log with schema logger: {repr(ex)}")

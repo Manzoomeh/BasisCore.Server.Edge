@@ -13,7 +13,7 @@ class RESTfulSchemaBaseLogger(SchemaBaseLogger):
             raise Exception(
                 "url part of schema logger not set. set 'url' or 'post_url'")
 
-    async def _save_schema_async(self, schema: dict):
+    async def _save_schema_async(self, schema: dict, routing_key: str = None):
         import aiohttp
         async with aiohttp.ClientSession() as session:
             async with session.post(self.__post_url, json={"schema": schema}) as response:

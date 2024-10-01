@@ -10,7 +10,8 @@ options = {
         "connection":
         {
             "url": "amqp://guest:guest@localhost:5672",
-            "queue": "Test"
+            "exchange": "Test",
+            # "queue": "Test"
         }
     }
 }
@@ -87,11 +88,15 @@ def get_schema_by_id(context: edge.RESTfulContext):
 )
 async def process_restful_request_with_log_and_wait(context: edge.RESTfulContext):
     print("process_restful_request_with_log_and_wait")
-    log_dict = {
-        "data_1": "12",
-        "data_2": "ok"
-    }
-    log_object = context.dispatcher.new_object_log(schema_name="test", **log_dict)
+    log_object = context.dispatcher.new_object_log(schema_name="test", routing_key="test-1")
+    log_object.add_property(
+        prp_title="data_1",
+        answer=["12222"]
+    )
+    log_object.add_property(
+        prp_title="data_2",
+        answer=["okkkk"]
+    )
     print("befor log")
     await context.dispatcher.log_async(log_object)
     print("after log")
