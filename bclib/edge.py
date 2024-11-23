@@ -25,17 +25,18 @@ def from_list(hosts: 'dict[str,list[str]]'):
     """Create related RoutingDispatcher obj from path list object"""
     import subprocess
     import asyncio
+    import concurrent.futures
 
     __print_splash(True)
     loop = asyncio.get_event_loop()
-    for host, args in hosts.items():
-        try:
-            args.append(f"-n {host}")
-            args.append("-m")
-            loop.run_in_executor(None, subprocess.run, args)
-            print(f'{host} start runing from {args[1]}')
-        except Exception as ex:
-            print(ex)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(hosts.items())) as executor:
+        tasks:list[asyncio.Future] = []
+        for host, args in hosts.items():
+                args.append(f"-n {host}")
+                args.append("-m")
+                tasks.append(loop.run_in_executor(executor, subprocess.run, args))
+                print(f'{host} start running from {args[1]}')
+        loop.run_until_complete(asyncio.gather(*tasks))
 
 
 def from_options(options: dict,loop:asyncio.AbstractEventLoop = None) -> RoutingDispatcher:
