@@ -3,37 +3,33 @@ import asyncio
 import inspect
 from abc import ABC
 import signal
-import sys
 import traceback
-from typing import Callable, Any, Coroutine, Optional
+from typing import Awaitable, Callable, Any, Coroutine, Optional
 from functools import wraps
-from bclib.logger import ILogger, LoggerFactory, LogObject
-from bclib.cache import CacheFactory
+from dependency_injector import containers
+
+from bclib.logger import ILogger, LogObject
+from bclib.cache import CacheManager
 from bclib.listener import RabbitBusListener
 from bclib.predicate import Predicate
 from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext, NamedPipeContext
 from bclib.db_manager import DbManager
 from bclib.utility import DictEx
 from bclib.exception import HandlerNotFoundErr
-from ..dispatcher.callback_info import CallbackInfo
+from .callback_info import CallbackInfo
 
 
 class Dispatcher(ABC):
     """Base class for dispatching request"""
 
-    def __init__(self, options: dict = None,loop:asyncio.AbstractEventLoop = None):
-        self.options = DictEx(options)
+    def __init__(self,container:'containers.Container',  options: 'DictEx',cache_manager:'CacheManager',db_manager:'DbManager',logger:'ILogger', loop:'asyncio.AbstractEventLoop'):
+        self.options = options
+        self.container= container
         self.__look_up: 'dict[str, list[CallbackInfo]]' = dict()
-        cache_options = self.options.cache if "cache" in self.options else None
-        if loop is None and sys.platform == 'win32':
-            # By default Windows can use only 64 sockets in asyncio loop. This is a limitation of underlying select() API call.
-            # Use Windows version of proactor event loop using IOCP
-            loop = asyncio.ProactorEventLoop()
-            asyncio.set_event_loop(loop)
-        self.event_loop =  asyncio.get_event_loop() if loop is None else loop
-        self.cache_manager = CacheFactory.create(cache_options)
-        self.db_manager = DbManager(self.options, self.event_loop)
-        self.__logger: ILogger = LoggerFactory.create(self.options)
+        self.event_loop: 'asyncio.AbstractEventLoop' = loop
+        self.cache_manager: 'CacheManager' = cache_manager
+        self.db_manager = db_manager
+        self.__logger: ILogger = logger
         self.log_error: bool = self.options.log_error if self.options.has(
             "log_error") else False
         self.log_request: bool = self.options.log_request if self.options.has(
@@ -387,12 +383,13 @@ class Dispatcher(ABC):
         for dispatcher in self.__rabbit_dispatcher:
             dispatcher.initialize_task(self.event_loop)
 
-    def listening(self, before_start: Coroutine=None, after_end: Coroutine=None,with_block:bool = True):
+    def listening(self, with_block:bool = True):
         """Start listening to request for process"""
         for sig in (signal.SIGTERM, signal.SIGINT):
             signal.signal(sig, lambda sig, _: self.event_loop.stop())
-        if before_start != None:
-            self.event_loop.run_until_complete(self.event_loop.create_task(before_start()))
+        init_process = self.container.init_resources()
+        if isinstance( init_process,Awaitable):
+            self.event_loop.run_until_complete( init_process)  
         self.initialize_task()
         if with_block:
             self.event_loop.run_forever()
@@ -401,8 +398,9 @@ class Dispatcher(ABC):
                 task.cancel()
             group = asyncio.gather(*tasks, return_exceptions=True)
             self.event_loop.run_until_complete(group)
-            if after_end != None:
-                self.event_loop.run_until_complete(self.event_loop.create_task(after_end()))
+            shutdown_process = self.container.shutdown_resources()
+            if isinstance( shutdown_process,Awaitable):
+                self.event_loop.run_until_complete(shutdown_process)
             self.event_loop.close()
 
     def new_object_log(self, schema_name: str, routing_key: Optional[str] = None, **kwargs) -> LogObject:

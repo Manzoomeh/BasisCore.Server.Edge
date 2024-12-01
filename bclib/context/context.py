@@ -1,6 +1,6 @@
 from abc import ABC
 import traceback
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 from bclib.exception import ShortCircuitErr
 
@@ -10,7 +10,7 @@ from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
 import base64
 
 if TYPE_CHECKING:
-    from .. import dispatcher
+    from bclib import dispatcher
 
 
 class Context(ABC):
@@ -20,8 +20,12 @@ class Context(ABC):
         super().__init__()
         self.dispatcher = dispatcher
         self.url_segments: DictEx = None
-        self.url: str = None
+        self.url: Optional[str] = None
         self.is_adhoc = True
+
+    @property
+    def container(self):
+        return self.dispatcher.container
 
     def open_sql_connection(self, key: str) -> SqlDb:
         return self.dispatcher.db_manager.open_sql_connection(key)

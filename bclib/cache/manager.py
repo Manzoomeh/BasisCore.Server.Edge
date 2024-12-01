@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from bclib.utility import DictEx
-from ..cache.cache_status import CacheStatus
+from .cache_status import CacheStatus
 
 class CacheManager(ABC):
     def __init__(self, options:"DictEx") -> None:

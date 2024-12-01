@@ -5,3 +5,4 @@ from bclib.dispatcher.dev_server_dispatcher import DevServerDispatcher
 from bclib.dispatcher.routing_dispatcher import RoutingDispatcher
 from bclib.dispatcher.named_pipe_dispatcher import NamedPipeDispatcher
 from bclib.dispatcher.endpoint_dispatcher import EndpointDispatcher
+from bclib.dispatcher.dispatcher_helper import DispatcherHelper
