@@ -4,20 +4,22 @@ import json
 import re
 from struct import error
 from typing import Callable, Any, Coroutine, Optional
+from dependency_injector import containers
 
+from bclib.logger import ILogger
+from bclib.db_manager import DbManager
+from bclib.cache import CacheManager
 from bclib.utility import DictEx
-
 from bclib.context import ClientSourceContext, RESTfulContext, WebContext, RequestContext, Context, SocketContext, ServerSourceContext, NamedPipeContext
 from bclib.listener import Message, MessageType, HttpBaseDataType, ReceiveMessage
-
-from bclib.dispatcher.dispatcher_helper import DispatcherHelper
-from bclib.dispatcher.dispatcher import Dispatcher
+from .dispatcher_helper import DispatcherHelper
+from .dispatcher import  Dispatcher
 
 
 class RoutingDispatcher(Dispatcher, DispatcherHelper):
 
-    def __init__(self, options: dict,loop:asyncio.AbstractEventLoop=None):
-        super().__init__(options=options,loop=loop)
+    def __init__(self,container:'containers.Container', options: 'DictEx',cache_manager:'CacheManager',db_manager:'DbManager',logger:'ILogger',loop:'asyncio.AbstractEventLoop'=None):
+        super().__init__(container= container, options=options,cache_manager=cache_manager,db_manager=db_manager,logger=logger,loop=loop)
         self.__default_router = self.options.defaultRouter\
             if 'defaultRouter' in self.options and isinstance(self.options.defaultRouter, str)\
             else None

@@ -1,6 +1,8 @@
 """Main module of bclib.wrapper for all exist module that need in basic coding"""
 
 import asyncio
+import collections
+from dependency_injector import containers,providers
 from bclib.db_manager import *
 from bclib.dispatcher import RoutingDispatcher, IDispatcher, SocketDispatcher, DevServerDispatcher, NamedPipeDispatcher, EndpointDispatcher
 from bclib.context import Context, WebContext, SocketContext, ClientSourceContext, ClientSourceMemberContext, RabbitContext, RESTfulContext, RequestContext, MergeType, ServerSourceContext, ServerSourceMemberContext, SourceContext, SourceMemberContext, NamedPipeContext
@@ -8,8 +10,8 @@ from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes,
 from bclib.listener import Message, MessageType, HttpBaseDataType, HttpBaseDataName
 from bclib.predicate import Predicate
 from bclib.exception import *
+from bclib.edge_container import EdgeContainer
 from bclib import __version__
-
 
 def from_config(option_file_path: str, file_name: str = "host.json"):
     """Create related RoutingDispatcher obj from config file in related path"""
@@ -75,8 +77,38 @@ def from_options(options: dict,loop:asyncio.AbstractEventLoop = None) -> Routing
         ret_val = SocketDispatcher(options=options,loop=loop)
     return ret_val
 
+def __get_arg_parts(container:'EdgeContainer'):
+    import sys
+    import getopt
 
-def __print_splash(inMultiMode: bool):
+    argument_list = sys.argv[1:]
+    # Options
+    short_options = "mn:"
+    # Long options
+    long_options = ["Name =", "Multi"]
+    is_multi = False
+    try:
+        arguments, _ = getopt.gnu_getopt(
+            argument_list, short_options, long_options)
+        for current_argument, current_value in arguments:
+            if current_argument in ("-n", "--Name"):
+                container.app_config.name.from_value(current_value.strip())
+            elif current_argument in ("-m", "--Multi"):
+                is_multi = True
+        container.app_config.is_multi.from_value(is_multi)
+    except getopt.error as err:
+        print(str(err))
+
+def create_server(container:'EdgeContainer') -> RoutingDispatcher:
+    """Create related RoutingDispatcher obj from config object"""
+
+    container.app_container.override(providers.Object(container))
+    __get_arg_parts(container)
+    if not container.app_config.is_multi():
+        __print_splash(False)
+    return container.dispatcher()
+    
+def __print_splash(in_multi_mode: bool):
     print(f'''
 ______           _                          _____    _            
 | ___ \\         (_)                        |  ___|  | |           
@@ -92,7 +124,7 @@ Basiscore Edge
 Welcome To BasisCore Ecosystem
 Follow us on https://BasisCore.com/
 bclib Version : {__version__}
-Run in {'multi' if inMultiMode else 'single'} instance mode!
+Run in {'multi' if in_multi_mode else 'single'} instance mode!
 ***********************************
 (Press CTRL+C to quit)
 ''')

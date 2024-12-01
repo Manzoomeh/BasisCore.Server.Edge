@@ -1,6 +1,6 @@
 import asyncio
 from sys import platform
-from ..dispatcher.routing_dispatcher import RoutingDispatcher
+from .routing_dispatcher import RoutingDispatcher
 from bclib.listener import Message
 
 

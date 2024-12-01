@@ -1,6 +1,7 @@
 """Dispatcher base class module"""
 from abc import ABC, abstractmethod
 import asyncio
+from dependency_injector import containers
 from typing import Callable, Any, TYPE_CHECKING, Coroutine, Optional
 
 from bclib.db_manager import DbManager
@@ -14,6 +15,8 @@ if TYPE_CHECKING:
 
 class IDispatcher(ABC):
     """Dispatcher base class with core functionality for manage cache and background process"""
+    
+    container:'containers.Container'
 
     @property
     @abstractmethod
