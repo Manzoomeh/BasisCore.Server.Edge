@@ -23,10 +23,6 @@ class Context(ABC):
         self.url: Optional[str] = None
         self.is_adhoc = True
 
-    @property
-    def container(self):
-        return self.dispatcher.container
-
     def open_sql_connection(self, key: str) -> SqlDb:
         return self.dispatcher.db_manager.open_sql_connection(key)
 

@@ -45,7 +45,7 @@ def process_web_action(context: edge.WebContext):
 @app.web_action()
 @inject
 def process_default_web_action(context: edge.WebContext,val=Provide["object_provider"],container:AppContainer =Provide["edge_container"]):
-    return "result from process_default_web_action " + str(val or "?") +" "+ str(context.container.object_val()) + " "+ str(container.object_val2())
+    return "result from process_default_web_action " + str(val or "?") +" "+ str(context.dispatcher.container.object_val()) + " "+ str(container.object_val2())
 
 
 container.wire(modules=[__name__])

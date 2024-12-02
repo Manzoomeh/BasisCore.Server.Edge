@@ -1,12 +1,11 @@
 """Main module of bclib.wrapper for all exist module that need in basic coding"""
 
 import asyncio
-import collections
-from dependency_injector import containers,providers
+from dependency_injector import providers
 from bclib.db_manager import *
-from bclib.dispatcher import RoutingDispatcher, IDispatcher, SocketDispatcher, DevServerDispatcher, NamedPipeDispatcher, EndpointDispatcher
+from bclib.dispatcher import RoutingDispatcher, IDispatcher, SocketDispatcher, DevServerDispatcher, EndpointDispatcher
 from bclib.context import Context, WebContext, SocketContext, ClientSourceContext, ClientSourceMemberContext, RabbitContext, RESTfulContext, RequestContext, MergeType, ServerSourceContext, ServerSourceMemberContext, SourceContext, SourceMemberContext, NamedPipeContext
-from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes, HttpHeaders, WindowsNamedPipeHelper
+from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes, HttpHeaders
 from bclib.listener import Message, MessageType, HttpBaseDataType, HttpBaseDataName
 from bclib.predicate import Predicate
 from bclib.exception import *
@@ -48,14 +47,14 @@ def from_options(options: dict,loop:asyncio.AbstractEventLoop = None) -> Routing
     import getopt
 
     multi: bool = False
-    argumentList = sys.argv[1:]
+    argument_list = sys.argv[1:]
     # Options
     short_options = "mn:"
     # Long options
     long_options = ["Name =", "Multi"]
     try:
         arguments, _ = getopt.gnu_getopt(
-            argumentList, short_options, long_options)
+            argument_list, short_options, long_options)
         for current_argument, current_value in arguments:
             if current_argument in ("-n", "--Name"):
                 options["name"] = current_value.strip()
@@ -69,8 +68,6 @@ def from_options(options: dict,loop:asyncio.AbstractEventLoop = None) -> Routing
     ret_val: RoutingDispatcher = None
     if "server" in options:
         ret_val = DevServerDispatcher(options=options,loop=loop)
-    elif "named_pipe" in options:
-        ret_val = NamedPipeDispatcher(options=options,loop=loop)
     elif "endpoint" in options:
         ret_val = EndpointDispatcher(options=options,loop=loop)
     else:
