@@ -1,6 +1,6 @@
 import json
 from typing import Any, TYPE_CHECKING
-from ..context.context import Context
+from .context import Context
 if TYPE_CHECKING:
     from .. import dispatcher
 from bclib.utility import DictEx

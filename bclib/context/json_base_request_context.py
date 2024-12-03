@@ -2,11 +2,10 @@ import json
 from typing import TYPE_CHECKING
 
 from bclib.utility import HttpMimeTypes
-from bclib.context.web_context import WebContext
+from .web_context import WebContext
 
 if TYPE_CHECKING:
-    from .. import dispatcher
-    from .. import listener
+    from bclib import dispatcher,listener
 
 
 class JsonBaseRequestContext(WebContext):

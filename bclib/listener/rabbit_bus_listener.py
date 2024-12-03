@@ -1,11 +1,11 @@
 from struct import error
 from bclib.context import RabbitContext
 from typing import TYPE_CHECKING
-from bclib.listener.rabbit_listener import RabbitListener
+from .rabbit_listener import RabbitListener
 from bclib.utility import DictEx
 
 if TYPE_CHECKING:
-    from .. import dispatcher
+    from bclib import dispatcher
 
 
 class RabbitBusListener(RabbitListener):

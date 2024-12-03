@@ -6,11 +6,11 @@ from bclib.utility import DictEx
 
 
 class RabbitSchemaBaseLogger(SchemaBaseLogger):
-    def __init__(self, options: DictEx) -> None:
+    def __init__(self, options: 'DictEx') -> None:
         super().__init__(options)
-        if "connection" not in options:
+        if "connection" not in options.logger:
             raise Exception("connection not set in logger option.")
-        self.__connection_options = options.connection
+        self.__connection_options = options.logger.connection
         if "url" not in self.__connection_options:
             raise Exception("url not set in connection option.")
         if "queue" in self.__connection_options and "exchange" in self.__connection_options:

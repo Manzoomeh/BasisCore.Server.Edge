@@ -11,10 +11,9 @@ from urllib.parse import unquote, parse_qs
 
 from bclib.listener.message_type import MessageType
 from ..endpoint import Endpoint
-from ..http_listener.http_base_data_name import HttpBaseDataName
-from ..http_listener.http_base_data_type import HttpBaseDataType
+from .http_base_data_name import HttpBaseDataName
+from .http_base_data_type import HttpBaseDataType
 from bclib.utility import DictEx, ResponseTypes
-from ..message import Message
 from ..web_message import WebMessage
 import pathlib
 

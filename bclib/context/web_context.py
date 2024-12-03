@@ -3,15 +3,15 @@ import json
 from typing import Any, TYPE_CHECKING, Coroutine, Iterator, Optional, Union
 from aiohttp.web_response import ContentCoding
 
-from ..context.request_context import RequestContext
+from .request_context import RequestContext
 
 if TYPE_CHECKING:
-    from .. import dispatcher
-    from .. import listener
+    from bclib.dispatcher import dispatcher
+    from bclib.listener import WebMessage
 
 
 class WebContext(RequestContext):
-    def __init__(self, cms_object: dict,  dispatcher: 'dispatcher.IDispatcher',message_object: 'listener.WebMessage') -> None:
+    def __init__(self, cms_object: dict,  dispatcher: 'IDispatcher',message_object: 'WebMessage') -> None:
         super().__init__(cms_object, dispatcher)
         self.process_async = True
         self.__message = message_object
