@@ -1,7 +1,6 @@
-import json
 import re
 from struct import error
-from typing import Optional, TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING
 
 
 if TYPE_CHECKING:
@@ -9,16 +8,6 @@ if TYPE_CHECKING:
     from bclib.utility import DictEx
     from bclib.logger import ILogger
 from . import ClientSourceContext, RESTfulContext, WebContext, RequestContext, Context, SocketContext, ServerSourceContext
-
-
-# from .client_source_context import ClientSourceContext
-# from .restful_context import RESTfulContext
-# from .web_context import  WebContext
-# from .request_context import RequestContext
-# from .context import  Context
-# from .socket_context import SocketContext
-# from .server_source_context import ServerSourceContext
-# from .named_pipe_context import NamedPipeContext
 from bclib.listener.message import Message, MessageType
 from bclib.listener.http_listener.http_base_data_type import HttpBaseDataType
 
@@ -132,56 +121,3 @@ class ContextFactory:
             raise NameError(
                 f"Configured context type '{context_type}' not found for '{url}'")
         return ret_val
-
-    # async def create_context_async(self, message: 'Message', dispatcher:'IDispatcher') -> Context:
-    #     """Create context from message object"""
-
-    #     print('qam',json.dumps( message))
-    #     ret_val: RequestContext = None
-    #     context_type = None
-    #     cms_object: Optional[dict] = None
-    #     url: Optional[str] = None
-    #     request_id: Optional[str] = None
-    #     method: Optional[str] = None
-    #     message_json: Optional[dict] = None
-    #     if True: #message.buffer is not None:
-    #         #message_json = json.loads(message.buffer)
-    #         message_json = await message.get_json_async()
-    #         cms_object = message_json[HttpBaseDataType.CMS] if HttpBaseDataType.CMS in message_json else None
-    #         if cms_object:
-    #             if 'request' in cms_object:
-    #                 req = cms_object["request"]
-    #             else:
-    #                 raise KeyError("request key not found in cms object")
-    #             if 'full-url' in req:
-    #                 url = req["full-url"]
-    #             else:
-    #                 raise KeyError("full-url key not found in request")
-    #             request_id = req['request-id'] if 'request-id' in req else 'none'
-    #             method = req['methode'] if 'methode' in req else 'none'
-    #     if message.type == MessageType.AD_HOC:
-    #         if url or self.__default_router is None:
-    #             context_type = self.__context_type_detector(url)
-    #         else:
-    #             context_type = self.__default_router
-    #     else:
-    #         context_type = "socket"
-    #     self.logger.log_request(
-    #             f"({context_type}::{message.type.name}){f' - {request_id} {method} {url} ' if cms_object else ''}")
-
-    #     if context_type == "client_source":
-    #         ret_val = ClientSourceContext(cms_object, dispatcher,message)
-    #     elif context_type == "restful":
-    #         ret_val = RESTfulContext(cms_object, dispatcher,message)
-    #     elif context_type == "server_source":
-    #         ret_val = ServerSourceContext(message_json, dispatcher)
-    #     elif context_type == "web":
-    #         ret_val = WebContext(cms_object, dispatcher,message)
-    #     elif context_type == "socket":
-    #         ret_val = SocketContext(cms_object, dispatcher, message, message_json)
-    #     elif context_type is None:
-    #         raise NameError(f"No context found for '{url}'")
-    #     else:
-    #         raise NameError(
-    #             f"Configured context type '{context_type}' not found for '{url}'")
-    #     return ret_val

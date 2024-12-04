@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 
 from bclib.listener.message_type import MessageType
 from bclib.context import Context
-from bclib.listener.receive_message import ReceiveMessage
 from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, HttpStatusCodes, ResponseTypes
 
 if TYPE_CHECKING:
@@ -41,14 +40,9 @@ class SocketContext(Context):
         cms = Context._generate_response_cms(
             content, response_type, status_code, mime, template, headers)
         await self.message.write_result_async(cms,MessageType.MESSAGE)
-        # message = ReceiveMessage.create_from_object(
-        #     self.message.session_id, cms)
-        # await message.write_to_stream_async(self.message.writer)
 
     async def read_message_async(self) -> 'listener.SocketMessage':
         return await self.message.read_next_message_async()
 
     async def send_close_async(self) -> None:
-        #message = ReceiveMessage.create_disconnect(self.message.session_id)
-        #await message.write_to_stream_async(self.message.writer)
         await self.message.write_result_async(None,MessageType.DISCONNECT)

@@ -1,26 +1,18 @@
 import asyncio
 from typing import Callable, Coroutine
 
-from bclib.listener.receive_message import SocketMessage
-from bclib.listener.message import Message
+from bclib.listener.socket_message import SocketMessage
 from bclib.listener.endpoint import Endpoint
 
 
 class SocketListener:
-    def __init__(self, receiver: Endpoint, sender: Endpoint, on_message_receive_call_back: 'Callable[[Message], Coroutine[Message]]'):
+    def __init__(self, receiver: Endpoint, sender: Endpoint, on_message_receive_call_back: 'Callable[[SocketMessage],Coroutine]'):
         self.__receiver_endpoint = receiver
         self.__sender_endpoint = sender
         self.on_message_receive = on_message_receive_call_back
         self.__sender_stream_writer: asyncio.StreamWriter = None
         self.__receiver_server: asyncio.AbstractServer = None
         self.__sender_server: asyncio.AbstractServer = None
-
-    async def send_message_async(self, message: Message) -> bool:
-        try:
-            await message.write_to_stream_async(self.__sender_stream_writer)
-        except Exception as ex:
-            print(f"Error in send message {ex}")
-            return False
 
     async def on_sender_client_connect(self, _: asyncio.StreamReader, writer: asyncio.StreamWriter):
         peer_name = writer.get_extra_info('peername')
@@ -57,7 +49,6 @@ class SocketListener:
         cause = "closed!"
         try:
             while True:
-                # message = await Message.read_from_stream_async(reader)
                 message = SocketMessage(reader, writer)
                 if message:
                     loop.create_task(self.on_message_receive(message))

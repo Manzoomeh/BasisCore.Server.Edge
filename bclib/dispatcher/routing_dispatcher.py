@@ -1,6 +1,5 @@
 import asyncio
 import inspect
-import json
 
 from typing import Callable, Any, Coroutine, Optional
 from dependency_injector import containers
@@ -10,7 +9,7 @@ from bclib.db_manager import DbManager
 from bclib.cache import CacheManager
 from bclib.utility import DictEx
 from bclib.context.context_factory import ContextFactory
-from bclib.listener import Message, MessageType, HttpBaseDataType, ReceiveMessage
+from bclib.listener import Message, MessageType
 from .dispatcher_helper import DispatcherHelper
 from .dispatcher import Dispatcher
 
@@ -22,11 +21,10 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
                          cache_manager=cache_manager, db_manager=db_manager, logger=logger, loop=loop)
         self._context_factory = context_factory
 
-    async def _on_message_receive_async(self, message: Message):
+    async def _on_message_receive_async(self, message: Message) -> Coroutine:
         """Process received message"""
 
         try:
-            await message.fill_async()
             context = await self._context_factory.create_context_async(message, self)
             response = await self.dispatch_async(context)
             await message.set_result_async(response)

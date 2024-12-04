@@ -1,14 +1,9 @@
 import asyncio
-import json
 import ssl
-import base64
-from typing import Callable, TYPE_CHECKING, Optional, Awaitable
+from typing import Callable, TYPE_CHECKING, Coroutine, Optional
 from ..endpoint import Endpoint
-from .http_base_data_name import HttpBaseDataName
-from .http_base_data_type import HttpBaseDataType
-from bclib.utility import DictEx, ResponseTypes
+from bclib.utility import DictEx
 from ..web_message import WebMessage
-import pathlib
 
 if TYPE_CHECKING:
     from aiohttp import web
@@ -30,7 +25,7 @@ class HttpListener:
     _DEFAULT_CLIENT_MAX_SIZE = 1024 ** 2
     
 
-    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[WebMessage], Awaitable[WebMessage]]',ssl_options:'dict', configuration: Optional[DictEx]):
+    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[WebMessage],Coroutine]',ssl_options:'dict', configuration: Optional[DictEx]):
         self.__endpoint = endpoint
         self.on_message_receive_async = async_callback
         self.ssl_options = ssl_options
@@ -47,7 +42,6 @@ class HttpListener:
 
     async def __server_task(self, event_loop: asyncio.AbstractEventLoop):
         from aiohttp import web
-        from multidict import MultiDict
         async def on_request_receive_async(request: 'web.Request') -> web.Response:
             msg = WebMessage(request)
             await self.on_message_receive_async(msg)

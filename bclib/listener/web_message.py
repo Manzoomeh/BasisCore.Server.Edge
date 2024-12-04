@@ -1,6 +1,5 @@
 import base64
 import pathlib
-import uuid
 import cgi
 import io
 import datetime
@@ -13,12 +12,11 @@ from utility.response_types import ResponseTypes
 from bclib.listener.http_listener.http_base_data_name import HttpBaseDataName
 from bclib.listener.http_listener.http_base_data_type import HttpBaseDataType
 from bclib.listener.message import Message
-from bclib.listener.message_type import MessageType
 
 class WebMessage(Message):
     _id = 0
     def __init__(self,  request: 'web.Request') -> None:
-        super().__init__(session_id=str(uuid.uuid4()),message_type=MessageType.AD_HOC,buffer=None)
+        super().__init__()
         self.__request = request
         self.Response: web.Response = None
 

@@ -2,10 +2,9 @@ from bclib.listener.endpoint import Endpoint
 from bclib.listener.socket_listener import SocketListener
 from bclib.listener.rabbit_bus_listener import RabbitBusListener
 from bclib.listener.message import Message
-from bclib.listener.receive_message import ReceiveMessage
 from bclib.listener.message_type import MessageType
 from bclib.listener.http_listener.http_listener import HttpListener
 from bclib.listener.http_listener.http_base_data_name import HttpBaseDataName
 from bclib.listener.http_listener.http_base_data_type import HttpBaseDataType
 from bclib.listener.web_message import WebMessage
-from bclib.listener.receive_message import SocketMessage
+from bclib.listener.socket_message import SocketMessage
