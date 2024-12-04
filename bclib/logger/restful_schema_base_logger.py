@@ -3,12 +3,12 @@ from bclib.utility import DictEx
 
 
 class RESTfulSchemaBaseLogger(SchemaBaseLogger):
-    def __init__(self, options: DictEx) -> None:
+    def __init__(self, options: 'DictEx') -> None:
         super().__init__(options)
-        if options.has("url"):
-            self.__post_url = options.url
-        elif options.has("post_url"):
-            self.__post_url = options.post_url
+        if options.logger.has("url"):
+            self.__post_url = options.logger.url
+        elif options.logger.has("post_url"):
+            self.__post_url = options.logger.post_url
         else:
             raise Exception(
                 "url part of schema logger not set. set 'url' or 'post_url'")

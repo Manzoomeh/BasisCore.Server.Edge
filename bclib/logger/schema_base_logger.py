@@ -9,13 +9,12 @@ from ..logger.ilogger import ILogger
 
 class SchemaBaseLogger(ILogger):
 
-    def __init__(self, options: DictEx) -> None:
-        super().__init__()
-        self.options = options
-        if options.has("url"):
-            self.__get_url = options.url
-        elif options.has("get_url"):
-            self.__get_url = options.get_url
+    def __init__(self, options: 'DictEx') -> None:
+        super().__init__(options)
+        if options.logger.has("url"):
+            self.__get_url = options.logger.url
+        elif options.logger.has("get_url"):
+            self.__get_url = options.logger.get_url
         else:
             raise Exception(
                 "url part of schema logger not set. set 'url' or 'get_url'")

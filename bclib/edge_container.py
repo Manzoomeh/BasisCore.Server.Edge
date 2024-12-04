@@ -7,6 +7,7 @@ from bclib.db_manager import DbManager
 from bclib.cache import CacheFactory
 from bclib.utility import DictEx
 from bclib.dispatcher import SocketDispatcher, DevServerDispatcher, EndpointDispatcher
+from bclib.context.context_factory import ContextFactory
 
 def get_mode(options:'DictEx'):
     if options.has("server"):
@@ -38,9 +39,10 @@ class EdgeContainer(containers.DeclarativeContainer):
     app_cache_manager = providers.Singleton(CacheFactory.create,app_cache_options)
     app_db_manager = providers.Singleton(DbManager,app_options, app_event_loop)
     app_logger= providers.Singleton(LoggerFactory.create,app_options)
-    app_server_dispatcher = providers.Singleton(DevServerDispatcher,app_container, app_options,app_cache_manager,app_db_manager,app_logger,app_event_loop)
-    app_endpoint_dispatcher = providers.Singleton(EndpointDispatcher,app_container,app_options,app_cache_manager,app_db_manager,app_logger,app_event_loop)
-    app_socket_dispatcher = providers.Singleton(SocketDispatcher,app_container,app_options,app_cache_manager,app_db_manager,app_logger,app_event_loop)
+    app_context_factory = providers.Singleton(ContextFactory,app_options,app_logger)
+    app_server_dispatcher = providers.Singleton(DevServerDispatcher,app_container,app_context_factory, app_options,app_cache_manager,app_db_manager,app_logger,app_event_loop)
+    app_endpoint_dispatcher = providers.Singleton(EndpointDispatcher,app_container,app_context_factory,app_options,app_cache_manager,app_db_manager,app_logger,app_event_loop)
+    app_socket_dispatcher = providers.Singleton(SocketDispatcher,app_container,app_context_factory,app_options,app_cache_manager,app_db_manager,app_logger,app_event_loop)
 
     dispatcher = providers.Selector(
         app_mode,

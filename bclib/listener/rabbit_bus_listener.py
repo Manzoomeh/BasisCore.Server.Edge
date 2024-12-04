@@ -5,12 +5,12 @@ from bclib.listener.rabbit_listener import RabbitListener
 from bclib.utility import DictEx
 
 if TYPE_CHECKING:
-    from .. import dispatcher
+    from bclib.dispatcher import IDispatcher
 
 
 class RabbitBusListener(RabbitListener):
 
-    def __init__(self, rabbit_options: DictEx,  dispatcher: 'dispatcher.IDispatcher') -> None:
+    def __init__(self, rabbit_options: 'DictEx',  dispatcher: 'IDispatcher') -> None:
         super().__init__(rabbit_options)
         self.__dispatcher = dispatcher
 

@@ -82,15 +82,15 @@ async def process_message_async(context: edge.SocketContext):
         f'message of type {msg.type} come from {msg.session_id} in {datetime.datetime.now()}')
     future = context.dispatcher.run_in_background(
         send_data_async, context)
-    while True:
+    while not future.done():
         try:
             msg = await context.read_message_async()
             print(
                 f'message of type {msg.type} come from {msg.session_id} in {datetime.datetime.now()}')
             if msg.type in [edge.MessageType.DISCONNECT, edge.MessageType.NOT_EXIST]:
                 break
-        except:
-            print("connection closed!")
+        except Exception as ex:
+            print("connection closed!",ex)
             break
     future.cancel()
 

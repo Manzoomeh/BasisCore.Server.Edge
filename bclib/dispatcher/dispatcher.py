@@ -12,12 +12,13 @@ from bclib.logger import ILogger, LogObject
 from bclib.cache import CacheManager
 from bclib.listener import RabbitBusListener
 from bclib.predicate import Predicate
-from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext, NamedPipeContext
 from bclib.db_manager import DbManager
 from bclib.utility import DictEx
 from bclib.exception import HandlerNotFoundErr
 from .callback_info import CallbackInfo
 
+
+from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext
 
 class Dispatcher(ABC):
     """Base class for dispatching request"""
@@ -29,11 +30,7 @@ class Dispatcher(ABC):
         self.event_loop: 'asyncio.AbstractEventLoop' = loop
         self.cache_manager: 'CacheManager' = cache_manager
         self.db_manager = db_manager
-        self.__logger: ILogger = logger
-        self.log_error: bool = self.options.log_error if self.options.has(
-            "log_error") else False
-        self.log_request: bool = self.options.log_request if self.options.has(
-            "log_request") else True
+        self.logger: ILogger = logger
         self.__rabbit_dispatcher: 'list[RabbitBusListener]' = list()
         if "router" in self.options and "rabbit" in self.options.router:
             for setting in self.options.router.rabbit:
@@ -46,12 +43,12 @@ class Dispatcher(ABC):
         def _decorator(socket_action_handler: 'Callable[[SocketContext],bool]'):
 
             @wraps(socket_action_handler)
-            async def non_async_wrapper(context: SocketContext):
+            async def non_async_wrapper(context: 'SocketContext'):
                 await self.event_loop.run_in_executor(None, socket_action_handler, context)
                 return True
 
             @wraps(socket_action_handler)
-            async def async_wrapper(context: SocketContext):
+            async def async_wrapper(context: 'SocketContext'):
                 await socket_action_handler(context)
                 return True
 
@@ -69,12 +66,12 @@ class Dispatcher(ABC):
         def _decorator(restful_action_handler: 'Callable[[RESTfulContext], dict]'):
 
             @wraps(restful_action_handler)
-            async def non_async_wrapper(context: RESTfulContext):
+            async def non_async_wrapper(context: 'RESTfulContext'):
                 action_result = await self.event_loop.run_in_executor(None, restful_action_handler, context)
                 return None if action_result is None else context.generate_response(action_result)
 
             @wraps(restful_action_handler)
-            async def async_wrapper(context: RESTfulContext):
+            async def async_wrapper(context: 'RESTfulContext'):
                 action_result = await restful_action_handler(context)
                 return None if action_result is None else context.generate_response(action_result)
 
@@ -92,12 +89,12 @@ class Dispatcher(ABC):
         def _decorator(web_action_handler: 'Callable[[WebContext], str]'):
 
             @wraps(web_action_handler)
-            async def non_async_wrapper(context: WebContext):
+            async def non_async_wrapper(context: 'WebContext'):
                 action_result = await self.event_loop.run_in_executor(None, web_action_handler, context)
                 return None if action_result is None else context.generate_response(action_result)
 
             @wraps(web_action_handler)
-            async def async_wrapper(context: WebContext):
+            async def async_wrapper(context: 'WebContext'):
                 action_result = await web_action_handler(context)
                 return None if action_result is None else context.generate_response(action_result)
 
@@ -114,7 +111,7 @@ class Dispatcher(ABC):
 
         def _decorator(client_source_action_handler: 'Callable[[ClientSourceContext], Any]'):
             @wraps(client_source_action_handler)
-            async def non_async_wrapper(context: ClientSourceContext):
+            async def non_async_wrapper(context: 'ClientSourceContext'):
                 data = await self.event_loop.run_in_executor(None, client_source_action_handler, context)
                 result_set = list()
                 if data is not None:
@@ -144,7 +141,7 @@ class Dispatcher(ABC):
                     return None
 
             @wraps(client_source_action_handler)
-            async def async_wrapper(context: ClientSourceContext):
+            async def async_wrapper(context: 'ClientSourceContext'):
                 data = await client_source_action_handler(context)
                 result_set = list()
                 if data is not None:
@@ -188,11 +185,11 @@ class Dispatcher(ABC):
         def _decorator(client_source_member_handler: 'Callable[[ClientSourceMemberContext], Any]'):
 
             @wraps(client_source_member_handler)
-            async def non_async_wrapper(context: WebContext):
+            async def non_async_wrapper(context: 'WebContext'):
                 return await self.event_loop.run_in_executor(None, client_source_member_handler, context)
 
             @wraps(client_source_member_handler)
-            async def async_wrapper(context: WebContext):
+            async def async_wrapper(context: 'WebContext'):
                 return await client_source_member_handler(context)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
@@ -208,7 +205,7 @@ class Dispatcher(ABC):
 
         def _decorator(server_source_action_handler: 'Callable[[ServerSourceContext], Any]'):
             @wraps(server_source_action_handler)
-            async def non_async_wrapper(context: ServerSourceContext):
+            async def non_async_wrapper(context: 'ServerSourceContext'):
                 data = await self.event_loop.run_in_executor(None, server_source_action_handler, context)
                 result_set = list()
                 if data is not None:
@@ -238,7 +235,7 @@ class Dispatcher(ABC):
                     return None
 
             @wraps(server_source_action_handler)
-            async def async_wrapper(context: ServerSourceContext):
+            async def async_wrapper(context: 'ServerSourceContext'):
                 data = await server_source_action_handler(context)
                 result_set = list()
                 if data is not None:
@@ -282,11 +279,11 @@ class Dispatcher(ABC):
         def _decorator(server_source_member_action_handler: 'Callable[[ServerSourceMemberContext], Any]'):
 
             @wraps(server_source_member_action_handler)
-            async def non_async_wrapper(context: WebContext):
+            async def non_async_wrapper(context: 'WebContext'):
                 return await self.event_loop.run_in_executor(None, server_source_member_action_handler, context)
 
             @wraps(server_source_member_action_handler)
-            async def async_wrapper(context: WebContext):
+            async def async_wrapper(context: 'WebContext'):
                 return await server_source_member_action_handler(context)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
@@ -303,11 +300,11 @@ class Dispatcher(ABC):
         def _decorator(rabbit_action_handler: 'Callable[[RabbitContext], bool]'):
 
             @wraps(rabbit_action_handler)
-            async def non_async_wrapper(context: RabbitContext):
+            async def non_async_wrapper(context: 'RabbitContext'):
                 return await self.event_loop.run_in_executor(None, rabbit_action_handler, context)
 
             @wraps(rabbit_action_handler)
-            async def async_wrapper(context: RabbitContext):
+            async def async_wrapper(context: 'RabbitContext'):
                 return await rabbit_action_handler(context)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
@@ -317,28 +314,6 @@ class Dispatcher(ABC):
                 .append(CallbackInfo([*predicates], wrapper))
 
             return rabbit_action_handler
-        return _decorator
-
-    def named_pipe_action(self, * predicates: (Predicate)):
-        """Decorator for determine named pipe message request action"""
-
-        def _decorator(named_pipe_action_handler: 'Callable[[RabbitContext], bool]'):
-
-            @wraps(named_pipe_action_handler)
-            async def non_async_wrapper(context: NamedPipeContext):
-                return await self.event_loop.run_in_executor(None, named_pipe_action_handler, context)
-
-            @wraps(named_pipe_action_handler)
-            async def async_wrapper(context: NamedPipeContext):
-                return await named_pipe_action_handler(context)
-
-            wrapper = async_wrapper if inspect.iscoroutinefunction(
-                named_pipe_action_handler) else non_async_wrapper
-
-            self._get_context_lookup(NamedPipeContext.__name__)\
-                .append(CallbackInfo([*predicates], wrapper))
-
-            return named_pipe_action_handler
         return _decorator
 
     def _get_context_lookup(self, key: str) -> 'list[CallbackInfo]':
@@ -352,7 +327,7 @@ class Dispatcher(ABC):
             self.__look_up[key] = ret_val
         return ret_val
 
-    async def dispatch_async(self, context: Context) -> Any:
+    async def dispatch_async(self, context: 'Context') -> Any:
         """Dispatch context and get result from related action method"""
 
         result: Any = None
@@ -365,12 +340,10 @@ class Dispatcher(ABC):
                     break
             else:
                 ex = HandlerNotFoundErr(name)
-                if self.log_error:
-                    print(str(ex))
+                self.logger.log_error(ex)
                 result = context.generate_error_response(ex)
         except Exception as ex:
-            if self.log_error:
-                traceback.print_exc()
+            self.logger.log_error(ex)
             result = context.generate_error_response(ex)
         return result
 
@@ -383,6 +356,7 @@ class Dispatcher(ABC):
         for dispatcher in self.__rabbit_dispatcher:
             dispatcher.initialize_task(self.event_loop)
 
+    #TODO:pre ansd post callback replaced with resource provider of DI
     def listening(self, with_block:bool = True):
         """Start listening to request for process"""
         for sig in (signal.SIGTERM, signal.SIGINT):
@@ -404,7 +378,7 @@ class Dispatcher(ABC):
             self.event_loop.close()
 
     def new_object_log(self, schema_name: str, routing_key: Optional[str] = None, **kwargs) -> LogObject:
-        return self.__logger.new_object_log(schema_name, routing_key, **kwargs)
+        return self.logger.new_object_log(schema_name, routing_key, **kwargs)
 
     async def log_async(self, log_object: LogObject = None, **kwargs):
         """log params"""
@@ -413,7 +387,7 @@ class Dispatcher(ABC):
                 raise Exception("'schema_name' not set for apply logging!")
             schema_name = kwargs.pop("schema_name")
             log_object = self.new_object_log(schema_name, **kwargs)
-        await self.__logger.log_async(log_object)
+        await self.logger.log_async(log_object)
 
     def log_in_background(self, log_object: LogObject = None, **kwargs) -> Coroutine:
         """log params in background precess"""

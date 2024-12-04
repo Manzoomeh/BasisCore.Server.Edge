@@ -3,10 +3,10 @@ from typing import Any, TYPE_CHECKING
 
 from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes
 from bclib.exception import ShortCircuitErr
-from bclib.context.context import Context
+from .context import Context
 
 if TYPE_CHECKING:
-    from .. import dispatcher
+    from bclib import dispatcher
 
 
 class RequestContext(Context):

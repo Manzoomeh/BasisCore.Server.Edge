@@ -1,7 +1,7 @@
 import asyncio
 from abc import ABC, abstractmethod
-from bclib.utility import DictEx
 import pika
+from bclib.utility import DictEx
 
 class RabbitListener(ABC):
     def __init__(self, connection_options: DictEx) -> None:

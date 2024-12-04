@@ -1,12 +1,11 @@
 """Main module of bclib.wrapper for all exist module that need in basic coding"""
 
 import asyncio
-import collections
-from dependency_injector import containers,providers
+from dependency_injector import providers
 from bclib.db_manager import *
-from bclib.dispatcher import RoutingDispatcher, IDispatcher, SocketDispatcher, DevServerDispatcher, NamedPipeDispatcher, EndpointDispatcher
-from bclib.context import Context, WebContext, SocketContext, ClientSourceContext, ClientSourceMemberContext, RabbitContext, RESTfulContext, RequestContext, MergeType, ServerSourceContext, ServerSourceMemberContext, SourceContext, SourceMemberContext, NamedPipeContext
-from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes, HttpHeaders, WindowsNamedPipeHelper
+from bclib.dispatcher import RoutingDispatcher, IDispatcher, SocketDispatcher, DevServerDispatcher, EndpointDispatcher
+from bclib.context import Context, WebContext, SocketContext, ClientSourceContext, ClientSourceMemberContext, RabbitContext, RESTfulContext, RequestContext, MergeType, ServerSourceContext, ServerSourceMemberContext, SourceContext, SourceMemberContext
+from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes, HttpHeaders
 from bclib.listener import Message, MessageType, HttpBaseDataType, HttpBaseDataName
 from bclib.predicate import Predicate
 from bclib.exception import *
@@ -41,41 +40,47 @@ def from_list(hosts: 'dict[str,list[str]]'):
         loop.run_until_complete(asyncio.gather(*tasks))
 
 
+
+# def from_options(options: dict,loop:asyncio.AbstractEventLoop = None) -> RoutingDispatcher:
+#     """Create related RoutingDispatcher obj from config object"""
+
+#     import sys
+#     import getopt
+
+#     multi: bool = False
+#     argument_list = sys.argv[1:]
+#     # Options
+#     short_options = "mn:"
+#     # Long options
+#     long_options = ["Name =", "Multi"]
+#     try:
+#         arguments, _ = getopt.gnu_getopt(
+#             argument_list, short_options, long_options)
+#         for current_argument, current_value in arguments:
+#             if current_argument in ("-n", "--Name"):
+#                 options["name"] = current_value.strip()
+#             elif current_argument in ("-m", "--Multi"):
+#                 multi = True
+#     except getopt.error as err:
+#         print(str(err))
+
+#     if not multi:
+#         __print_splash(False)
+#     ret_val: RoutingDispatcher = None
+#     if "server" in options:
+#         ret_val = DevServerDispatcher(options=options,loop=loop)
+#     elif "endpoint" in options:
+#         ret_val = EndpointDispatcher(options=options,loop=loop)
+#     else:
+#         ret_val = SocketDispatcher(options=options,loop=loop)
+#     return ret_val
+
 def from_options(options: dict,loop:asyncio.AbstractEventLoop = None) -> RoutingDispatcher:
-    """Create related RoutingDispatcher obj from config object"""
-
-    import sys
-    import getopt
-
-    multi: bool = False
-    argumentList = sys.argv[1:]
-    # Options
-    short_options = "mn:"
-    # Long options
-    long_options = ["Name =", "Multi"]
-    try:
-        arguments, _ = getopt.gnu_getopt(
-            argumentList, short_options, long_options)
-        for current_argument, current_value in arguments:
-            if current_argument in ("-n", "--Name"):
-                options["name"] = current_value.strip()
-            elif current_argument in ("-m", "--Multi"):
-                multi = True
-    except getopt.error as err:
-        print(str(err))
-
-    if not multi:
-        __print_splash(False)
-    ret_val: RoutingDispatcher = None
-    if "server" in options:
-        ret_val = DevServerDispatcher(options=options,loop=loop)
-    elif "named_pipe" in options:
-        ret_val = NamedPipeDispatcher(options=options,loop=loop)
-    elif "endpoint" in options:
-        ret_val = EndpointDispatcher(options=options,loop=loop)
-    else:
-        ret_val = SocketDispatcher(options=options,loop=loop)
-    return ret_val
+    container=EdgeContainer()
+    container.app_config.from_dict(options)
+    if loop:
+        container.app_config.loop.from_value(loop)
+    return from_container(container)
 
 def __get_arg_parts(container:'EdgeContainer'):
     import sys
@@ -99,10 +104,11 @@ def __get_arg_parts(container:'EdgeContainer'):
     except getopt.error as err:
         print(str(err))
 
-def create_server(container:'EdgeContainer') -> RoutingDispatcher:
+def from_container(container:'EdgeContainer') -> RoutingDispatcher:
     """Create related RoutingDispatcher obj from config object"""
 
-    container.app_container.override(providers.Object(container))
+    if type(container) is not EdgeContainer:
+        container.app_container.override(providers.Object(container))
     __get_arg_parts(container)
     if not container.app_config.is_multi():
         __print_splash(False)
