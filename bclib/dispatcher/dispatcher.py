@@ -340,7 +340,7 @@ class Dispatcher(ABC):
                     break
             else:
                 ex = HandlerNotFoundErr(name)
-                self.logger._log_error(ex)
+                self.logger.log_error(ex)
                 result = context.generate_error_response(ex)
         except Exception as ex:
             self.logger.log_error(ex)

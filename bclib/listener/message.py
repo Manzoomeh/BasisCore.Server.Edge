@@ -1,20 +1,25 @@
 import asyncio
 import json
 from typing import Any
-from bclib.listener.message_type import MessageType
 from abc import abstractmethod
+
+from bclib.listener.message_type import MessageType
 
 
 class Message:
-    def __init__(self, sessionId: str,  messageType: MessageType, buffer: bytes = None) -> None:
-        self.session_id = sessionId
-        self.type = messageType
+    def __init__(self, session_id: str,  message_type: 'MessageType', buffer: bytes = None) -> None:
+        self.session_id = session_id
+        self.type = message_type
         self.buffer = buffer
 
-    @abstractmethod
-    def create_response_message(self, session_id: str, buffer: bytes) -> "Message":
-        return Message.create_add_hock(session_id,buffer)
+    async def fill_async(self):
+        pass
 
+    async def get_json_async(self):
+        return json.loads(self.buffer)
+
+    async def set_result_async(self, result: dict):
+        raise NotImplementedError("{0}::set_result_async",self.__class__.__name__)
 
     async def write_to_stream_async(self, stream: asyncio.StreamWriter) -> bool:
         is_send = True
@@ -67,3 +72,13 @@ class Message:
             ret_val = Message.create_from_object(
                 session_id,  data)
         return ret_val
+
+
+class ByteArrayMessage(Message):
+    def __init__(self, session_id: str,  message_type: 'MessageType', buffer: bytes):
+        super().__init__(session_id, message_type, buffer)
+
+
+class JsonBaseMessage(Message):
+    def __init__(self, session_id: str,  message_type: 'MessageType'):
+        super().__init__(session_id, message_type, None)

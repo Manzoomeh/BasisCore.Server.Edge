@@ -12,28 +12,24 @@ from bclib.utility import DictEx
 from bclib.context.context_factory import ContextFactory
 from bclib.listener import Message, MessageType, HttpBaseDataType, ReceiveMessage
 from .dispatcher_helper import DispatcherHelper
-from .dispatcher import  Dispatcher
+from .dispatcher import Dispatcher
 
 
 class RoutingDispatcher(Dispatcher, DispatcherHelper):
 
-    def __init__(self,container:'containers.Container', context_factory:'ContextFactory', options: 'DictEx',cache_manager:'CacheManager',db_manager:'DbManager',logger:'ILogger',loop:'asyncio.AbstractEventLoop'=None):
-        super().__init__(container= container, options=options,cache_manager=cache_manager,db_manager=db_manager,logger=logger,loop=loop)
+    def __init__(self, container: 'containers.Container', context_factory: 'ContextFactory', options: 'DictEx', cache_manager: 'CacheManager', db_manager: 'DbManager', logger: 'ILogger', loop: 'asyncio.AbstractEventLoop' = None):
+        super().__init__(container=container, options=options,
+                         cache_manager=cache_manager, db_manager=db_manager, logger=logger, loop=loop)
         self._context_factory = context_factory
 
-    async def _on_message_receive_async(self, message: Message) -> Message:
+    async def _on_message_receive_async(self, message: Message):
         """Process received message"""
 
         try:
-            context = self._context_factory.create_context(message,self)
+            await message.fill_async()
+            context = await self._context_factory.create_context_async(message, self)
             response = await self.dispatch_async(context)
-            ret_val: Message = None
-            if context.is_adhoc:
-                ret_val = message.create_response_message(
-                    message.session_id, 
-                    json.dumps(response, ensure_ascii=False).encode("utf-8")
-                )
-            return ret_val
+            await message.set_result_async(response)
         except Exception as ex:
             print(f"Error in process received message {ex}")
             raise ex
@@ -51,7 +47,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
         raise NotImplementedError(
             "Send ad-hoc message not support in this type of dispatcher")
 
-    def cache(self, life_time:"int"=0, key:"str"=None):
+    def cache(self, life_time: "int" = 0, key: "str" = None):
         """Cache result of function for seconds of time or until signal by key for clear"""
 
         return self.cache_manager.cache_decorator(key, life_time)

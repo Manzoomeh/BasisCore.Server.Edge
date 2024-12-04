@@ -29,9 +29,9 @@ class ILogger(ABC):
     
     def log_request(self, message:'str'):
         if(self.__log_request):
-            print(self.__log_name, message)
+            print(self.__log_name,'LOG', message)
 
     def log_error(self,error:'Exception'):
-        print(self.__log_name,str(error))
+        print(self.__log_name,'ERROR',str(error))
         traceback.print_exc()
 

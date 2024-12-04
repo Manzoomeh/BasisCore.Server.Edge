@@ -1,6 +1,8 @@
 import json
 from typing import TYPE_CHECKING
-from .context import Context
+
+from bclib.listener.message_type import MessageType
+from bclib.context import Context
 from bclib.listener.receive_message import ReceiveMessage
 from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, HttpStatusCodes, ResponseTypes
 
@@ -12,7 +14,7 @@ if TYPE_CHECKING:
 class SocketContext(Context):
     """Base class for dispatching web socket base request context"""
 
-    def __init__(self, cms_object: dict,  dispatcher: 'dispatcher.IDispatcher', message_object: 'listener.ReceiveMessage', body: dict) -> None:
+    def __init__(self, cms_object: dict,  dispatcher: 'dispatcher.IDispatcher', message_object: 'listener.SocketMessage', body: dict) -> None:
         super().__init__(dispatcher)
         self.cms = DictEx(cms_object) if cms_object else None
         self.url: str = self.cms.request.url if cms_object else None
@@ -38,13 +40,15 @@ class SocketContext(Context):
                                  headers: 'dict' = None) -> None:
         cms = Context._generate_response_cms(
             content, response_type, status_code, mime, template, headers)
-        message = ReceiveMessage.create_from_object(
-            self.message.session_id, cms)
-        await message.write_to_stream_async(self.message.writer)
+        await self.message.write_result_async(cms,MessageType.MESSAGE)
+        # message = ReceiveMessage.create_from_object(
+        #     self.message.session_id, cms)
+        # await message.write_to_stream_async(self.message.writer)
 
-    async def read_message_async(self) -> 'listener.ReceiveMessage':
+    async def read_message_async(self) -> 'listener.SocketMessage':
         return await self.message.read_next_message_async()
 
     async def send_close_async(self) -> None:
-        message = ReceiveMessage.create_disconnect(self.message.session_id)
-        await message.write_to_stream_async(self.message.writer)
+        #message = ReceiveMessage.create_disconnect(self.message.session_id)
+        #await message.write_to_stream_async(self.message.writer)
+        await self.message.write_result_async(None,MessageType.DISCONNECT)

@@ -6,7 +6,6 @@ from aiohttp.web_response import ContentCoding
 from .request_context import RequestContext
 
 if TYPE_CHECKING:
-    from bclib.dispatcher import dispatcher
     from bclib.listener import WebMessage
 
 
