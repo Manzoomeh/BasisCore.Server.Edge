@@ -1,15 +1,14 @@
 import asyncio
 
-from context.context_factory import ContextFactory
 from dependency_injector import containers
-from listener.socket_message import SocketMessage
+from bclib.context.context_factory import ContextFactory
+from bclib.listener.socket_message import SocketMessage
 from bclib.cache import CacheManager
 from bclib.db_manager import DbManager
 from bclib.logger import ILogger
-
 from bclib.utility import DictEx
 from bclib.listener import Endpoint
-from .routing_dispatcher import RoutingDispatcher
+from bclib.dispatcher.routing_dispatcher import RoutingDispatcher
 
 
 class EndpointDispatcher(RoutingDispatcher):

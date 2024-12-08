@@ -1,6 +1,6 @@
 import asyncio
 import json
-from ..logger.schema_base_logger import SchemaBaseLogger
+from bclib.logger.schema_base_logger import SchemaBaseLogger
 from bclib.utility import DictEx
 
 

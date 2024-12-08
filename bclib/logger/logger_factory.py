@@ -20,9 +20,9 @@ class LoggerFactory:
             else:
                 logger_type = logger_option.type.lower()
                 if logger_type == 'schema.restful':
-                    logger = RESTfulSchemaBaseLogger(logger_option)
+                    logger = RESTfulSchemaBaseLogger(options)
                 elif logger_type == "schema.rabbit":
-                    logger = RabbitSchemaBaseLogger(logger_option)
+                    logger = RabbitSchemaBaseLogger(options)
                 else:
                     raise Exception(
                         f"Type '{logger_type}' not support for logger")

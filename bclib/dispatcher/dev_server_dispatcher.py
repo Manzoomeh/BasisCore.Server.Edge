@@ -8,7 +8,7 @@ from bclib.cache import CacheManager
 from bclib.db_manager import DbManager
 from bclib.utility import DictEx
 from bclib.listener import Endpoint,  HttpListener
-from .routing_dispatcher import RoutingDispatcher
+from bclib.dispatcher.routing_dispatcher import RoutingDispatcher
 
 
 class DevServerDispatcher(RoutingDispatcher):

@@ -37,43 +37,10 @@ def from_list(hosts: 'dict[str,list[str]]'):
                 args.append("-m")
                 tasks.append(loop.run_in_executor(executor, subprocess.run, args))
                 print(f'{host} start running from {args[1]}')
-        loop.run_until_complete(asyncio.gather(*tasks))
-
-
-
-# def from_options(options: dict,loop:asyncio.AbstractEventLoop = None) -> RoutingDispatcher:
-#     """Create related RoutingDispatcher obj from config object"""
-
-#     import sys
-#     import getopt
-
-#     multi: bool = False
-#     argument_list = sys.argv[1:]
-#     # Options
-#     short_options = "mn:"
-#     # Long options
-#     long_options = ["Name =", "Multi"]
-#     try:
-#         arguments, _ = getopt.gnu_getopt(
-#             argument_list, short_options, long_options)
-#         for current_argument, current_value in arguments:
-#             if current_argument in ("-n", "--Name"):
-#                 options["name"] = current_value.strip()
-#             elif current_argument in ("-m", "--Multi"):
-#                 multi = True
-#     except getopt.error as err:
-#         print(str(err))
-
-#     if not multi:
-#         __print_splash(False)
-#     ret_val: RoutingDispatcher = None
-#     if "server" in options:
-#         ret_val = DevServerDispatcher(options=options,loop=loop)
-#     elif "endpoint" in options:
-#         ret_val = EndpointDispatcher(options=options,loop=loop)
-#     else:
-#         ret_val = SocketDispatcher(options=options,loop=loop)
-#     return ret_val
+        try:
+            loop.run_until_complete(asyncio.gather(*tasks))
+        except KeyboardInterrupt:
+            pass
 
 def from_options(options: dict,loop:asyncio.AbstractEventLoop = None) -> RoutingDispatcher:
     container=EdgeContainer()

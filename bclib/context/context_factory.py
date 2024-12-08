@@ -4,9 +4,9 @@ from typing import Callable, Optional, TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from dispatcher.idispatcher import IDispatcher
-    from bclib.utility import DictEx
+    from bclib.dispatcher.idispatcher import IDispatcher
     from bclib.logger import ILogger
+from bclib.utility import DictEx
 from . import ClientSourceContext, RESTfulContext, WebContext, RequestContext, Context, SocketContext, ServerSourceContext
 from bclib.listener.message import Message, MessageType
 from bclib.listener.http_listener.http_base_data_type import HttpBaseDataType
@@ -38,7 +38,7 @@ class ContextFactory:
 
         route_dict = dict()
         for key, values in router.items():
-            k = k.strip()
+            key = key.strip()
             if key != 'rabbit':
                 if '*' in values:
                     route_dict['*'] = key
