@@ -1,8 +1,8 @@
 import asyncio
 
 from dependency_injector import containers
+from bclib.listener.end_point_message import EndPointMessage
 from bclib.context.context_factory import ContextFactory
-from bclib.listener.socket_message import SocketMessage
 from bclib.cache import CacheManager
 from bclib.db_manager import DbManager
 from bclib.logger import ILogger
@@ -22,7 +22,7 @@ class EndpointDispatcher(RoutingDispatcher):
 
         async def on_connection_open(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
             try:
-                msg = SocketMessage(reader, writer)
+                msg = EndPointMessage(reader, writer)
                 await self._on_message_receive_async(message=msg)
             except:
                 pass

@@ -1,5 +1,5 @@
 from struct import error
-from bclib.context import RabbitContext
+from bclib.context.rabbit_context import RabbitContext
 from typing import TYPE_CHECKING
 from bclib.listener.rabbit_listener import RabbitListener
 from bclib.utility import DictEx

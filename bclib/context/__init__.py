@@ -12,3 +12,4 @@ from bclib.context.server_source_member_context import ServerSourceMemberContext
 from bclib.context.source_context import SourceContext
 from bclib.context.source_member_context import SourceMemberContext
 from bclib.context.context_factory import ContextFactory
+from bclib.context.end_point_context import EndPointContext

@@ -7,7 +7,14 @@ if TYPE_CHECKING:
     from bclib.dispatcher.idispatcher import IDispatcher
     from bclib.logger import ILogger
 from bclib.utility import DictEx
-from . import ClientSourceContext, RESTfulContext, WebContext, RequestContext, Context, SocketContext, ServerSourceContext
+from bclib.context.client_source_context import ClientSourceContext
+from bclib.context.context import Context
+from bclib.context.restful_context import RESTfulContext
+from bclib.context.web_context import WebContext
+from bclib.context.request_context import RequestContext
+from bclib.context.socket_context import SocketContext
+from bclib.context.server_source_context import ServerSourceContext
+from bclib.context.end_point_context import EndPointContext
 from bclib.listener.message import Message, MessageType
 from bclib.listener.http_listener.http_base_data_type import HttpBaseDataType
 
@@ -100,7 +107,7 @@ class ContextFactory:
             else:
                 context_type = self.__default_router
         else:
-            context_type = "socket"
+            context_type = "endpoint"
         self.logger.log_request(
             f"({context_type}::{message.type.name}){f' - {request_id} {method} {url} ' if cms_object else ''}")
 
@@ -112,6 +119,8 @@ class ContextFactory:
             ret_val = ServerSourceContext(message_json, dispatcher)
         elif context_type == "web":
             ret_val = WebContext(cms_object, dispatcher, message)
+        elif context_type == "endpoint":
+            ret_val = EndPointContext(cms_object, dispatcher, message, message_json)
         elif context_type == "socket":
             ret_val = SocketContext(
                 cms_object, dispatcher, message, message_json)

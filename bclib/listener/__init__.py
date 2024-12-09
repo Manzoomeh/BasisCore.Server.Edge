@@ -8,3 +8,4 @@ from bclib.listener.http_listener.http_base_data_name import HttpBaseDataName
 from bclib.listener.http_listener.http_base_data_type import HttpBaseDataType
 from bclib.listener.web_message import WebMessage
 from bclib.listener.socket_message import SocketMessage
+from bclib.listener.end_point_message import EndPointMessage
