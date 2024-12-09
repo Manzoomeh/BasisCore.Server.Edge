@@ -18,7 +18,7 @@ from bclib.exception import HandlerNotFoundErr
 from .callback_info import CallbackInfo
 
 
-from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext
+from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext,EndPointContext
 
 class Dispatcher(ABC):
     """Base class for dispatching request"""
@@ -37,6 +37,29 @@ class Dispatcher(ABC):
                 self.__rabbit_dispatcher.append(
                     RabbitBusListener(setting, self))
 
+    def endpoint_action(self, * predicates: (Predicate)):
+        """Decorator for determine end point action"""
+
+        def _decorator(end_point_action_handler: 'Callable[[EndPointContext],bool]'):
+
+            @wraps(end_point_action_handler)
+            async def non_async_wrapper(context: 'EndPointContext'):
+                await self.event_loop.run_in_executor(None, end_point_action_handler, context)
+                return True
+
+            @wraps(end_point_action_handler)
+            async def async_wrapper(context: 'EndPointContext'):
+                await end_point_action_handler(context)
+                return True
+
+            wrapper = async_wrapper if inspect.iscoroutinefunction(
+                end_point_action_handler) else non_async_wrapper
+
+            self._get_context_lookup(EndPointContext.__name__)\
+                .append(CallbackInfo([*predicates], wrapper))
+            return end_point_action_handler
+        return _decorator
+    
     def socket_action(self, * predicates: (Predicate)):
         """Decorator for determine Socket action"""
 

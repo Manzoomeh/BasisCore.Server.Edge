@@ -13,7 +13,7 @@ class SocketListener:
         self.__sender_stream_writer: asyncio.StreamWriter = None
         self.__receiver_server: asyncio.AbstractServer = None
         self.__sender_server: asyncio.AbstractServer = None
-
+        
     async def on_sender_client_connect(self, _: asyncio.StreamReader, writer: asyncio.StreamWriter):
         peer_name = writer.get_extra_info('peername')
         print(f'Reader from {peer_name}, connect to sender!')

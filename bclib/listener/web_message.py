@@ -60,7 +60,8 @@ class WebMessage(Message):
                 headers=headers
             )
             if HttpBaseDataName.CONTENT in cms_cms:
-                self.Response.text = cms_cms[HttpBaseDataName.CONTENT]
+                value = cms_cms[HttpBaseDataName.CONTENT]
+                self.Response.text =value if value is None or isinstance(value,str) else str(value)
             else:
                 raw_blob_content = cms_cms[HttpBaseDataName.BLOB_CONTENT]
                 #TODO:Check for remove extra encoding

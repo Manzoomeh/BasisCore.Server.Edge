@@ -6,7 +6,6 @@ from typing import Callable, Any, TYPE_CHECKING, Coroutine, Optional
 
 from bclib.db_manager import DbManager
 from bclib.cache import CacheManager
-from bclib.listener import Message
 from bclib.utility import DictEx
 from bclib.logger import LogObject
 if TYPE_CHECKING:

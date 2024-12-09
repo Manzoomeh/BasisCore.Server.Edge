@@ -56,7 +56,7 @@ async def send_data_async(context: edge.SocketContext):
             }
             id += 1
             print(
-                f'Send data to {context.message.session_id} in {datetime.datetime.now()}')
+                f'Send data to {context.message.session_id} in {datetime.datetime.now()}',type(context))
             try:
                 await context.send_object_async(data)
             except:  # ConnectionError
@@ -73,8 +73,8 @@ async def send_data_async(context: edge.SocketContext):
 ########
 
 
-@app.socket_action()
-async def process_message_async(context: edge.SocketContext):
+@app.endpoint_action()
+async def process_message_async(context: edge.EndPointContext):
     print(
         f'message of type {context.message.type} come from {context.message.session_id} in {datetime.datetime.now()}')
     msg = await context.read_message_async()
