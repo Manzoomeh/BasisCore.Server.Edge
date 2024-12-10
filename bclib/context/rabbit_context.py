@@ -1,9 +1,10 @@
 import json
-from typing import Any, TYPE_CHECKING
-from .context import Context
+from typing import TYPE_CHECKING
+from bclib.context.context import Context
+from bclib.utility.dict_ex import DictEx
+
 if TYPE_CHECKING:
-    from bclib.dispatcher import IDispatcher
-from bclib.utility import DictEx
+    from bclib.dispatcher.idispatcher import IDispatcher
 
 
 class RabbitContext(Context):

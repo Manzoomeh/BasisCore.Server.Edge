@@ -1,12 +1,14 @@
 from typing import Callable
 import json
 import asyncio
-from ..signaler.base_signaler import BaseSignaler
+from bclib.cache.signaler.base_signaler import BaseSignaler
 from bclib.utility import DictEx
+
 
 class RabbitSignaller(BaseSignaler):
     """Implement rabbit-mq signaler"""
-    def __init__(self, reset_cache_callback:"Callable", options:"DictEx") -> None:
+
+    def __init__(self, reset_cache_callback: "Callable", options: "DictEx") -> None:
         super().__init__(reset_cache_callback, options)
         import pika
         try:

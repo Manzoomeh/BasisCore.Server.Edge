@@ -1,17 +1,17 @@
 import json
 from typing import TYPE_CHECKING
-from bclib.utility import DictEx
-from ..context.json_base_request_context import JsonBaseRequestContext
+from bclib.utility.dict_ex import DictEx
+from bclib.context.json_base_request_context import JsonBaseRequestContext
 from urllib.parse import parse_qsl
 
 if TYPE_CHECKING:
-    from .. import dispatcher
-    from .. import listener
+    from bclib.dispatcher.idispatcher import IDispatcher
+    from bclib.listener.web_message import WebMessage
 
 
 class RESTfulContext(JsonBaseRequestContext):
-    def __init__(self, cms_object: dict, dispatcher: 'dispatcher.IDispatcher',message_object: 'listener.WebMessage') -> None:
-        super().__init__(cms_object, dispatcher,message_object)
+    def __init__(self, cms_object: 'dict', dispatcher: 'IDispatcher', message_object: 'WebMessage') -> None:
+        super().__init__(cms_object, dispatcher, message_object)
         temp_data = None
         if self.cms.form:
             temp_data = self.cms.form

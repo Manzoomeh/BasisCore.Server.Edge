@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from bclib.parser.answer.answer import Answer
-from ..answer.user_action_types import UserActionTypes
-from ..answer.file_user_action import FileUserAction
-from ..answer.date_user_action import DateUserAction
-from ..answer.time_user_action import TimeUserAction
+from bclib.parser.answer.user_action_types import UserActionTypes
+from bclib.parser.answer.file_user_action import FileUserAction
+from bclib.parser.answer.date_user_action import DateUserAction
+from bclib.parser.answer.time_user_action import TimeUserAction
 
 
 class UserAction:
@@ -22,19 +22,19 @@ class UserAction:
         self.multi = multi
         self.answer: 'Answer' = answer
         self.internal_prp_value_id: "int" = internal_prp_value_id
-        self.database:"str" = None
-        self.table:"str" = None
-        self.field:"str" = None
-        self.ownerid:"int" = 0
-        self.typeid:"int" = None
-        self.wordid:"int" = None
+        self.database: "str" = None
+        self.table: "str" = None
+        self.field: "str" = None
+        self.ownerid: "int" = 0
+        self.typeid: "int" = None
+        self.wordid: "int" = None
         self.validation_status: "bool" = True
         self.validation_message: "list[str]" = []
 
     def as_tuple(self) -> tuple:
         return (
             self.prp_id, self.action.value, self.prp_value_id, self.internal_prp_value_id, self.value_id,
-            self.value, self.part, self.datatype, self.database, self.table, self.field, self.multi, 
+            self.value, self.part, self.datatype, self.database, self.table, self.field, self.multi,
             self.ownerid, self.typeid, self.wordid, self.answer, self.validation_status, self.validation_message
         )
 
@@ -62,7 +62,7 @@ class UserAction:
 
     def is_date_useraction(self):
         return self.datatype == "datevalue"
-    
+
     def as_date_useraction(self):
         if self.is_date_useraction():
             value = self.value
@@ -88,7 +88,7 @@ class UserAction:
                 value["time"],
                 int(value["timeid"])
             )
-        
+
     def is_file_content(self):
         return self.datatype == "files"
 

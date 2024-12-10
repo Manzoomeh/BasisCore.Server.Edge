@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from ..context.merge_type import MergeType
+from bclib.context.merge_type import MergeType
 
-from bclib.utility import DictEx
+from bclib.utility.dict_ex import DictEx
 
 
 class SourceMemberContext(ABC):

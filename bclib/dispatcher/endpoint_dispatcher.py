@@ -3,11 +3,11 @@ import asyncio
 from dependency_injector import containers
 from bclib.listener.end_point_message import EndPointMessage
 from bclib.context.context_factory import ContextFactory
-from bclib.cache import CacheManager
+from cache.cache_manager import CacheManager
 from bclib.db_manager import DbManager
-from bclib.logger import ILogger
+from bclib.logger.ilogger import ILogger
 from bclib.utility import DictEx
-from bclib.listener import Endpoint
+from bclib.listener.endpoint import Endpoint
 from bclib.dispatcher.routing_dispatcher import RoutingDispatcher
 
 

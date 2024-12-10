@@ -5,23 +5,23 @@ from bclib.parser.answer.enriched_data import EnrichedData
 from bclib.parser.answer.storage_data import StorageData
 from bclib.parser.answer.question_data import QuestionData
 from bclib import parser
-from bclib.db_manager import RESTfulConnection
+from bclib.db_manager.restful_connection import RESTfulConnection
 from bclib.parser.answer.validators import Validator
 from bclib.utility import DictEx
-from ..answer.user_action_types import UserActionTypes
-from ..answer.user_action import UserAction
-import asyncio
+from bclib.parser.answer.user_action_types import UserActionTypes
+from bclib.parser.answer.user_action import UserAction
+
 
 class Answer:
     """BasisJsonParser is a tool to parse basis_core components json objects. This tool is developed based on
              basis_core key and values."""
 
-    def __init__(self, data: 'str|Any', api_url: 'str' = None, check_validation:"bool"= False):
+    def __init__(self, data: 'str|Any', api_url: 'str' = None, check_validation: "bool" = False):
         self.json = json.loads(data) if isinstance(data, str) else data
         self.__answer_list: 'list[UserAction]' = None
         self.__api_connection = RESTfulConnection(
             api_url) if api_url else None
-        self.check_validation = check_validation 
+        self.check_validation = check_validation
 
     async def __fill_answer_list_async(self):
         self.__answer_list = list()
@@ -32,13 +32,16 @@ class Answer:
                 if action_type.value in list(data.keys()):
                     prp_id = data['propId'] if action_type != UserActionTypes.ANSWERS else data["prpId"]
                     for actions in data[action_type.value]:
-                        prp_value_id = actions['id'] if 'id' in actions.keys() else None
+                        prp_value_id = actions['id'] if 'id' in actions.keys(
+                        ) else None
                         if 'parts' in actions.keys():
                             for parts in actions['parts']:
                                 internal_prp_value_id = internal_prp_value_index
-                                part_number = parts['part'] if "part" in parts.keys() else None
+                                part_number = parts['part'] if "part" in parts.keys(
+                                ) else None
                                 for values in parts['values']:
-                                    value_id = values['id'] if "id" in values.keys() else None
+                                    value_id = values['id'] if "id" in values.keys(
+                                    ) else None
                                     value = values['value']
                                     answer = parser.ParseAnswer(
                                         values["answer"]) if 'answer' in values.keys() else None
@@ -70,7 +73,8 @@ class Answer:
                             for validations in parts.parts
                         ]
                         questions_info.append(
-                            QuestionData(parts.prpId, parts.OwnerID, parts.TypeID if "TypeID" in parts else parts.typeid, parts.wordId, enriched_data_list)
+                            QuestionData(
+                                parts.prpId, parts.OwnerID, parts.TypeID if "TypeID" in parts else parts.typeid, parts.wordId, enriched_data_list)
                         )
         if len(questions_info) > 0:
             for values in self.__answer_list:
@@ -88,23 +92,27 @@ class Answer:
                                     values.table = storage_data.table
                                     values.field = storage_data.field
                                 if self.check_validation and values.action != UserActionTypes.DELETED:
-                                    status, message = Validator.check_validators(enriched_data.validators, values.value)
+                                    status, message = Validator.check_validators(
+                                        enriched_data.validators, values.value)
                                     values.validation_status = status
                                     values.validation_message = message
-                
-    def __enrich_data(self, validations:DictEx) -> 'EnrichedData':
+
+    def __enrich_data(self, validations: DictEx) -> 'EnrichedData':
         part_id = validations.part
         data_type = self.__set_data_type(validations)
         val_val = validations.validations
-        storage_data = self.__set_storage_data(val_val) if isinstance(val_val, dict) else None
-        validators = val_val if self.check_validation and isinstance(validations.validations, dict) else {}
+        storage_data = self.__set_storage_data(
+            val_val) if isinstance(val_val, dict) else None
+        validators = val_val if self.check_validation and isinstance(
+            validations.validations, dict) else {}
         return EnrichedData(part_id, data_type, storage_data, validators)
 
-    def __set_data_type(self, validations:DictEx) -> 'str':
+    def __set_data_type(self, validations: DictEx) -> 'str':
         has_link = True if validations.link else False
         val_val = validations.validations
-        data_type = val_val["dataType"] if isinstance(val_val, dict) and "dataType" in val_val else None
-        
+        data_type = val_val["dataType"] if isinstance(
+            val_val, dict) and "dataType" in val_val else None
+
         return self.__data_type_checker(validations.viewType, data_type, has_link)
 
     def __data_type_checker(self, view_type: str, datatype: str = None, has_link: bool = None):
@@ -137,13 +145,13 @@ class Answer:
         else:
             result = "None"
         return result
-    
-    def __set_storage_data(self, val_val:"dict") -> "StorageData":
+
+    def __set_storage_data(self, val_val: "dict") -> "StorageData":
         database = val_val["database"] if "database" in val_val else None
         table = val_val["table"] if "table" in val_val else None
         field = val_val["field"] if "field" in val_val else None
         return StorageData(database, table, field)
-                
+
     async def __get_action_async(self, prp_id_list: 'list[int]', action_list: 'list[UserActionTypes]', part_list: 'list[int]', is_file: "bool" = None, predicate: 'Callable[[UserAction],bool]' = None) -> 'list[UserAction]':
         ret_val: 'list[UserAction]' = None
         if self.__answer_list is None:

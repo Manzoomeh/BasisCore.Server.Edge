@@ -1,24 +1,24 @@
 import json
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, Optional
 
 from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes
 from bclib.exception import ShortCircuitErr
-from .context import Context
+from bclib.context.context import Context
 
 if TYPE_CHECKING:
-    from bclib import dispatcher
+    from bclib.dispatcher.idispatcher import IDispatcher
 
 
 class RequestContext(Context):
     """Base class for dispatching http base request context"""
 
-    def __init__(self, cms_object: dict,  dispatcher: 'dispatcher.IDispatcher') -> None:
+    def __init__(self, cms_object: 'dict',  dispatcher: 'IDispatcher') -> None:
         super().__init__(dispatcher)
         self.cms = DictEx(cms_object)
         self.url: str = self.cms.request.url
         self.query: DictEx = self.cms.query
         self.form: DictEx = self.cms.form
-        self.__headers: dict = None
+        self.__headers: Optional[dict] = None
         self.response_type: str = ResponseTypes.RENDERED
         self.status_code: str = HttpStatusCodes.OK
         self.mime = HttpMimeTypes.HTML
@@ -40,7 +40,8 @@ class RequestContext(Context):
             content = exception.data if isinstance(
                 exception.data, str) else json.dumps(exception.data, indent=1).replace("\n", "</br>")
         else:
-            content = f"{error_object['errorMessage']} (Error Code: {error_object['errorCode']})"
+            content = f"{error_object['errorMessage']} (Error Code: " +\
+                f"{error_object['errorCode']})"
             if 'error' in error_object:
                 error = error_object["error"].replace("\n", "</br>")
                 content += f"<hr/>{error}"

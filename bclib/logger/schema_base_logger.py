@@ -3,8 +3,8 @@ from urllib.parse import urljoin
 from bclib.logger.log_object import LogObject
 from bclib.utility import DictEx
 
-from ..logger.log_schema import LogSchema
-from ..logger.ilogger import ILogger
+from bclib.logger.log_schema import LogSchema
+from bclib.logger.ilogger import ILogger
 
 
 class SchemaBaseLogger(ILogger):

@@ -3,29 +3,39 @@ import asyncio
 import inspect
 from abc import ABC
 import signal
-import traceback
-from typing import Awaitable, Callable, Any, Coroutine, Optional
+from typing import Awaitable, Callable, Any, Coroutine, Optional, TYPE_CHECKING
 from functools import wraps
 from dependency_injector import containers
 
-from bclib.logger import ILogger, LogObject
-from bclib.cache import CacheManager
-from bclib.listener import RabbitBusListener
+from bclib.logger.ilogger import ILogger
+from cache.cache_manager import CacheManager
 from bclib.predicate import Predicate
-from bclib.db_manager import DbManager
+from bclib.db_manager.db_manager import DbManager
 from bclib.utility import DictEx
 from bclib.exception import HandlerNotFoundErr
-from .callback_info import CallbackInfo
+from bclib.dispatcher.callback_info import CallbackInfo
 
+from bclib.context.client_source_context import ClientSourceContext
+from bclib.context.client_source_member_context import ClientSourceMemberContext
+from bclib.context.context import Context
+from bclib.context.restful_context import RESTfulContext
+from bclib.context.web_context import WebContext
+from bclib.context.rabbit_context import RabbitContext
+from bclib.context.socket_context import SocketContext
+from bclib.context.server_source_context import ServerSourceContext
+from bclib.context.server_source_member_context import ServerSourceMemberContext
+from bclib.context.end_point_context import EndPointContext
 
-from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext,EndPointContext
+if TYPE_CHECKING:
+    from bclib.logger.ilogger import LogObject
+
 
 class Dispatcher(ABC):
     """Base class for dispatching request"""
 
-    def __init__(self,container:'containers.Container',  options: 'DictEx',cache_manager:'CacheManager',db_manager:'DbManager',logger:'ILogger', loop:'asyncio.AbstractEventLoop'):
+    def __init__(self, container: 'containers.Container',  options: 'DictEx', cache_manager: 'CacheManager', db_manager: 'DbManager', logger: 'ILogger', loop: 'asyncio.AbstractEventLoop'):
         self.options = options
-        self.container= container
+        self.container = container
         self.__look_up: 'dict[str, list[CallbackInfo]]' = dict()
         self.event_loop: 'asyncio.AbstractEventLoop' = loop
         self.cache_manager: 'CacheManager' = cache_manager
@@ -59,7 +69,7 @@ class Dispatcher(ABC):
                 .append(CallbackInfo([*predicates], wrapper))
             return end_point_action_handler
         return _decorator
-    
+
     def socket_action(self, * predicates: (Predicate)):
         """Decorator for determine Socket action"""
 
@@ -379,14 +389,14 @@ class Dispatcher(ABC):
         for dispatcher in self.__rabbit_dispatcher:
             dispatcher.initialize_task(self.event_loop)
 
-    #TODO:pre ansd post callback replaced with resource provider of DI
-    def listening(self, with_block:bool = True):
+    # TODO:pre ansd post callback replaced with resource provider of DI
+    def listening(self, with_block: bool = True):
         """Start listening to request for process"""
         for sig in (signal.SIGTERM, signal.SIGINT):
             signal.signal(sig, lambda sig, _: self.event_loop.stop())
         init_process = self.container.init_resources()
-        if isinstance( init_process,Awaitable):
-            self.event_loop.run_until_complete( init_process)  
+        if isinstance(init_process, Awaitable):
+            self.event_loop.run_until_complete(init_process)
         self.initialize_task()
         if with_block:
             self.event_loop.run_forever()
@@ -396,14 +406,14 @@ class Dispatcher(ABC):
             group = asyncio.gather(*tasks, return_exceptions=True)
             self.event_loop.run_until_complete(group)
             shutdown_process = self.container.shutdown_resources()
-            if isinstance( shutdown_process,Awaitable):
+            if isinstance(shutdown_process, Awaitable):
                 self.event_loop.run_until_complete(shutdown_process)
             self.event_loop.close()
 
-    def new_object_log(self, schema_name: str, routing_key: Optional[str] = None, **kwargs) -> LogObject:
+    def new_object_log(self, schema_name: str, routing_key: Optional[str] = None, **kwargs) -> 'LogObject':
         return self.logger.new_object_log(schema_name, routing_key, **kwargs)
 
-    async def log_async(self, log_object: LogObject = None, **kwargs):
+    async def log_async(self, log_object: 'LogObject' = None, **kwargs):
         """log params"""
         if log_object is None:
             if "schema_name" not in kwargs:
@@ -412,7 +422,7 @@ class Dispatcher(ABC):
             log_object = self.new_object_log(schema_name, **kwargs)
         await self.logger.log_async(log_object)
 
-    def log_in_background(self, log_object: LogObject = None, **kwargs) -> Coroutine:
+    def log_in_background(self, log_object: 'LogObject' = None, **kwargs) -> Coroutine:
         """log params in background precess"""
         return self.event_loop.create_task(
             self.log_async(log_object, **kwargs)

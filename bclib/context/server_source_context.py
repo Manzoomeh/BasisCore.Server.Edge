@@ -1,17 +1,17 @@
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from .. import dispatcher
+    from bclib.dispatcher.idispatcher import IDispatcher
 
-from bclib.parser import HtmlParserEx
-from bclib.utility import DictEx
-from ..context.context import Context
+from bclib.parser.html.html_parser_ex import HtmlParserEx
+from bclib.utility.dict_ex import DictEx
+from bclib.context.context import Context
 
 
 class ServerSourceContext(Context):
     """Base class for dispatching server base dbsource request context"""
 
-    def __init__(self, cms_object: dict,  dispatcher: 'dispatcher.IDispatcher') -> None:
+    def __init__(self, cms_object: dict,  dispatcher: 'IDispatcher') -> None:
         super().__init__(dispatcher)
         parser = HtmlParserEx()
         self.raw_command = cms_object["command"]

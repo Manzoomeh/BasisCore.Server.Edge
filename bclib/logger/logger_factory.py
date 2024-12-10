@@ -1,9 +1,9 @@
 from typing import Optional
 from bclib.utility import DictEx
-from .rabbit_schema_base_logger import RabbitSchemaBaseLogger
-from .restful_schema_base_logger import RESTfulSchemaBaseLogger
-from .no_logger import NoLogger
-from .ilogger import ILogger
+from bclib.logger.rabbit_schema_base_logger import RabbitSchemaBaseLogger
+from bclib.logger.restful_schema_base_logger import RESTfulSchemaBaseLogger
+from bclib.logger.no_logger import NoLogger
+from bclib.logger.ilogger import ILogger
 
 
 class LoggerFactory:

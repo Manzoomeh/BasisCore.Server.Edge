@@ -3,16 +3,16 @@ import json
 from typing import Any, Coroutine, Optional
 
 from bclib.listener.message_type import MessageType
-from .message import Message
+from bclib.listener.message import Message
 
 
 class StreamBaseMessage(Message):
-    def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+    def __init__(self, reader: 'asyncio.StreamReader', writer: 'asyncio.StreamWriter'):
         self.reader = reader
         self.writer = writer
-        self.buffer:Optional[bytes] = None
+        self.buffer: Optional[bytes] = None
 
-    async def get_json_async(self)-> Coroutine[Any, Any, dict]:
+    async def get_json_async(self) -> Coroutine[Any, Any, dict]:
         await self._fill_async()
         return json.loads(self.buffer)
 
@@ -33,7 +33,7 @@ class StreamBaseMessage(Message):
                     data = await self.reader.readexactly(data_len)
                     self.buffer = data
 
-    async def write_result_async(self, cms: dict,message_type:'MessageType'):
+    async def write_result_async(self, cms: dict, message_type: 'MessageType'):
         try:
             self.writer.write(message_type.value.to_bytes(1, 'big'))
             data = self.session_id.encode()
@@ -51,7 +51,4 @@ class StreamBaseMessage(Message):
             pass
 
     async def set_result_async(self, cms: dict):
-        await self.write_result_async(cms,self.type)
-
-    
-
+        await self.write_result_async(cms, self.type)

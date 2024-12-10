@@ -1,5 +1,5 @@
 import sqlite3
-from ..db_manager.db import Db
+from bclib.db_manager.db import Db
 
 
 class SQLiteDb(Db):

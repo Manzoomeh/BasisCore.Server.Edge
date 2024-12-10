@@ -1,4 +1,4 @@
-from ..exception.not_found_err import NotFoundErr
+from bclib.exception.not_found_err import NotFoundErr
 
 
 class HandlerNotFoundErr(NotFoundErr):

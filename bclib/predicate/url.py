@@ -1,17 +1,20 @@
 from types import FunctionType
-from bclib.context import Context
 from bclib.utility import DictEx
-from ..predicate.predicate import Predicate
+from bclib.predicate.predicate import Predicate
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from bclib.context.context import Context
 
 
 class Url (Predicate):
-    """Create Url cheking predicate"""
+    """Create Url checking predicate"""
 
-    def __init__(self, expression: str) -> None:
+    def __init__(self, expression: 'str') -> 'None':
         super().__init__(expression)
         self.__validator: FunctionType = Url.__generate_validator(expression)
 
-    async def check_async(self, context: Context) -> bool:
+    async def check_async(self, context: 'Context') -> 'bool':
         try:
             is_ok, url_parts = self.__validator(context.url)
             if is_ok and url_parts:
@@ -60,7 +63,7 @@ def url_function(url):
     try:
         url_parts = url.split("/")
         if {" and ".join(where_part_list)}:
-            {','.join(segment_list)} = url_parts{"[0]" if len(segment_list)==1 else ""}
+            {','.join(segment_list)} = url_parts{"[0]" if len(segment_list) == 1 else ""}
             return (True,{{ {','.join(return_dict_property_names)} }})
         else:
             return (False,None)

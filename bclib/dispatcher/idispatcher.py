@@ -4,18 +4,18 @@ import asyncio
 from dependency_injector import containers
 from typing import Callable, Any, TYPE_CHECKING, Coroutine, Optional
 
-from bclib.db_manager import DbManager
-from bclib.cache import CacheManager
+from bclib.db_manager.db_manager import DbManager
+from cache.cache_manager import CacheManager
 from bclib.utility import DictEx
-from bclib.logger import LogObject
+from bclib.logger.log_object import LogObject
 if TYPE_CHECKING:
-    from context import Context
+    from bclib.context.context import Context
 
 
 class IDispatcher(ABC):
     """Dispatcher base class with core functionality for manage cache and background process"""
-    
-    container:'containers.Container'
+
+    container: 'containers.Container'
 
     @property
     @abstractmethod

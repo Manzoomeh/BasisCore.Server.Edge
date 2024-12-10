@@ -1,8 +1,9 @@
-from ..cache_item.base_cache_item import BaseCacheItem
 from typing import Callable
+from bclib.cache.cache_item.base_cache_item import BaseCacheItem
+
 
 class FunctionCacheItem(BaseCacheItem):
-    def __init__(self, data: "any", life_time:"int", function:"Callable") -> None:
+    def __init__(self, data: "any", life_time: "int", function: "Callable") -> None:
         super().__init__(data, life_time)
         self.__function = function
 

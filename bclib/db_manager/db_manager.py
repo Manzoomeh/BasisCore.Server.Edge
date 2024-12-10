@@ -1,11 +1,11 @@
 import asyncio
 from bclib.utility import DictEx
-from ..db_manager.rabbit_connection import RabbitConnection
-from ..db_manager.db import Db
-from ..db_manager.mongo_db import MongoDb
-from ..db_manager.sql_db import SqlDb
-from ..db_manager.sqlite_db import SQLiteDb
-from ..db_manager.restful_connection import RESTfulConnection
+from bclib.db_manager.rabbit_connection import RabbitConnection
+from bclib.db_manager.db import Db
+from bclib.db_manager.mongo_db import MongoDb
+from bclib.db_manager.sql_db import SqlDb
+from bclib.db_manager.sqlite_db import SQLiteDb
+from bclib.db_manager.restful_connection import RESTfulConnection
 
 
 class DbManager:
