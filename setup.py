@@ -22,7 +22,6 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'pika',
         'aiohttp',
         'legacy-cgi',
         'dependency-injector'
