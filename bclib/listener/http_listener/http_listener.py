@@ -2,13 +2,12 @@ import asyncio
 import ssl
 from typing import Callable, TYPE_CHECKING, Coroutine, Optional
 from aiohttp import web
+from aiohttp.log import web_logger
 from bclib.utility.dict_ex import DictEx
+from bclib.listener.web_message import WebMessage
 
 if TYPE_CHECKING:
     from bclib.listener.endpoint import Endpoint
-    from bclib.listener.web_message import WebMessage
-
-from aiohttp.log import web_logger
 
 
 class HttpListener:

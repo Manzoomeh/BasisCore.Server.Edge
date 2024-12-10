@@ -1,10 +1,10 @@
 import asyncio
 
-from context.context_factory import ContextFactory
 from dependency_injector import containers
 
+from bclib.context.context_factory import ContextFactory
 from bclib.logger.ilogger import ILogger
-from cache.cache_manager import CacheManager
+from bclib.cache.cache_manager import CacheManager
 from bclib.db_manager import DbManager
 from bclib.utility import DictEx
 from bclib.listener.endpoint import Endpoint
