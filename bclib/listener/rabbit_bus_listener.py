@@ -5,7 +5,7 @@ from bclib.listener.rabbit_listener import RabbitListener
 from bclib.utility.dict_ex import DictEx
 
 if TYPE_CHECKING:
-    from bclib.dispatcher import IDispatcher
+    from bclib.dispatcher.idispatcher import IDispatcher
 
 
 class RabbitBusListener(RabbitListener):
