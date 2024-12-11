@@ -6,6 +6,7 @@ import signal
 from typing import Awaitable, Callable, Any, Coroutine, Optional, TYPE_CHECKING
 from functools import wraps
 from dependency_injector import containers
+from listener.rabbit_bus_listener import RabbitBusListener
 
 from bclib.logger.ilogger import ILogger
 from cache.cache_manager import CacheManager
