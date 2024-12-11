@@ -1,5 +1,5 @@
-from ..cache.manager import CacheManager
-from ..cache.cache_status import CacheStatus
+from cache.cache_manager import CacheManager
+from bclib.cache.cache_status import CacheStatus
 
 
 class NoCacheManager(CacheManager):

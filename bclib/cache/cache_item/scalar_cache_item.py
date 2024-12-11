@@ -1,4 +1,5 @@
-from .base_cache_item import BaseCacheItem
+from bclib.cache.cache_item.base_cache_item import BaseCacheItem
+
 
 class ScalarCacheItem(BaseCacheItem):
     def __init__(self, data: "any", life_time: int) -> None:

@@ -3,7 +3,7 @@ from typing import Any, Callable, Coroutine
 
 from bclib.predicate import Predicate, InList, Equal, Url, Between, NotEqual, GreaterThan, LessThan, LessThanEqual, GreaterThanEqual, Match, HasValue, Callback, All
 from bclib import predicate
-from bclib.context import Context
+from bclib.context.context import Context
 
 
 class DispatcherHelper:

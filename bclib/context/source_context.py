@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from bclib.utility import DictEx
+from bclib.utility.dict_ex import DictEx
 
 
 class SourceContext(ABC):

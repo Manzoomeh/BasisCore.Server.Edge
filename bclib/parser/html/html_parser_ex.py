@@ -2,7 +2,7 @@
 from html.parser import HTMLParser
 from typing import Any
 from bclib.utility import DictEx
-from ..html.html_tag import HtmlTag
+from bclib.parser.html.html_tag import HtmlTag
 
 
 class HtmlParserEx(HTMLParser):

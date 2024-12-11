@@ -1,8 +1,8 @@
 from struct import error
-from bclib.context.rabbit_context import RabbitContext
 from typing import TYPE_CHECKING
+from bclib.context.rabbit_context import RabbitContext
 from bclib.listener.rabbit_listener import RabbitListener
-from bclib.utility import DictEx
+from bclib.utility.dict_ex import DictEx
 
 if TYPE_CHECKING:
     from bclib.dispatcher import IDispatcher
