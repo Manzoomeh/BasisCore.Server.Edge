@@ -52,9 +52,9 @@ class LogSchema:
                         if not multi:
                             values = values[:1]
                         prp_answers = list()
-                        answer_parts = list()
-                        part_index = 1
                         for parts_val in values:
+                            answer_parts = list()
+                            part_index = 1
                             parts_val = parts_val[:parts_count]
                             for part_val in parts_val:
                                 answer_parts.append({
