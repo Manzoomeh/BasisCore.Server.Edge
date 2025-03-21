@@ -1,3 +1,311 @@
-//pip install setuptools wheel twine
-py -m setup.py sdist bdist_wheel
-twine upload --verbos dist/*
+# BasisEdge Help
+
+## Getting Started
+
+Welcome to BasisEdge! This document provides a quick overview of how to get started with BasisEdge and covers some common usage patterns.
+
+## Installation
+
+Install BasisEdge using pip:
+
+```bash
+pip install bclib
+```
+
+## Basic Configuration
+
+BasisEdge provides several dispatcher types for different communication protocols. The most common configuration options include:
+
+### HTTP Server
+
+```python
+options = {
+    "server": "localhost:8080",  # Host:Port
+    "router": "web"              # Router type
+}
+```
+
+### RESTful API Server
+
+```python
+options = {
+    "server": "localhost:8080", 
+    "router": "restful"
+}
+```
+
+### Socket Server
+
+```python
+options = {
+    "sender": "127.0.0.1:1025",
+    "receiver": "127.0.0.1:1026",
+    "router": {
+        "web": ["*"]
+    }
+}
+```
+
+### Development Server with SSL
+
+```python
+options = {
+    "server": "localhost:8443",
+    "router": "web",
+    "ssl": {
+        "certfile": "path/to/server.cert",
+        "keyfile": "path/to/server.key"
+    }
+}
+```
+
+## Creating a Simple Application
+
+```python
+from bclib import edge
+
+# Initialize the application
+options = {
+    "server": "localhost:8080",
+    "router": "restful"
+}
+app = edge.from_options(options)
+
+# Define a simple RESTful endpoint
+@app.restful_action(app.url("hello/:name"))
+def hello(context: edge.RESTfulContext):
+    name = context.url_segments.name
+    return {"message": f"Hello, {name}!"}
+
+# Start the server
+app.listening()
+```
+
+## Route Handling
+
+### Web Actions
+
+```python
+@app.web_action(app.url("products/:id"))
+def get_product(context: edge.WebContext):
+    product_id = context.url_segments.id
+    return f"<h1>Product {product_id}</h1>"
+```
+
+### RESTful Actions
+
+```python
+@app.restful_action(app.url("api/users/:id"))
+def get_user(context: edge.RESTfulContext):
+    user_id = context.url_segments.id
+    return {"id": user_id, "name": "John Doe"}
+```
+
+### Predicate Combinations
+
+```python
+@app.restful_action(
+    app.url("api/products"),
+    app.is_get()
+)
+def get_products(context: edge.RESTfulContext):
+    return [{"id": 1, "name": "Product A"}, {"id": 2, "name": "Product B"}]
+
+@app.restful_action(
+    app.url("api/products"),
+    app.is_post()
+)
+def create_product(context: edge.RESTfulContext):
+    # Create a new product
+    return {"status": "created", "id": 3}
+```
+
+## Database Connections
+
+BasisEdge supports multiple database types:
+
+### SQL Server
+
+```python
+options = {
+    "server": "localhost:8080",
+    "router": "restful",
+    "settings": {
+        "connections.sql.mydatabase": "DRIVER={ODBC Driver 17 for SQL Server};SERVER=.;DATABASE=MyDB;UID=sa;PWD=password"
+    }
+}
+
+@app.restful_action(app.url("api/data"))
+def get_data(context: edge.RESTfulContext):
+    db = context.open_sql_connection("mydatabase")
+    with db:
+        with db.connection.cursor() as cursor:
+            rows = cursor.execute("SELECT * FROM MyTable").fetchall()
+            # Process rows...
+    return {"data": processed_data}
+```
+
+### SQLite
+
+```python
+options = {
+    # ...
+    "settings": {
+        "connections.sqlite.localdb": "path/to/database.db"
+    }
+}
+
+# Using the connection
+db = context.open_sqllite_connection("localdb")
+```
+
+### MongoDB
+
+```python
+options = {
+    # ...
+    "settings": {
+        "connections.mongo.documents": "mongodb://localhost:27017/"
+    }
+}
+
+# Using the connection
+db = context.open_mongo_connection("documents")
+```
+
+## Caching
+
+BasisEdge provides a powerful caching system:
+
+```python
+options = {
+    # ...
+    "cache": {
+        "type": "memory",
+        "clean_interval": 3600,  # 1 hour
+        "reset_interval": 86400  # 24 hours
+    }
+}
+
+# Caching a function
+@app.cache(life_time=300)  # Cache for 5 minutes
+def generate_data():
+    # Expensive operation
+    return data
+
+# Caching with a key
+@app.cache(key="user-data")
+def get_user_data():
+    # Fetch user data
+    return user_data
+```
+
+## Error Handling
+
+```python
+@app.restful_action()
+def secure_endpoint(context: edge.RESTfulContext):
+    if not is_authenticated(context):
+        raise edge.UnauthorizedErr("Authentication required")
+    
+    if not has_permission(context):
+        raise edge.ForbiddenErr("Insufficient permissions")
+    
+    try:
+        # Business logic
+        return result
+    except Exception as ex:
+        raise edge.InternalServerErr(f"An error occurred: {str(ex)}")
+```
+
+## WebSocket Support
+
+```python
+@app.socket_action()
+async def handle_socket_connection(context: edge.SocketContext):
+    # On connection established
+    await context.send_object_async({"type": "welcome"})
+    
+    # Handle incoming messages
+    while True:
+        try:
+            message = await context.read_message_async()
+            # Process message
+            await context.send_object_async(response)
+        except:
+            break  # Connection closed
+```
+
+## Middleware Features
+
+### Adding Headers
+
+```python
+@app.web_action()
+def with_headers(context: edge.WebContext):
+    context.add_header("Cache-Control", "no-cache")
+    context.add_header("X-Custom-Header", "value")
+    return "Content with custom headers"
+```
+
+### CORS Support
+
+```python
+@app.restful_action()
+def cors_enabled(context: edge.RESTfulContext):
+    edge.HttpHeaders.add_cors_headers(context)
+    return {"data": "This endpoint supports CORS"}
+```
+
+## Logging
+
+```python
+options = {
+    # ...
+    "logger": {
+        "type": "schema.restful",
+        "url": "http://logserver.example.com/log"
+    }
+}
+
+@app.restful_action()
+async def with_logging(context: edge.RESTfulContext):
+    # Log an event
+    await context.dispatcher.log_async(
+        schema_name="user-actions",
+        action="view",
+        user_id=123
+    )
+    return {"status": "logged"}
+```
+
+## Advanced Usage
+
+### Running Multiple Servers
+
+```python
+from bclib import edge
+
+# Define server options
+server1_options = {"server": "localhost:8081", "router": "restful"}
+server2_options = {"server": "localhost:8082", "router": "web"}
+
+# Create servers
+server1 = edge.from_options(server1_options)
+server2 = edge.from_options(server2_options, server1.event_loop)
+
+# Define endpoints for each server
+@server1.restful_action()
+def api_endpoint(context):
+    return {"server": "server1"}
+
+@server2.web_action()
+def web_endpoint(context):
+    return "<h1>Server 2</h1>"
+
+# Start servers
+server1.listening(with_block=False)
+server2.listening()
+```
+
+For more detailed information and advanced usage, please refer to the full API documentation or explore the source code.
