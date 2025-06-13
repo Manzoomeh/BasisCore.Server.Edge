@@ -28,6 +28,6 @@ setuptools.setup(
     ],
     # package_dir={"": "basiscore"},
     packages=setuptools.find_packages(exclude=["test", "app-env", ".vscode"]),
-    python_requires=">=3.7",
+    python_requires=">=3.13",
     setup_requires=['wheel']
 )
