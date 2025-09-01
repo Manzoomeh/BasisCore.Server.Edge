@@ -1,5 +1,7 @@
 import asyncio
 from typing import Callable, Coroutine
+
+from ..listener.receive_message import ReceiveMessage
 from ..listener.message import Message
 from ..listener.endpoint import Endpoint
 
@@ -13,7 +15,7 @@ class SocketListener:
         self.__receiver_server: asyncio.AbstractServer = None
         self.__sender_server: asyncio.AbstractServer = None
 
-    async def __process_message_async(self, message: 'Message') -> None:
+    async def __process_message_async(self, message: 'ReceiveMessage') -> None:
         result = await self.on_message_receive(message)
         if result:
             await self.send_message_async(result)
@@ -60,7 +62,7 @@ class SocketListener:
         cause = "closed!"
         try:
             while True:
-                message = await Message.read_from_stream_async(reader)
+                message: ReceiveMessage = await ReceiveMessage.read_from_stream_async(reader, writer)
                 if message:
                     loop.create_task(self.__process_message_async(message))
         except asyncio.CancelledError:
