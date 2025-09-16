@@ -1,3 +1,8 @@
 //pip install setuptools wheel twine
 py -m setup.py sdist bdist_wheel
 twine upload --verbos dist/*
+
+
+//for docker
+docker build -t basis-core-edge . && docker run --rm -p 8080:8080 basis-core-edge
+docker run --rm -p 8081:8080 -v D:/qam/edge:/app/code   basis-core-edge
