@@ -1,0 +1,5 @@
+pika
+requests
+pyodbc
+aiohttp
+legacy-cgi

@@ -1,0 +1,12 @@
+/test/
+!/test/DockerSample
+.git
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv
+env/
+venv/
+.DS_Store
