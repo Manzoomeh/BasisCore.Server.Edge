@@ -142,15 +142,15 @@ class HttpListener:
                     keyfile=self.ssl_options.keyfile
                 )
             elif "pfxfile" in self.ssl_options:
-                cert_path, key_path = HttpListener.convert_pfx_to_pem_files(
+                fullchain_path, key_path = HttpListener.convert_pfx_to_temp_files(
                     self.ssl_options.pfxfile,
                     self.ssl_options.password
                 )
                 ssl_context.load_cert_chain(
-                    certfile=cert_path, keyfile=key_path)
+                    certfile=fullchain_path, keyfile=key_path)
 
                 # حذف فایل‌های موقت بعد از load
-                os.remove(cert_path)
+                os.remove(fullchain_path)
                 os.remove(key_path)
 
         runner = web.AppRunner(app, handle_signals=True)
@@ -173,36 +173,42 @@ class HttpListener:
             await runner.shutdown()
 
     @staticmethod
-    def convert_pfx_to_pem_files(pfxfile: str, password: str) -> tuple[str, str]:
+    def convert_pfx_to_temp_files(pfxfile: str, password: str):
+        """
+        Convert a .pfx/.p12 file to temporary PEM files:
+        - fullchain.pem (certificate + intermediates)
+        - key.pem (private key)
+        Returns: (fullchain_path, key_path)
+        """
         with open(pfxfile, "rb") as f:
             private_key, certificate, additional_certificates = pkcs12.load_key_and_certificates(
                 f.read(), password.encode()
             )
 
-            if not private_key or not certificate:
-                raise Exception("No key or certificate found in PFX")
-
-            # فایل‌های موقت ایجاد می‌کنیم
-            cert_tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pem")
-            key_tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pem")
-
-            # fullchain (cert + intermediates)
-            cert_tmp.write(certificate.public_bytes(Encoding.PEM))
-            for item in additional_certificates or []:
-                cert_tmp.write(item.public_bytes(Encoding.PEM))
-            cert_tmp.close()
-
-            # private key
+            # --- key.pem ---
+            key_tmp = tempfile.NamedTemporaryFile(
+                delete=False, suffix=".key.pem")
             key_tmp.write(
                 private_key.private_bytes(
                     encoding=Encoding.PEM,
                     format=PrivateFormat.TraditionalOpenSSL,
-                    encryption_algorithm=NoEncryption(),
+                    encryption_algorithm=NoEncryption()
                 )
             )
-            key_tmp.close()
+            key_tmp.flush()
 
-            return cert_tmp.name, key_tmp.name
+            # --- fullchain.pem ---
+            fullchain_tmp = tempfile.NamedTemporaryFile(
+                delete=False, suffix=".fullchain.pem")
+            # cert اصلی
+            fullchain_tmp.write(certificate.public_bytes(Encoding.PEM))
+            # chain cert ها
+            if additional_certificates:
+                for ca in additional_certificates:
+                    fullchain_tmp.write(ca.public_bytes(Encoding.PEM))
+            fullchain_tmp.flush()
+
+            return fullchain_tmp.name, key_tmp.name
 
     @staticmethod
     async def create_cms_async(request: 'web.Request') -> dict:
