@@ -4,9 +4,9 @@ if "options" not in dir():
     options = {
         "server": "localhost:8081",
         "router": "web",
-        "ssl":{
-            "pfxPath":"D:/Programming/Falsafi/BasisCore/Server/BasisCore.Server.Edge/test/test-cert/server.pfx",
-            "pfxPass":"1234"
+        "ssl": {
+            "pfxfile": "D:/Programming/Falsafi/BasisCore/Server/BasisCore.Server.Edge/test/test-cert/server.pfx",
+            "password": "1234"
         }
     }
 
