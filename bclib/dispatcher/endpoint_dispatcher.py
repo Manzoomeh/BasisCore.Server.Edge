@@ -1,12 +1,20 @@
 import asyncio
 
-from ..listener import Endpoint, ReceiveMessage
-from .routing_dispatcher import RoutingDispatcher
+from dependency_injector import containers
+from bclib.listener.end_point_message import EndPointMessage
+from bclib.context.context_factory import ContextFactory
+from cache.cache_manager import CacheManager
+from bclib.db_manager import DbManager
+from bclib.logger.ilogger import ILogger
+from bclib.utility import DictEx
+from bclib.listener.endpoint import Endpoint
+from bclib.dispatcher.routing_dispatcher import RoutingDispatcher
 
 
 class EndpointDispatcher(RoutingDispatcher):
-    def __init__(self, options: dict,loop:asyncio.AbstractEventLoop=None):
-        super().__init__(options=options,loop=loop)
+    def __init__(self, container: 'containers.Container', context_factory: 'ContextFactory', options: 'DictEx', cache_manager: 'CacheManager', db_manager: 'DbManager', logger: 'ILogger', loop: 'asyncio.AbstractEventLoop' = None):
+        super().__init__(container=container, context_factory=context_factory, options=options,
+                         cache_manager=cache_manager, db_manager=db_manager, logger=logger, loop=loop)
         self.__endpoint = Endpoint(self.options.endpoint)
 
     def initialize_task(self):
@@ -14,9 +22,8 @@ class EndpointDispatcher(RoutingDispatcher):
 
         async def on_connection_open(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
             try:
-                msg = await ReceiveMessage.read_from_stream_async(reader, writer)
-                result = await self._on_message_receive_async(msg)
-                await result.write_to_stream_async(writer)
+                msg = EndPointMessage(reader, writer)
+                await self._on_message_receive_async(message=msg)
             except:
                 pass
             try:

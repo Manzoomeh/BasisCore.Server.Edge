@@ -1,23 +1,24 @@
 from bclib.cache.cache_status import CacheStatus
-from ..cache.signal_base_cache_manager import SignalBaseCacheManager
+from bclib.cache.signal_base_cache_manager import SignalBaseCacheManager
 from bclib.utility import DictEx
-from ..cache.cache_status import CacheStatus
+from bclib.cache.cache_status import CacheStatus
 from typing import Callable
-from ..cache.cache_item.base_cache_item import BaseCacheItem
-from ..cache.cache_item.function_cache_item import FunctionCacheItem
-from .cache_item.scalar_cache_item import ScalarCacheItem
-from ..cache.value_item.base_value_item import BaseValueItem
-from ..cache.value_item.array_value_item import ArrayValueItem
-from ..cache.value_item.scalar_value_item import ScalarValueItem
+from bclib.cache.cache_item.base_cache_item import BaseCacheItem
+from bclib.cache.cache_item.function_cache_item import FunctionCacheItem
+from bclib.cache.cache_item.scalar_cache_item import ScalarCacheItem
+from bclib.cache.value_item.base_value_item import BaseValueItem
+from bclib.cache.value_item.array_value_item import ArrayValueItem
+from bclib.cache.value_item.scalar_value_item import ScalarValueItem
 from functools import wraps
 
+
 class InMemoryCacheManager(SignalBaseCacheManager):
-    
+
     def __init__(self, options: DictEx) -> None:
         super().__init__(options)
-        self.__cache_dict:"dict[str, BaseValueItem]" = dict()
+        self.__cache_dict: "dict[str, BaseValueItem]" = dict()
 
-    def __add_or_update(self, key:"str", cache_item:"BaseCacheItem", value_item:"BaseValueItem") -> "CacheStatus":
+    def __add_or_update(self, key: "str", cache_item: "BaseCacheItem", value_item: "BaseValueItem") -> "CacheStatus":
         if key not in self.__cache_dict:
             self.__cache_dict[key] = value_item(cache_item)
             return CacheStatus.ADDED
@@ -29,7 +30,7 @@ class InMemoryCacheManager(SignalBaseCacheManager):
                 print(repr(ex))
                 return CacheStatus.ERROR
 
-    def cache_decorator(self, key:"str"=None, life_time:"int"=0) -> "Callable":
+    def cache_decorator(self, key: "str" = None, life_time: "int" = 0) -> "Callable":
         """
         Decorator that caches the result of a function for a specified key and life time.
 
@@ -51,12 +52,12 @@ class InMemoryCacheManager(SignalBaseCacheManager):
 
             @wraps(function)
             def wrapper(*args, **kwargs):
-                function_cache:"FunctionCacheItem" = function.cache
+                function_cache: "FunctionCacheItem" = function.cache
                 return function_cache.get_data(*args, **kwargs)
             return wrapper
         return decorator
 
-    def reset(self, keys:"list[str]"=None) -> "CacheStatus":
+    def reset(self, keys: "list[str]" = None) -> "CacheStatus":
         """
         Resets the cache by removing all items or specified keys.
 
@@ -86,10 +87,10 @@ class InMemoryCacheManager(SignalBaseCacheManager):
         self.__cache_dict = cleaned_cache_dict
         return CacheStatus.CLEANED
 
-    def get_cache(self, key:"str") -> "list|any|None":
+    def get_cache(self, key: "str") -> "list|any|None":
         return self.__cache_dict[key].get_item() if key in self.__cache_dict else None
-    
-    def add_or_update(self, key: str, data: "any", life_time:"int"= 0) -> "CacheStatus":
+
+    def add_or_update(self, key: str, data: "any", life_time: "int" = 0) -> "CacheStatus":
         """
         Add or update an item in the cache.
         Args:

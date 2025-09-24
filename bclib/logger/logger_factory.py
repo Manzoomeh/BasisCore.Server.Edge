@@ -1,17 +1,18 @@
+from typing import Optional
 from bclib.utility import DictEx
-from ..logger.rabbit_schema_base_logger import RabbitSchemaBaseLogger
-from ..logger.restful_schema_base_logger import RESTfulSchemaBaseLogger
-from ..logger.no_logger import NoLogger
-from ..logger.ilogger import ILogger
+from bclib.logger.rabbit_schema_base_logger import RabbitSchemaBaseLogger
+from bclib.logger.restful_schema_base_logger import RESTfulSchemaBaseLogger
+from bclib.logger.no_logger import NoLogger
+from bclib.logger.ilogger import ILogger
 
 
 class LoggerFactory:
 
     @staticmethod
     def create(options: DictEx) -> ILogger:
-        logger: ILogger = None
+        logger: Optional[ILogger] = None
         if not options.has("logger"):
-            logger = NoLogger()
+            logger = NoLogger(options)
         else:
             logger_option: DictEx = options.logger
             if not logger_option.has('type'):
@@ -19,11 +20,10 @@ class LoggerFactory:
             else:
                 logger_type = logger_option.type.lower()
                 if logger_type == 'schema.restful':
-                    logger = RESTfulSchemaBaseLogger(logger_option)
+                    logger = RESTfulSchemaBaseLogger(options)
                 elif logger_type == "schema.rabbit":
-                    logger = RabbitSchemaBaseLogger(logger_option)
+                    logger = RabbitSchemaBaseLogger(options)
                 else:
                     raise Exception(
                         f"Type '{logger_type}' not support for logger")
-            print(f'{logger.__class__.__name__} start logging')
         return logger

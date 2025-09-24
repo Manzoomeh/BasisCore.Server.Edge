@@ -4,7 +4,7 @@ import copy
 class DictEx(dict):
     """Extended version of dict class for dot.notation access to attributes"""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args):
         super().__init__()
         for arg in args:
             if isinstance(arg, dict):

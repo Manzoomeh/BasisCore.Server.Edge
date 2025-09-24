@@ -2,7 +2,7 @@
 import json
 from typing import Any
 from bclib.utility import DictEx
-from ..db_manager.db import Db
+from bclib.db_manager.db import Db
 
 
 class RabbitConnection(Db):

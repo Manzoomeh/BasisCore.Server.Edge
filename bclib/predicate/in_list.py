@@ -1,18 +1,20 @@
-from typing import Any
-from bclib.context import Context
-from ..predicate.predicate import Predicate
+from bclib.predicate.predicate import Predicate
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from bclib.context.context import Context
 
 
 class InList(Predicate):
-    """Create list cheking predicate"""
+    """Create list checking predicate"""
 
     def __init__(self, expression: str, *items: Any) -> None:
         super().__init__(expression)
         self.__items = [*items]
 
-    async def check_async(self, context: Context) -> bool:
+    async def check_async(self, context: 'Context') -> 'bool':
         try:
-            value = eval(self.exprossion, {}, {"context": context})
+            value = eval(self.expression, {}, {"context": context})
             return value in self.__items
         except:  # pylint: disable=bare-except
             return False

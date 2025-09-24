@@ -1,4 +1,4 @@
-from ..db_manager.odbc_db import OdbcDb
+from bclib.db_manager.odbc_db import OdbcDb
 
 
 class SqlDb(OdbcDb):

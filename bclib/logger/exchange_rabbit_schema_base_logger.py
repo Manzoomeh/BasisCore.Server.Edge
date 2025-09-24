@@ -1,6 +1,6 @@
 import asyncio
 import json
-from ..logger.schema_base_logger import SchemaBaseLogger
+from bclib.logger.schema_base_logger import SchemaBaseLogger
 from bclib.utility import DictEx
 
 
@@ -28,5 +28,5 @@ class ExchangeRabbitSchemaBaseLogger(SchemaBaseLogger):
             channel.basic_publish(
                 exchange='', routing_key=queue, body=json.dumps(schema, ensure_ascii=False))
         loop = asyncio.get_running_loop()
-        future = loop.run_in_executor(None, send_to_rabbit, self.options)
+        future = loop.run_in_executor(None, send_to_rabbit, self.options.logger)
         await future

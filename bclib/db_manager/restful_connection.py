@@ -1,6 +1,6 @@
 """RESTful implementation of Db wrapper"""
 from typing import Any
-from ..db_manager.db import Db
+from bclib.db_manager.db import Db
 
 
 class RESTfulConnection(Db):

@@ -185,7 +185,7 @@ def process_not_exist_message(context: edge.SocketContext):
     ChatRoom.process_message(context.message, None, None)
 
 
-@ app.socket_action()
+@app.socket_action()
 def process_all_other_message(context: edge.SocketContext):
     print("process_all_other_message")
     ChatRoom.process_message(context.message,

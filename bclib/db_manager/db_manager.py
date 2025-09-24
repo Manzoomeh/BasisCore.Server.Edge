@@ -1,13 +1,11 @@
 import asyncio
 from bclib.utility import DictEx
-from ..db_manager.named_pipe.named_pipe_connection import NamedPipeConnection
-from ..db_manager.named_pipe.inamed_pipe_connection import INamedPipeConnection
-from ..db_manager.rabbit_connection import RabbitConnection
-from ..db_manager.db import Db
-from ..db_manager.mongo_db import MongoDb
-from ..db_manager.sql_db import SqlDb
-from ..db_manager.sqlite_db import SQLiteDb
-from ..db_manager.restful_connection import RESTfulConnection
+from bclib.db_manager.rabbit_connection import RabbitConnection
+from bclib.db_manager.db import Db
+from bclib.db_manager.mongo_db import MongoDb
+from bclib.db_manager.sql_db import SqlDb
+from bclib.db_manager.sqlite_db import SQLiteDb
+from bclib.db_manager.restful_connection import RESTfulConnection
 
 
 class DbManager:
@@ -42,9 +40,6 @@ class DbManager:
             ret_val = RESTfulConnection(setting)
         elif db_type == "rabbit":
             ret_val = RabbitConnection(setting)
-        elif db_type == "named_pipe":
-            ret_val = NamedPipeConnection.get_connection(
-                setting, self._event_loop)
         else:
             print(
                 f"Data base of type '{db_type}' not supported in this version")
@@ -63,7 +58,4 @@ class DbManager:
         return self.open_connection(key)
 
     def open_rabbit_connection(self, key: str) -> RabbitConnection:
-        return self.open_connection(key)
-
-    def get_named_pipe_connection(self, key: str) -> INamedPipeConnection:
         return self.open_connection(key)

@@ -21,14 +21,13 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    # install_requires=[
-    #     'pika',
-    #     'requests',
-    #     'pymongo',
-    #     'pyodbc'
-    # ],
-    #package_dir={"": "basiscore"},
+    install_requires=[
+        'aiohttp',
+        'legacy-cgi',
+        'dependency-injector'
+    ],
+    # package_dir={"": "basiscore"},
     packages=setuptools.find_packages(exclude=["test", "app-env", ".vscode"]),
-    python_requires=">=3.7",
+    python_requires=">=3.13",
     setup_requires=['wheel']
 )

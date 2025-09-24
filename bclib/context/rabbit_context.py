@@ -1,15 +1,16 @@
 import json
-from typing import Any, TYPE_CHECKING
-from ..context.context import Context
+from typing import TYPE_CHECKING
+from bclib.context.context import Context
+from bclib.utility.dict_ex import DictEx
+
 if TYPE_CHECKING:
-    from .. import dispatcher
-from bclib.utility import DictEx
+    from bclib.dispatcher.idispatcher import IDispatcher
 
 
 class RabbitContext(Context):
     """Context for rabbit-mq request"""
 
-    def __init__(self, rabbit_message: DictEx,  dispatcher: 'dispatcher.IDispatcher'):
+    def __init__(self, rabbit_message: 'DictEx',  dispatcher: 'IDispatcher'):
         super().__init__(dispatcher)
         self.__rabbit_message: DictEx = rabbit_message
         self.__message = DictEx(json.loads(

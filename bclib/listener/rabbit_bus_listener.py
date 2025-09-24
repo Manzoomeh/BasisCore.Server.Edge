@@ -1,16 +1,16 @@
 from struct import error
-from bclib.context import RabbitContext
 from typing import TYPE_CHECKING
+from bclib.context.rabbit_context import RabbitContext
 from bclib.listener.rabbit_listener import RabbitListener
-from bclib.utility import DictEx
+from bclib.utility.dict_ex import DictEx
 
 if TYPE_CHECKING:
-    from .. import dispatcher
+    from bclib.dispatcher.idispatcher import IDispatcher
 
 
 class RabbitBusListener(RabbitListener):
 
-    def __init__(self, rabbit_options: DictEx,  dispatcher: 'dispatcher.IDispatcher') -> None:
+    def __init__(self, rabbit_options: 'DictEx',  dispatcher: 'IDispatcher') -> None:
         super().__init__(rabbit_options)
         self.__dispatcher = dispatcher
 

@@ -1,8 +1,10 @@
 
 import asyncio
 from concurrent.futures import thread
-from bclib import edge
+# from bclib import edge
 import time
+
+from bclib import edge
 
 
 options = {
@@ -11,8 +13,6 @@ options = {
 }
 
 app = edge.from_options(options)
-
-print(app)
 
 
 @app.web_action()

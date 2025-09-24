@@ -1,5 +1,5 @@
 from bclib.utility.http_status_codes import HttpStatusCodes
-from ..exception.short_circuit_err import ShortCircuitErr
+from bclib.exception.short_circuit_err import ShortCircuitErr
 
 
 class NotFoundErr(ShortCircuitErr):

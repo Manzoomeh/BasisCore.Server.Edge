@@ -1,4 +1,5 @@
-from ..signaler.base_signaler import BaseSignaler
+from bclib.cache.signaler.base_signaler import BaseSignaler
+
 
 class NoSignaler(BaseSignaler):
     """Implement no signaller for cache"""

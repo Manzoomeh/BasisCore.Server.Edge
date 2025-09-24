@@ -1,18 +1,19 @@
 from abc import ABC, abstractmethod
-from ..cache_item.base_cache_item import BaseCacheItem
+from bclib.cache.cache_item.base_cache_item import BaseCacheItem
+
 
 class BaseValueItem(ABC):
-    def __init__(self, cache_item:"BaseCacheItem") -> None:
+    def __init__(self, cache_item: "BaseCacheItem") -> None:
         super().__init__()
-        self._item:"list[BaseCacheItem]|BaseCacheItem" = None
+        self._item: "list[BaseCacheItem]|BaseCacheItem" = None
         self._apply_item(cache_item)
-    
+
     @abstractmethod
-    def _apply_item(self, cache_item:"BaseCacheItem"): ...
+    def _apply_item(self, cache_item: "BaseCacheItem"): ...
 
     def add_or_update_item(self, cache_item: "BaseCacheItem"):
         self._apply_item(cache_item)
-    
+
     def get_item(self) -> "list|any|None":
         if self._item is not None:
             if isinstance(self._item, list):
@@ -27,7 +28,6 @@ class BaseValueItem(ABC):
         else:
             ret_val = None
         return ret_val
-    
+
     def reset(self):
         self._item = None
-

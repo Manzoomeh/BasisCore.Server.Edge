@@ -1,19 +1,18 @@
-import json
-from typing import TYPE_CHECKING
-
-from bclib.listener.message_type import MessageType
+from typing import Any
+from bclib.dispatcher.idispatcher import IDispatcher
+from bclib.listener.end_point_message import  EndPointMessage
 from bclib.context.context import Context
-from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, HttpStatusCodes, ResponseTypes
-
-if TYPE_CHECKING:
-    from bclib.dispatcher.idispatcher import IDispatcher
-    from bclib.listener.socket_message import SocketMessage
+from bclib.listener.message_type import MessageType
+from bclib.utility import DictEx, HttpMimeTypes, HttpStatusCodes, ResponseTypes
 
 
-class SocketContext(Context):
-    """Base class for dispatching web socket base request context"""
+import json
 
-    def __init__(self, cms_object: dict,  dispatcher: 'IDispatcher', message_object: 'SocketMessage', body: dict) -> None:
+
+class EndPointContext(Context):
+    """Base class for dispatching end point socket base request context"""
+
+    def __init__(self, cms_object: 'dict',  dispatcher: 'IDispatcher', message_object: 'EndPointMessage', body: 'dict') -> None:
         super().__init__(dispatcher)
         self.cms = DictEx(cms_object) if cms_object else None
         self.url: str = self.cms.request.url if cms_object else None
@@ -39,10 +38,10 @@ class SocketContext(Context):
                                  headers: 'dict' = None) -> None:
         cms = Context._generate_response_cms(
             content, response_type, status_code, mime, template, headers)
-        await self.message.write_result_async(cms, MessageType.MESSAGE)
+        await self.message.write_result_async(cms,MessageType.MESSAGE)
 
-    async def read_message_async(self) -> 'SocketMessage':
+    async def read_message_async(self) -> 'EndPointMessage':
         return await self.message.read_next_message_async()
 
     async def send_close_async(self) -> None:
-        await self.message.write_result_async(None, MessageType.DISCONNECT)
+        await self.message.write_result_async(None,MessageType.DISCONNECT)

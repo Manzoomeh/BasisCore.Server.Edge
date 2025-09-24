@@ -1,19 +1,21 @@
 """Dispatcher base class module"""
 from abc import ABC, abstractmethod
 import asyncio
+from dependency_injector import containers
 from typing import Callable, Any, TYPE_CHECKING, Coroutine, Optional
 
-from bclib.db_manager import DbManager
-from bclib.cache import CacheManager
-from bclib.listener import Message
+from bclib.db_manager.db_manager import DbManager
+from cache.cache_manager import CacheManager
 from bclib.utility import DictEx
-from bclib.logger import LogObject
+from bclib.logger.log_object import LogObject
 if TYPE_CHECKING:
-    from context import Context
+    from bclib.context.context import Context
 
 
 class IDispatcher(ABC):
     """Dispatcher base class with core functionality for manage cache and background process"""
+
+    container: 'containers.Container'
 
     @property
     @abstractmethod
@@ -52,10 +54,6 @@ class IDispatcher(ABC):
     @abstractmethod
     def dispatch_in_background(self, context: 'Context') -> asyncio.Future:
         """Dispatch context in background"""
-
-    @abstractmethod
-    async def send_message_async(self, message: Message) -> None:
-        """Send message to endpoint"""
 
     def run_in_background(self, callback: Callable, *args: Any) -> asyncio.Future:
         """helper for run function in background thread"""

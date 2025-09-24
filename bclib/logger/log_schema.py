@@ -1,5 +1,6 @@
 from typing import Any, List, Dict, Tuple
 
+
 class LogSchema:
     def __init__(self, schema: Dict[str, Any]) -> None:
         self.schema_name = schema["schemaName"]
@@ -11,13 +12,13 @@ class LogSchema:
             [
                 (
                     q["title"], (
-                        q["prpId"], 
+                        q["prpId"],
                         bool(q.get("multi", False)),
                         len(q["parts"]),
-                        q["TypeID"] if "TypeID" in q else 0, 
+                        q["TypeID"] if "TypeID" in q else 0,
                         q["source"] if "source" in q else None
                     )
-                ) 
+                )
                 for q in schema["questions"]
             ]
         )
@@ -74,7 +75,6 @@ class LogSchema:
                             "TypeID": typeid,
                             "answers": prp_answers
                         })
-                        
 
             except:
                 pass

@@ -4,6 +4,3 @@ from bclib.db_manager.sqlite_db import SQLiteDb
 from bclib.db_manager.mongo_db import MongoDb
 from bclib.db_manager.rabbit_connection import RabbitConnection
 from bclib.db_manager.restful_connection import RESTfulConnection
-from bclib.db_manager.named_pipe.named_pipe_connection import NamedPipeConnection
-from bclib.db_manager.named_pipe.inamed_pipe_connection import INamedPipeConnection
-from bclib.db_manager.named_pipe.windows_named_pipe_connection import WindowsNamedPipeConnection

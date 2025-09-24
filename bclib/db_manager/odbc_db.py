@@ -2,7 +2,7 @@
 Implementation of ODBC base Db object
 https://github.com/mkleehammer/pyodbc/wiki
 """
-from ..db_manager.db import Db
+from bclib.db_manager.db import Db
 
 
 class OdbcDb(Db):
