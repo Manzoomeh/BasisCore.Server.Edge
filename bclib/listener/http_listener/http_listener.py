@@ -1,27 +1,36 @@
 import asyncio
-import cgi
-import io
-import datetime
-import json
-import uuid
-import ssl
 import base64
-from typing import Callable, TYPE_CHECKING, Optional, Awaitable
-from urllib.parse import unquote, parse_qs
+import cgi
+import datetime
+import io
+import json
+import os
+import pathlib
+import ssl
+import tempfile
+import uuid
+from typing import TYPE_CHECKING, Awaitable, Callable, Optional
+from urllib.parse import parse_qs, unquote
+
+from cryptography.hazmat.primitives.serialization import (Encoding,
+                                                          NoEncryption,
+                                                          PrivateFormat,
+                                                          pkcs12)
 
 from bclib.listener.message_type import MessageType
+from bclib.utility import DictEx, ResponseTypes
+
 from ..endpoint import Endpoint
 from ..http_listener.http_base_data_name import HttpBaseDataName
 from ..http_listener.http_base_data_type import HttpBaseDataType
-from bclib.utility import DictEx, ResponseTypes
 from ..message import Message
 from ..web_message import WebMessage
-import pathlib
 
 if TYPE_CHECKING:
     from aiohttp import web
 
 from aiohttp.log import web_logger
+
 
 class HttpListener:
     _id = 0
@@ -36,19 +45,22 @@ class HttpListener:
     _DEFAULT_MIDDLEWARES = ()
     _DEFAULT_HANDLER_ARGS = None
     _DEFAULT_CLIENT_MAX_SIZE = 1024 ** 2
-    
 
-    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[WebMessage], Awaitable[WebMessage]]',ssl_options:'dict', configuration: Optional[DictEx]):
+    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[WebMessage], Awaitable[WebMessage]]', ssl_options: 'dict', configuration: Optional[DictEx]):
         self.__endpoint = endpoint
         self.on_message_receive_async = async_callback
         self.ssl_options = ssl_options
         self.__config = configuration if configuration is not None else DictEx()
-        self.__logger = self.__config.get(HttpListener.LOGGER, HttpListener._DEFAULT_LOGGER)
-        self.__router = self.__config.get(HttpListener.ROUTER, HttpListener._DEFAULT_ROUTER)
-        self.__middlewares = self.__config.get(HttpListener.MIDDLEWARES, HttpListener._DEFAULT_MIDDLEWARES)
-        self.__handler_args = self.__config.get(HttpListener.HANDLER_ARGS, HttpListener._DEFAULT_HANDLER_ARGS)
-        self.__client_max_size = self.__config.get(HttpListener.CLIENT_MAX_SIZE, HttpListener._DEFAULT_CLIENT_MAX_SIZE)
-        
+        self.__logger = self.__config.get(
+            HttpListener.LOGGER, HttpListener._DEFAULT_LOGGER)
+        self.__router = self.__config.get(
+            HttpListener.ROUTER, HttpListener._DEFAULT_ROUTER)
+        self.__middlewares = self.__config.get(
+            HttpListener.MIDDLEWARES, HttpListener._DEFAULT_MIDDLEWARES)
+        self.__handler_args = self.__config.get(
+            HttpListener.HANDLER_ARGS, HttpListener._DEFAULT_HANDLER_ARGS)
+        self.__client_max_size = self.__config.get(
+            HttpListener.CLIENT_MAX_SIZE, HttpListener._DEFAULT_CLIENT_MAX_SIZE)
 
     def initialize_task(self, event_loop: asyncio.AbstractEventLoop):
         event_loop.create_task(self.__server_task(event_loop))
@@ -56,10 +68,12 @@ class HttpListener:
     async def __server_task(self, event_loop: asyncio.AbstractEventLoop):
         from aiohttp import web
         from multidict import MultiDict
+
         async def on_request_receive_async(request: 'web.Request') -> web.Response:
             ret_val: web.Response = None
             request_cms = await self.create_cms_async(request)
-            msg = WebMessage(request, str(uuid.uuid4()),MessageType.AD_HOC,json.dumps(request_cms, ensure_ascii=False).encode(encoding="utf-8"))
+            msg = WebMessage(request, str(uuid.uuid4()), MessageType.AD_HOC, json.dumps(
+                request_cms, ensure_ascii=False).encode(encoding="utf-8"))
             result = await self.on_message_receive_async(msg)
             if result and result.Response is None:
                 cms: dict = json.loads(result.buffer.decode("utf-8"))
@@ -80,7 +94,8 @@ class HttpListener:
                 headers.add("Content-Type", mime)
                 if index == ResponseTypes.STATIC_FILE:
                     try:
-                        path = pathlib.Path(cms_cms_webserver[HttpBaseDataName.FILE_PATH])
+                        path = pathlib.Path(
+                            cms_cms_webserver[HttpBaseDataName.FILE_PATH])
                         path.stat()
                         ret_val = web.FileResponse(
                             path=path,
@@ -102,9 +117,10 @@ class HttpListener:
                         ret_val.text = cms_cms[HttpBaseDataName.CONTENT]
                     else:
                         raw_blob_content = cms_cms[HttpBaseDataName.BLOB_CONTENT]
-                        ret_val.body = base64.b64decode(raw_blob_content.encode("utf-8"))
+                        ret_val.body = base64.b64decode(
+                            raw_blob_content.encode("utf-8"))
             else:
-                ret_val =  web.Response() if result.Response is None else result.Response
+                ret_val = web.Response() if result.Response is None else result.Response
             return ret_val
 
         app = web.Application(
@@ -117,27 +133,30 @@ class HttpListener:
         )
         app.add_routes(
             [web.route('*', '/{tail:.*}', on_request_receive_async)])
-        ssl_context= None
+        ssl_context = None
         if self.ssl_options:
             ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-            if 'certfile' in self.ssl_options:
+            if "certfile" in self.ssl_options:
                 ssl_context.load_cert_chain(
                     certfile=self.ssl_options.certfile,
                     keyfile=self.ssl_options.keyfile
                 )
-            elif 'pfxfile' in self.ssl_options:
-                try:
-                    pem_file_path = HttpListener.convert_pfx_to_pem_file(
-                        self.ssl_options.pfxfile,
-                        self.ssl_options.password
-                    )
-                    ssl_context.load_cert_chain(certfile=pem_file_path)
-                except Exception as e:
-                    raise Exception("Invalid PKCS12 or pastphrase for {0}: {1}".format(self.ssl_options.pfxfile, e))
+            elif "pfxfile" in self.ssl_options:
+                cert_path, key_path = HttpListener.convert_pfx_to_pem_files(
+                    self.ssl_options.pfxfile,
+                    self.ssl_options.password
+                )
+                ssl_context.load_cert_chain(
+                    certfile=cert_path, keyfile=key_path)
+
+                # حذف فایل‌های موقت بعد از load
+                os.remove(cert_path)
+                os.remove(key_path)
 
         runner = web.AppRunner(app, handle_signals=True)
         await runner.setup()
-        site = web.TCPSite(runner, self.__endpoint.url, self.__endpoint.port, ssl_context=ssl_context)
+        site = web.TCPSite(runner, self.__endpoint.url,
+                           self.__endpoint.port, ssl_context=ssl_context)
         await site.start()
         print(
             f"Development Edge server started at http{'s' if self.ssl_options else ''}://{self.__endpoint.url}:{self.__endpoint.port}")
@@ -147,26 +166,43 @@ class HttpListener:
         except asyncio.CancelledError:
             pass
         finally:
-            print(f"Development Edge server for http{'s' if self.ssl_options else ''}://{self.__endpoint.url}:{self.__endpoint.port} stopped.")
+            print(
+                f"Development Edge server for http{'s' if self.ssl_options else ''}://{self.__endpoint.url}:{self.__endpoint.port} stopped.")
             await site.stop()
             await runner.cleanup()
             await runner.shutdown()
 
     @staticmethod
-    def convert_pfx_to_pem_file(pfxfile:str,password:str)->str:
-        from cryptography.hazmat.primitives.serialization import pkcs12, Encoding, PrivateFormat, NoEncryption
-        with open(pfxfile,"rb") as f:
-            try:
-                private_key, certificate, additional_certificates = pkcs12.load_key_and_certificates(f.read(), password.encode())
-                pem_file_path = '{0}.auto-generated.pem'.format(pfxfile)
-                with open(pem_file_path, 'wb') as pem_file:
-                    pem_file.write(certificate.public_bytes(Encoding.PEM))
-                    for item in additional_certificates:
-                        pem_file.write(item.public_bytes(Encoding.PEM))
-                    pem_file.write(private_key.private_bytes(encoding= Encoding.PEM,format=PrivateFormat.TraditionalOpenSSL,encryption_algorithm=NoEncryption()))
-                return pem_file_path
-            except Exception as ex:
-                raise Exception("Error in create pem file from pfx {0}: {1}".format(pfxfile, ex))
+    def convert_pfx_to_pem_files(pfxfile: str, password: str) -> tuple[str, str]:
+        with open(pfxfile, "rb") as f:
+            private_key, certificate, additional_certificates = pkcs12.load_key_and_certificates(
+                f.read(), password.encode()
+            )
+
+            if not private_key or not certificate:
+                raise Exception("No key or certificate found in PFX")
+
+            # فایل‌های موقت ایجاد می‌کنیم
+            cert_tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pem")
+            key_tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pem")
+
+            # fullchain (cert + intermediates)
+            cert_tmp.write(certificate.public_bytes(Encoding.PEM))
+            for item in additional_certificates or []:
+                cert_tmp.write(item.public_bytes(Encoding.PEM))
+            cert_tmp.close()
+
+            # private key
+            key_tmp.write(
+                private_key.private_bytes(
+                    encoding=Encoding.PEM,
+                    format=PrivateFormat.TraditionalOpenSSL,
+                    encryption_algorithm=NoEncryption(),
+                )
+            )
+            key_tmp.close()
+
+            return cert_tmp.name, key_tmp.name
 
     @staticmethod
     async def create_cms_async(request: 'web.Request') -> dict:
@@ -242,7 +278,8 @@ class HttpListener:
         HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
                                   HttpBaseDataName.HOST_IP, host_parts[0])
         HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                  HttpBaseDataName.HOST_PORT,  host_parts[1] if len(host_parts) > 1 else "80")  # edit
+                                  # edit
+                                  HttpBaseDataName.HOST_PORT,  host_parts[1] if len(host_parts) > 1 else "80")
         HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
                                   HttpBaseDataName.CLIENT_IP, str(request.remote))
 
