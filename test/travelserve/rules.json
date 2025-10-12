@@ -1,0 +1,10 @@
+{
+    "solo_base": 10,
+    "gender_match": 20,
+    "arrival_close": 15,
+    "preference_match": 10,
+    "preference_conflict": -50,
+    "same_family": 25,
+    "different_family": -5,
+    "language_match": 5
+}

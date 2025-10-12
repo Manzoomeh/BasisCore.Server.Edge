@@ -237,32 +237,113 @@ class HttpListener:
     @staticmethod
     async def __add_body_async(cms_object: dict, request: 'web.Request'):
         content_len_str = request.headers.get('Content-Length')
-        if content_len_str or request.can_read_body:
-            raw_body = await request.read()
-            body = raw_body.decode('utf-8')
-            HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                      HttpBaseDataName.BODY, body)
-            content_type: str = request.headers.get(
-                "content-type")
-            if content_type and content_type.find("application/json") < 0:
-                if content_type.find("multipart/form-data") >= 0:
-                    _, content_type_value_params = cgi.parse_header(
-                        content_type)
-                    content_type_value_params['boundary'] = bytes(
-                        content_type_value_params['boundary'], "utf-8")
-                    if content_len_str is not None:
-                        content_type_value_params['CONTENT-LENGTH'] = int(
-                            content_len_str)
-                    with io.BytesIO(raw_body) as stream:
-                        fields = cgi.parse_multipart(
-                            stream, content_type_value_params)
-                    for key, value in fields.items():
-                        HttpListener.__add_header(cms_object,
-                                                  HttpBaseDataType.FORM, key, value[0] if len(value) == 1 else value)
+        if not (content_len_str or request.can_read_body):
+            return
+
+        content_type: str = request.headers.get("content-type", "") or ""
+
+        # Multipart handling (streaming) -------------------------------------------------
+        if content_type.startswith("multipart/"):
+            # Use aiohttp's multipart reader to get proper filenames & headers
+            try:
+                reader = await request.multipart()
+            except Exception:
+                # Fallback: read raw so that at least body captured
+                raw_body = await request.read()
+                HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
+                                          HttpBaseDataName.BODY, f"[multipart raw size={len(raw_body)}]")
+                return
+
+            # Collect file parts as a flat list instead of dict keyed by field name
+            files_node = []
+            form_fields_collected = {}
+            part_index = 0
+            async for part in reader:
+                part_index += 1
+                cd = part.headers.get('Content-Disposition', '')
+                # Extract name & filename from content-disposition manually (lightweight)
+                field_name = None
+                file_name = None
+                if cd:
+                    for item in cd.split(';'):
+                        item = item.strip()
+                        if item.startswith('name='):
+                            field_name = item[5:].strip().strip('"')
+                        elif item.startswith('filename='):
+                            file_name = item[9:].strip().strip('"')
+                if field_name is None:
+                    field_name = f"part_{part_index}"
+
+                if file_name:
+                    # It's a file part
+                    data = await part.read(decode=False)
+                    file_record = {
+                        "field": field_name,
+                        "name": file_name,
+                        "size": len(data),
+                        "content_type": part.headers.get('Content-Type') or '',
+                        "content_base64": base64.b64encode(data).decode('utf-8')
+                    }
+                    files_node.append(file_record)
                 else:
-                    for key, value in parse_qs(body).items():
-                        HttpListener.__add_header(
-                            cms_object, HttpBaseDataType.FORM, key, value[0] if len(value) == 1 else value)
+                    # Regular form field (text) - attempt utf-8 decode
+                    try:
+                        value_text = (await part.text())
+                    except UnicodeDecodeError:
+                        raw_val = await part.read(decode=False)
+                        value_text = base64.b64encode(raw_val).decode('utf-8')
+                    prev = form_fields_collected.get(field_name)
+                    if prev is None:
+                        form_fields_collected[field_name] = value_text
+                    else:
+                        if isinstance(prev, list):
+                            prev.append(value_text)
+                        else:
+                            form_fields_collected[field_name] = [
+                                prev, value_text]
+
+            # Add form fields
+            for k, v in form_fields_collected.items():
+                HttpListener.__add_header(
+                    cms_object, HttpBaseDataType.FORM, k, v)
+            # Add files node if present
+            if files_node:
+                cms_object['files'] = files_node
+            # Store safe body summary
+            HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
+                                      HttpBaseDataName.BODY, f"[multipart parts={part_index} files={len(files_node)}]")
+            return
+
+        # Non-multipart ---------------------------------------------------------------
+        raw_body = await request.read()
+        if not raw_body:
+            HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
+                                      HttpBaseDataName.BODY, "")
+            return
+
+        # JSON or form or binary fallback
+        if content_type.startswith('application/json'):
+            try:
+                text_body = raw_body.decode('utf-8')
+            except UnicodeDecodeError:
+                text_body = base64.b64encode(raw_body).decode('utf-8')
+            HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
+                                      HttpBaseDataName.BODY, text_body)
+            return
+
+        # application/x-www-form-urlencoded or others treat as form attempt
+        try:
+            text_body = raw_body.decode('utf-8')
+            if content_type.startswith('application/x-www-form-urlencoded'):
+                for key, value in parse_qs(text_body).items():
+                    HttpListener.__add_header(cms_object, HttpBaseDataType.FORM, key,
+                                              value[0] if len(value) == 1 else value)
+            HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
+                                      HttpBaseDataName.BODY, text_body)
+        except UnicodeDecodeError:
+            # Binary fallback
+            HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
+                                      HttpBaseDataName.BODY, base64.b64encode(raw_body).decode('utf-8'))
 
     @staticmethod
     def __add_server_data(cms_object: dict, request: 'web.Request'):
