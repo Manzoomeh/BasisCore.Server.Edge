@@ -51,7 +51,7 @@ app = edge.from_options(options)
 
 @app.restful_action(app.post("assign-rooms"))
 def assign_rooms_default(context: edge.RESTfulContext):
-
+    edge.HttpHeaders.add_cors_headers(context)
     if not context.cms.files or len(context.cms.files) < 2:
         return {
             "success": False,
@@ -84,7 +84,7 @@ def assign_rooms_default(context: edge.RESTfulContext):
 
 @app.restful_action(app.post("assign-rooms-with-rules"))
 def assign_rooms_with_rules(context: edge.RESTfulContext):
-
+    edge.HttpHeaders.add_cors_headers(context)
     # Save uploaded rules file temporarily
     with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json', encoding='utf-8') as temp_json:
         rules_content = base64.b64decode(
@@ -102,6 +102,7 @@ def assign_rooms_with_rules(context: edge.RESTfulContext):
 
 @app.restful_action(app.get("assign-rooms-default"))
 def assign_rooms_default(context: edge.RESTfulContext):
+    edge.HttpHeaders.add_cors_headers(context)
     return assign_rooms_service()
 
 
