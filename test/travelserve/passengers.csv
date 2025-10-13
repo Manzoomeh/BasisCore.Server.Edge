@@ -1,0 +1,13 @@
+PaxID,Name,PNR,PaxType,Age,Gender,FamilyID,Language,ArrivalTime,Preference,SpecialNeeds,Phone,Email,BookingPartyID,Lead,ProposedRoomType,ProposedPartnerNames
+P001,Arash Rahimi,XY12,ADT,42,M,G101,FA,2025-10-01T22:30:00,twin,None,9.715E+11,arash@example.com,G101,TRUE,Twin,Cyrus Rahimi
+P002,Bahar Rahimi,XY34,ADT,39,F,G101,FA,2025-10-01T22:30:00,twin,None,9.715E+11,bahar@example.com,G101,FALSE,Twin,Darya Rahimi
+P003,Cyrus Rahimi,XY56,CHD,8,M,G101,FA,2025-10-01T22:30:00,twin,None,,,G101,FALSE,Twin,Arash Rahimi
+P004,Darya Rahimi,XY78,CHD,4,F,G101,FA,2025-10-01T22:30:00,twin,None,,,G101,FALSE,Twin,Bahar Rahimi
+P005,Sara Mousavi,AB11,ADT,35,F,G202,FA,2025-10-01T22:40:00,twin,None,9.715E+11,sara@example.com,G202,TRUE,Twin,Eli Mousavi
+P006,Eli Mousavi,AB22,CHD,7,M,G202,FA,2025-10-01T22:40:00,twin,None,,,G202,FALSE,Twin,Sara Mousavi
+P007,Naveed Khan,CD33,ADT,28,M,,EN,2025-10-01T22:35:00,twin,None,9.715E+11,nkhan@example.com,PAIR001,TRUE,Twin,Liam Ahmadi
+P008,Liam Ahmadi,CD44,ADT,31,M,,EN,2025-10-01T22:42:00,twin,None,9.715E+11,lahmadi@example.com,PAIR001,FALSE,Twin,Naveed Khan
+P009,Parisa Zarei,EF55,ADT,27,F,,FA,2025-10-01T22:38:00,twin,None,9.715E+11,pzarei@example.com,SINGLE001,TRUE,Single,
+P010,Jing Lei,EF66,ADT,30,F,,EN,2025-10-01T22:36:00,solo,Accessible,9.715E+11,jlei@example.com,SINGLE002,TRUE,Single,
+P011,Reza Haddad,GH77,ADT,50,M,,FA,2025-10-01T22:50:00,solo,None,9.715E+11,rhaddad@example.com,SINGLE003,TRUE,Single,
+P012,Tara Nil,IJ88,ADT,45,F,,EN,2025-10-01T22:32:00,twin,None,9.715E+11,tnil@example.com,SINGLE004,TRUE,Single,
