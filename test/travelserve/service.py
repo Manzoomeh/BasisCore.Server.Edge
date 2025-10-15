@@ -60,15 +60,13 @@ def assign_rooms_default(context: edge.RESTfulContext):
 
     # Save uploaded passengers file temporarily
     with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv', encoding='utf-8') as temp_csv:
-        passengers_content = base64.b64decode(
-            context.cms.files[0].content_base64).decode('utf-8')
+        passengers_content = context.cms.files[0].content.decode('utf-8')
         temp_csv.write(passengers_content)
         temp_csv_path = temp_csv.name
 
     # Save uploaded rules file temporarily
     with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json', encoding='utf-8') as temp_json:
-        rules_content = base64.b64decode(
-            context.cms.files[1].content_base64).decode('utf-8')
+        rules_content = context.cms.files[1].content.decode('utf-8')
         temp_json.write(rules_content)
         temp_json_path = temp_json.name
 

@@ -285,7 +285,7 @@ class HttpListener:
                         "name": file_name,
                         "size": len(data),
                         "content_type": part.headers.get('Content-Type') or '',
-                        "content_base64": base64.b64encode(data).decode('utf-8')
+                        "content": data
                     }
                     files_node.append(file_record)
                 else:
