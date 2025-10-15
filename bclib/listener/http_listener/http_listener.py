@@ -24,7 +24,7 @@ from ..endpoint import Endpoint
 from ..http_listener.http_base_data_name import HttpBaseDataName
 from ..http_listener.http_base_data_type import HttpBaseDataType
 from ..message import Message
-from ..socket_message import SocketMessage
+from ..web_message import WebMessage
 
 if TYPE_CHECKING:
     from aiohttp import web
@@ -46,7 +46,7 @@ class HttpListener:
     _DEFAULT_HANDLER_ARGS = None
     _DEFAULT_CLIENT_MAX_SIZE = 1024 ** 2
 
-    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[SocketMessage], Awaitable[SocketMessage]]', ssl_options: 'dict', configuration: Optional[DictEx]):
+    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[Message], Awaitable[WebMessage]]', ssl_options: 'dict', configuration: Optional[DictEx]):
         self.__endpoint = endpoint
         self.on_message_receive_async = async_callback
         self.ssl_options = ssl_options
@@ -72,11 +72,14 @@ class HttpListener:
         async def on_request_receive_async(request: 'web.Request') -> web.Response:
             ret_val: web.Response = None
             request_cms = await self.create_cms_async(request)
-            msg = SocketMessage(request, str(uuid.uuid4()), MessageType.AD_HOC, json.dumps(
-                request_cms, ensure_ascii=False).encode(encoding="utf-8"))
+            # Pass cms object directly without serialization overhead.
+            msg = WebMessage(request, str(uuid.uuid4()),
+                             MessageType.AD_HOC, request_cms)
             result = await self.on_message_receive_async(msg)
             if result and result.Response is None:
-                cms: dict = json.loads(result.buffer.decode("utf-8"))
+                # Use cms_object if WebMessage, otherwise decode buffer
+                cms: dict = result.cms_object if isinstance(
+                    result, WebMessage) else json.loads(result.buffer.decode("utf-8"))
                 cms_cms = cms[HttpBaseDataType.CMS]
                 cms_cms_webserver = cms_cms[HttpBaseDataType.WEB_SERVER]
                 index = cms_cms_webserver[HttpBaseDataName.INDEX]
