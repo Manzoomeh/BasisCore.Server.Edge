@@ -1,3 +1,4 @@
+import json
 from typing import Any, Coroutine, Optional, Union
 
 from aiohttp import web
@@ -13,9 +14,10 @@ class SocketMessage(Message):
         self.__request = request
         self.Response = None
 
-    def create_response_message(self, session_id: str, buffer: bytes) -> "Message":
+    def create_response_message(self, session_id: str, cms_object: dict) -> "Message":
+        payload = json.dumps(cms_object, ensure_ascii=False).encode('utf-8')
         ret_val = SocketMessage(
-            self.__request, session_id, MessageType.AD_HOC, buffer)
+            self.__request, session_id, MessageType.AD_HOC, payload)
         ret_val.Response = self.Response
         return ret_val
 

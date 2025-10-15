@@ -84,9 +84,10 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
             response = await self.dispatch_async(context)
             ret_val: Message = None
             if context.is_adhoc:
+                # Pass raw response object; message implementation will handle serialization
                 ret_val = message.create_response_message(
                     message.session_id,
-                    json.dumps(response, ensure_ascii=False).encode("utf-8")
+                    response
                 )
             return ret_val
         except Exception as ex:
