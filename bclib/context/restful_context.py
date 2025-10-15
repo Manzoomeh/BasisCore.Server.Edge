@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class RESTfulContext(JsonBaseRequestContext):
-    def __init__(self, cms_object: dict, dispatcher: 'dispatcher.IDispatcher', message_object: 'listener.WebMessage') -> None:
+    def __init__(self, cms_object: dict, dispatcher: 'dispatcher.IDispatcher', message_object: 'listener.SocketMessage') -> None:
         super().__init__(cms_object, dispatcher, message_object)
         temp_data = None
         if self.cms.form:
