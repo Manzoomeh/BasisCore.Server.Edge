@@ -1,8 +1,6 @@
 import asyncio
 import base64
-import cgi
 import datetime
-import io
 import json
 import os
 import pathlib
@@ -123,7 +121,11 @@ class HttpListener:
                         ret_val.body = base64.b64decode(
                             raw_blob_content.encode("utf-8"))
             else:
-                ret_val = web.Response() if result.Response is None else result.Response
+                # Graceful fallback when no result (or no explicit Response) is returned
+                if result is not None and getattr(result, "Response", None) is not None:
+                    ret_val = result.Response
+                else:
+                    ret_val = web.Response()
             return ret_val
 
         app = web.Application(
