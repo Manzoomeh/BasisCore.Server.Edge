@@ -5,9 +5,9 @@ import re
 from struct import error
 from typing import Any, Callable, Coroutine, Optional
 
-from bclib.context import (ClientSourceContext, Context, NamedPipeContext,
-                           RequestContext, RESTfulContext, ServerSourceContext,
-                           SocketContext, WebContext)
+from bclib.context import (ClientSourceContext, Context, RequestContext,
+                           RESTfulContext, ServerSourceContext, SocketContext,
+                           WebContext)
 from bclib.dispatcher.dispatcher import Dispatcher
 from bclib.dispatcher.dispatcher_helper import DispatcherHelper
 from bclib.listener import (HttpBaseDataType, Message, MessageType,
@@ -144,9 +144,6 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
             ret_val = WebContext(cms_object, self, message)
         elif context_type == "socket":
             ret_val = SocketContext(cms_object, self, message, message_json)
-        elif context_type == "named_pipe":
-            ret_val = NamedPipeContext(
-                message_json, message.buffer.decode("utf-8"), self)
         elif context_type is None:
             raise NameError(f"No context found for '{url}'")
         else:
