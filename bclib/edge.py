@@ -16,7 +16,7 @@ from bclib.listener import (HttpBaseDataName, HttpBaseDataType, Message,
                             MessageType)
 from bclib.predicate import Predicate
 from bclib.utility import (DictEx, HttpHeaders, HttpMimeTypes, HttpStatusCodes,
-                           ResponseTypes, WindowsNamedPipeHelper)
+                           ResponseTypes)
 
 
 def from_config(option_file_path: str, file_name: str = "host.json"):
@@ -31,7 +31,6 @@ def from_config(option_file_path: str, file_name: str = "host.json"):
 
 def from_list(hosts: 'dict[str,list[str]]'):
     """Create related RoutingDispatcher obj from path list object"""
-    import asyncio
     import concurrent.futures
     import subprocess
 
