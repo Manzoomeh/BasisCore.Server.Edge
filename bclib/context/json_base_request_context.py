@@ -1,19 +1,18 @@
 import json
 from typing import TYPE_CHECKING
 
-from bclib.utility import HttpMimeTypes
 from bclib.context.web_context import WebContext
+from bclib.utility import HttpMimeTypes
 
 if TYPE_CHECKING:
-    from .. import dispatcher
-    from .. import listener
+    from .. import dispatcher, listener
 
 
 class JsonBaseRequestContext(WebContext):
     """Base class for dispatching http json base request context"""
 
-    def __init__(self, cms_object: dict,  dispatcher: 'dispatcher.IDispatcher',message_object: 'listener.WebMessage') -> None:
-        super().__init__(cms_object, dispatcher,message_object)
+    def __init__(self, cms_object: dict,  dispatcher: 'dispatcher.IDispatcher', message_object: 'listener.SocketMessage') -> None:
+        super().__init__(cms_object, dispatcher, message_object)
         self.mime = HttpMimeTypes.JSON
 
     def generate_error_response(self,  exception: Exception) -> dict:

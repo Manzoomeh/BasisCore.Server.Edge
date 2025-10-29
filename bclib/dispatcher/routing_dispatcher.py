@@ -3,21 +3,23 @@ import inspect
 import json
 import re
 from struct import error
-from typing import Callable, Any, Coroutine, Optional
+from typing import Any, Callable, Coroutine, Optional
 
-from bclib.utility import DictEx
-
-from bclib.context import ClientSourceContext, RESTfulContext, WebContext, RequestContext, Context, SocketContext, ServerSourceContext, NamedPipeContext
-from bclib.listener import Message, MessageType, HttpBaseDataType, ReceiveMessage
-
-from bclib.dispatcher.dispatcher_helper import DispatcherHelper
+from bclib.context import (ClientSourceContext, Context, NamedPipeContext,
+                           RequestContext, RESTfulContext, ServerSourceContext,
+                           SocketContext, WebContext)
 from bclib.dispatcher.dispatcher import Dispatcher
+from bclib.dispatcher.dispatcher_helper import DispatcherHelper
+from bclib.listener import (HttpBaseDataType, Message, MessageType,
+                            ReceiveMessage)
+from bclib.listener.web_message import WebMessage
+from bclib.utility import DictEx
 
 
 class RoutingDispatcher(Dispatcher, DispatcherHelper):
 
-    def __init__(self, options: dict,loop:asyncio.AbstractEventLoop=None):
-        super().__init__(options=options,loop=loop)
+    def __init__(self, options: dict, loop: asyncio.AbstractEventLoop = None):
+        super().__init__(options=options, loop=loop)
         self.__default_router = self.options.defaultRouter\
             if 'defaultRouter' in self.options and isinstance(self.options.defaultRouter, str)\
             else None
@@ -82,9 +84,10 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
             response = await self.dispatch_async(context)
             ret_val: Message = None
             if context.is_adhoc:
+                # Pass raw response object; message implementation will handle serialization
                 ret_val = message.create_response_message(
-                    message.session_id, 
-                    json.dumps(response, ensure_ascii=False).encode("utf-8")
+                    message.session_id,
+                    response
                 )
             return ret_val
         except Exception as ex:
@@ -101,20 +104,25 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
         request_id: Optional[str] = None
         method: Optional[str] = None
         message_json: Optional[dict] = None
-        if message.buffer is not None:
+        if isinstance(message, WebMessage):
+            message_json = message.cms_object
+            cms_object = message_json.get(
+                HttpBaseDataType.CMS) if message_json else None
+        elif message.buffer is not None:
             message_json = json.loads(message.buffer)
-            cms_object = message_json[HttpBaseDataType.CMS] if HttpBaseDataType.CMS in message_json else None
-            if cms_object:
-                if 'request' in cms_object:
-                    req = cms_object["request"]
-                else:
-                    raise KeyError("request key not found in cms object")
-                if 'full-url' in req:
-                    url = req["full-url"]
-                else:
-                    raise KeyError("full-url key not found in request")
-                request_id = req['request-id'] if 'request-id' in req else 'none'
-                method = req['methode'] if 'methode' in req else 'none'
+            cms_object = message_json.get(
+                HttpBaseDataType.CMS) if message_json else None
+        if cms_object:
+            if 'request' in cms_object:
+                req = cms_object["request"]
+            else:
+                raise KeyError("request key not found in cms object")
+            if 'full-url' in req:
+                url = req["full-url"]
+            else:
+                raise KeyError("full-url key not found in request")
+            request_id = req['request-id'] if 'request-id' in req else 'none'
+            method = req['methode'] if 'methode' in req else 'none'
         if message.type == MessageType.AD_HOC:
             if url or self.__default_router is None:
                 context_type = self.__context_type_detector(url)
@@ -127,17 +135,18 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
                 f"{self.__log_name}({context_type}::{message.type.name}){f' - {request_id} {method} {url} ' if cms_object else ''}")
 
         if context_type == "client_source":
-            ret_val = ClientSourceContext(cms_object, self,message)
+            ret_val = ClientSourceContext(cms_object, self, message)
         elif context_type == "restful":
-            ret_val = RESTfulContext(cms_object, self,message)
+            ret_val = RESTfulContext(cms_object, self, message)
         elif context_type == "server_source":
             ret_val = ServerSourceContext(message_json, self)
         elif context_type == "web":
-            ret_val = WebContext(cms_object, self,message)
+            ret_val = WebContext(cms_object, self, message)
         elif context_type == "socket":
             ret_val = SocketContext(cms_object, self, message, message_json)
         elif context_type == "named_pipe":
-            ret_val = NamedPipeContext(message_json, message.buffer.decode("utf-8"), self)
+            ret_val = NamedPipeContext(
+                message_json, message.buffer.decode("utf-8"), self)
         elif context_type is None:
             raise NameError(f"No context found for '{url}'")
         else:
@@ -158,7 +167,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
         raise NotImplementedError(
             "Send ad-hoc message not support in this type of dispatcher")
 
-    def cache(self, life_time:"int"=0, key:"str"=None):
+    def cache(self, life_time: "int" = 0, key: "str" = None):
         """Cache result of function for seconds of time or until signal by key for clear"""
 
         return self.cache_manager.cache_decorator(key, life_time)
