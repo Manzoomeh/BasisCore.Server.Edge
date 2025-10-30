@@ -13,7 +13,7 @@ from bclib.dispatcher import (DevServerDispatcher, EndpointDispatcher,
                               IDispatcher, RoutingDispatcher, SocketDispatcher)
 from bclib.exception import *
 from bclib.listener import (HttpBaseDataName, HttpBaseDataType, Message,
-                            MessageType)
+                            MessageType, WebSocketSession)
 from bclib.predicate import Predicate
 from bclib.utility import (DictEx, HttpHeaders, HttpMimeTypes, HttpStatusCodes,
                            ResponseTypes)

@@ -60,6 +60,14 @@ class HttpListener:
         self.__client_max_size = self.__config.get(
             HttpListener.CLIENT_MAX_SIZE, HttpListener._DEFAULT_CLIENT_MAX_SIZE)
 
+        # Initialize WebSocket session manager (lazy import to avoid circular import)
+        from bclib.listener.websocket_session_manager import \
+            WebSocketSessionManager
+        self.__ws_manager = WebSocketSessionManager(
+            on_message_receive_async=self.on_message_receive_async,
+            heartbeat_interval=30.0
+        )
+
     def initialize_task(self, event_loop: asyncio.AbstractEventLoop):
         event_loop.create_task(self.__server_task(event_loop))
 
@@ -68,6 +76,10 @@ class HttpListener:
         from multidict import MultiDict
 
         async def on_request_receive_async(request: 'web.Request') -> web.Response:
+            # Check for WebSocket upgrade
+            if request.headers.get('Upgrade', '').lower() == 'websocket':
+                return await self.__handle_websocket_async(request)
+
             ret_val: web.Response = None
             request_cms = await self.create_cms_async(request)
             # Pass cms object directly without serialization overhead.
@@ -176,6 +188,18 @@ class HttpListener:
             await site.stop()
             await runner.cleanup()
             await runner.shutdown()
+
+    async def __handle_websocket_async(self, request: 'web.Request') -> 'web.Response':
+        """
+        Handle WebSocket connection
+
+        Hand off to session manager which creates and returns WebSocket
+        """
+        # Create CMS object from request
+        cms_object = await self.create_cms_async(request)
+
+        # Manager creates WebSocket, prepares it, and handles everything
+        return await self.__ws_manager.handle_connection(request, cms_object)
 
     @staticmethod
     def convert_pfx_to_temp_files(pfxfile: str, password: str):

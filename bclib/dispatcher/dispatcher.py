@@ -118,6 +118,43 @@ class Dispatcher(ABC):
             return web_action_handler
         return _decorator
 
+    def websocket_action(self, * predicates: (Predicate)):
+        """Decorator for WebSocket action"""
+
+        def _decorator(websocket_action_handler: 'Callable[[Any, Any], None]'):
+            from bclib.listener.websocket_message import WebSocketMessage
+            from bclib.listener.websocket_session import WebSocketSession
+
+            @wraps(websocket_action_handler)
+            async def non_async_wrapper(context: WebSocketSession):
+                # Extract current message
+                message = context.current_message
+                if message is None:
+                    return None
+
+                # Call handler with context and message
+                await self.event_loop.run_in_executor(None, websocket_action_handler, context, message)
+                return None
+
+            @wraps(websocket_action_handler)
+            async def async_wrapper(context: WebSocketSession):
+                # Extract current message
+                message = context.current_message
+                if message is None:
+                    return None
+
+                # Call handler with context and message
+                await websocket_action_handler(context, message)
+                return None
+
+            wrapper = async_wrapper if inspect.iscoroutinefunction(
+                websocket_action_handler) else non_async_wrapper
+
+            self._get_context_lookup(WebSocketSession.__name__)\
+                .append(CallbackInfo([*predicates], wrapper))
+            return websocket_action_handler
+        return _decorator
+
     def client_source_action(self, *predicates: (Predicate)):
         """Decorator for determine source action"""
 
