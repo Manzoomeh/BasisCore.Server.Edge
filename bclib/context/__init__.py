@@ -13,3 +13,4 @@ from bclib.context.socket_context import SocketContext
 from bclib.context.source_context import SourceContext
 from bclib.context.source_member_context import SourceMemberContext
 from bclib.context.web_context import WebContext
+from bclib.context.websocket_context import WebSocketContext

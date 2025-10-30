@@ -7,7 +7,8 @@ from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
                            Context, MergeType, RabbitContext, RequestContext,
                            RESTfulContext, ServerSourceContext,
                            ServerSourceMemberContext, SocketContext,
-                           SourceContext, SourceMemberContext, WebContext)
+                           SourceContext, SourceMemberContext, WebContext,
+                           WebSocketContext)
 from bclib.db_manager import *
 from bclib.dispatcher import (DevServerDispatcher, EndpointDispatcher,
                               IDispatcher, RoutingDispatcher, SocketDispatcher)

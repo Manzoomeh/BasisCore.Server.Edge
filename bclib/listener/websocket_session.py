@@ -204,29 +204,8 @@ class WebSocketSession:
         self._set_current_message(message)
 
         try:
-            # Update CMS container with WebSocket-specific data
-            websocket_data = {
-                'session_id': self.session_id,
-                'message_type': message.type.name,
-                'closed': self.closed
-            }
-
-            # Add message data
-            if message.is_text:
-                websocket_data['text'] = message.text
-            elif message.is_binary:
-                websocket_data['data'] = message.data
-            elif message.is_close:
-                websocket_data['code'] = message.code
-            elif message.is_error:
-                websocket_data['error'] = str(message.exception)
-
-            # Update the session's cms_container with websocket data
-            self._cms_container['websocket'] = websocket_data
-
             # Create WebSocketMessage (inherits from Message)
             ws_msg = WebSocketMessage.create_from_websocket(
-                session_id=self.session_id,
                 session=self,
                 ws_message=message
             )

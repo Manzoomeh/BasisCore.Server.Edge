@@ -7,12 +7,13 @@ from typing import Any, Callable, Coroutine, Optional
 
 from bclib.context import (ClientSourceContext, Context, RequestContext,
                            RESTfulContext, ServerSourceContext, SocketContext,
-                           WebContext)
+                           WebContext, WebSocketContext)
 from bclib.dispatcher.dispatcher import Dispatcher
 from bclib.dispatcher.dispatcher_helper import DispatcherHelper
 from bclib.listener import (HttpBaseDataType, Message, MessageType,
                             ReceiveMessage)
 from bclib.listener.web_message import WebMessage
+from bclib.listener.websocket_message import WebSocketMessage
 from bclib.utility import DictEx
 
 
@@ -108,6 +109,9 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
             message_json = message.cms_object
             cms_object = message_json.get(
                 HttpBaseDataType.CMS) if message_json else None
+        elif isinstance(message, WebSocketMessage):
+            context_type = "websocket"
+            cms_object = message.cms_object
         elif message.buffer is not None:
             message_json = json.loads(message.buffer)
             cms_object = message_json.get(
@@ -128,7 +132,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
                 context_type = self.__context_type_detector(url)
             else:
                 context_type = self.__default_router
-        else:
+        elif context_type is None:
             context_type = "socket"
         if self.log_request:
             print(
@@ -144,6 +148,8 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
             ret_val = WebContext(cms_object, self, message)
         elif context_type == "socket":
             ret_val = SocketContext(cms_object, self, message, message_json)
+        elif context_type == "websocket":
+            ret_val = WebSocketContext(cms_object, self, message)
         elif context_type is None:
             raise NameError(f"No context found for '{url}'")
         else:
