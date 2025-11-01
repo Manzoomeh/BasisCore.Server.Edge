@@ -1,6 +1,5 @@
 import asyncio
 import base64
-import datetime
 import json
 import os
 import pathlib
@@ -8,7 +7,6 @@ import ssl
 import tempfile
 import uuid
 from typing import TYPE_CHECKING, Awaitable, Callable, Optional
-from urllib.parse import parse_qs, unquote
 
 from cryptography.hazmat.primitives.serialization import (Encoding,
                                                           NoEncryption,
@@ -21,6 +19,7 @@ from bclib.utility import DictEx, ResponseTypes
 from ..endpoint import Endpoint
 from ..http_listener.http_base_data_name import HttpBaseDataName
 from ..http_listener.http_base_data_type import HttpBaseDataType
+from ..http_listener.web_request_helper import WebRequestHelper
 from ..message import Message
 from ..web_message import WebMessage
 
@@ -31,7 +30,6 @@ from aiohttp.log import web_logger
 
 
 class HttpListener:
-    _id = 0
     LOGGER = "logger"
     ROUTER = "router"
     MIDDLEWARES = "middlewares"
@@ -80,65 +78,8 @@ class HttpListener:
             if request.headers.get('Upgrade', '').lower() == 'websocket':
                 return await self.__handle_websocket_async(request)
 
-            ret_val: web.Response = None
-            request_cms = await self.create_cms_async(request)
-            # Pass cms object directly without serialization overhead.
-            msg = WebMessage(str(uuid.uuid4()),
-                             MessageType.AD_HOC, request_cms)
-            result = await self.on_message_receive_async(msg)
-            if result:
-                # Use cms_object if WebMessage, otherwise decode buffer
-                cms: dict = result.cms_object if isinstance(
-                    result, WebMessage) else json.loads(result.buffer.decode("utf-8"))
-                cms_cms = cms[HttpBaseDataType.CMS]
-                cms_cms_webserver = cms_cms[HttpBaseDataType.WEB_SERVER]
-                index = cms_cms_webserver[HttpBaseDataName.INDEX]
-                header_code: str = cms_cms_webserver[HttpBaseDataName.HEADER_CODE]
-                mime = cms_cms[HttpBaseDataName.WEB_SERVER][HttpBaseDataName.MIME]
-                headers = MultiDict()
-                if HttpBaseDataName.HTTP in cms_cms:
-                    http: dict = cms_cms[HttpBaseDataName.HTTP]
-                    for key, value in http.items():
-                        if isinstance(value, list):
-                            for item in value:
-                                headers.add(key, item)
-                        else:
-                            headers.add(key, value)
-                headers.add("Content-Type", mime)
-                if index == ResponseTypes.STATIC_FILE:
-                    try:
-                        path = pathlib.Path(
-                            cms_cms_webserver[HttpBaseDataName.FILE_PATH])
-                        path.stat()
-                        ret_val = web.FileResponse(
-                            path=path,
-                            chunk_size=256*1024,
-                            status=int(header_code.split(' ')[0]),
-                            headers=headers
-                        )
-                    except FileNotFoundError:
-                        ret_val = web.Response(
-                            status=404,
-                            reason="File not found"
-                        )
-                else:
-                    ret_val = web.Response(
-                        status=int(header_code.split(' ')[0]),
-                        headers=headers
-                    )
-                    if HttpBaseDataName.CONTENT in cms_cms:
-                        ret_val.text = cms_cms[HttpBaseDataName.CONTENT]
-                    else:
-                        raw_blob_content = cms_cms[HttpBaseDataName.BLOB_CONTENT]
-                        ret_val.body = base64.b64decode(
-                            raw_blob_content.encode("utf-8"))
-            else:
-                # Graceful fallback when no result (or no explicit Response) is returned
-                if result is not None and getattr(result, "Response", None) is not None:
-                    ret_val = result.Response
-                else:
-                    ret_val = web.Response()
-            return ret_val
+            # Handle regular HTTP request
+            return await self.__handle_http_async(request)
 
         app = web.Application(
             logger=self.__logger,
@@ -189,6 +130,79 @@ class HttpListener:
             await runner.cleanup()
             await runner.shutdown()
 
+    async def __handle_http_async(self, request: 'web.Request') -> 'web.Response':
+        """
+        Handle HTTP request
+
+        Args:
+            request: aiohttp web request
+
+        Returns:
+            web.Response object
+        """
+        from aiohttp import web
+        from multidict import MultiDict
+
+        ret_val: web.Response = None
+        request_cms = await WebRequestHelper.create_cms_async(request)
+        # Pass cms object directly without serialization overhead.
+        msg = WebMessage(str(uuid.uuid4()),
+                         MessageType.AD_HOC, request_cms)
+        result = await self.on_message_receive_async(msg)
+        if result:
+            # Use cms_object if WebMessage, otherwise decode buffer
+            cms: dict = result.cms_object if isinstance(
+                result, WebMessage) else json.loads(result.buffer.decode("utf-8"))
+            cms_cms = cms[HttpBaseDataType.CMS]
+            cms_cms_webserver = cms_cms[HttpBaseDataType.WEB_SERVER]
+            index = cms_cms_webserver[HttpBaseDataName.INDEX]
+            header_code: str = cms_cms_webserver[HttpBaseDataName.HEADER_CODE]
+            mime = cms_cms[HttpBaseDataName.WEB_SERVER][HttpBaseDataName.MIME]
+            headers = MultiDict()
+            if HttpBaseDataName.HTTP in cms_cms:
+                http: dict = cms_cms[HttpBaseDataName.HTTP]
+                for key, value in http.items():
+                    if isinstance(value, list):
+                        for item in value:
+                            headers.add(key, item)
+                    else:
+                        headers.add(key, value)
+            headers.add("Content-Type", mime)
+            if index == ResponseTypes.STATIC_FILE:
+                try:
+                    path = pathlib.Path(
+                        cms_cms_webserver[HttpBaseDataName.FILE_PATH])
+                    path.stat()
+                    ret_val = web.FileResponse(
+                        path=path,
+                        chunk_size=256*1024,
+                        status=int(header_code.split(' ')[0]),
+                        headers=headers
+                    )
+                except FileNotFoundError:
+                    ret_val = web.Response(
+                        status=404,
+                        reason="File not found"
+                    )
+            else:
+                ret_val = web.Response(
+                    status=int(header_code.split(' ')[0]),
+                    headers=headers
+                )
+                if HttpBaseDataName.CONTENT in cms_cms:
+                    ret_val.text = cms_cms[HttpBaseDataName.CONTENT]
+                else:
+                    raw_blob_content = cms_cms[HttpBaseDataName.BLOB_CONTENT]
+                    ret_val.body = base64.b64decode(
+                        raw_blob_content.encode("utf-8"))
+        else:
+            # Graceful fallback when no result (or no explicit Response) is returned
+            if result is not None and getattr(result, "Response", None) is not None:
+                ret_val = result.Response
+            else:
+                ret_val = web.Response()
+        return ret_val
+
     async def __handle_websocket_async(self, request: 'web.Request') -> 'web.Response':
         """
         Handle WebSocket connection
@@ -196,7 +210,7 @@ class HttpListener:
         Hand off to session manager which creates and returns WebSocket
         """
         # Create CMS object from request
-        cms_object = await self.create_cms_async(request)
+        cms_object = await WebRequestHelper.create_cms_async(request)
 
         # Manager creates WebSocket, prepares it, and handles everything
         return await self.__ws_manager.handle_connection(request, cms_object["cms"])
@@ -238,202 +252,3 @@ class HttpListener:
             fullchain_tmp.flush()
 
             return fullchain_tmp.name, key_tmp.name
-
-    @staticmethod
-    async def create_cms_async(request: 'web.Request') -> dict:
-        cms_object = dict()
-        HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                  HttpBaseDataName.METHODE, request.method.lower())
-        raw_url = unquote(request.path_qs)[1:]
-        HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                  HttpBaseDataName.RAW_URL, raw_url)
-        HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                  HttpBaseDataName.URL, request.path[1:])
-        HttpListener.__add_query_string(request.query, cms_object)
-        for key, value in request.headers.items():
-            field_name = key.strip().lower()
-            if field_name == HttpBaseDataName.COOKIE:
-                HttpListener.__add_cookie(value, cms_object)
-            elif field_name == HttpBaseDataName.HOST:
-                HttpListener.__add_host(value, raw_url, cms_object)
-            else:
-                HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                          field_name, str(value).strip())
-        HttpListener.__add_server_data(cms_object, request)
-        await HttpListener.__add_body_async(cms_object, request)
-        return {"cms": cms_object}
-
-    @staticmethod
-    async def __add_body_async(cms_object: dict, request: 'web.Request'):
-        content_len_str = request.headers.get('Content-Length')
-        if not (content_len_str or request.can_read_body):
-            return
-
-        content_type: str = request.headers.get("content-type", "") or ""
-
-        # Multipart handling (streaming) -------------------------------------------------
-        if content_type.startswith("multipart/"):
-            # Use aiohttp's multipart reader to get proper filenames & headers
-            try:
-                reader = await request.multipart()
-            except Exception:
-                # Fallback: read raw so that at least body captured
-                raw_body = await request.read()
-                HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                          HttpBaseDataName.BODY, f"[multipart raw size={len(raw_body)}]")
-                return
-
-            # Collect file parts as a flat list instead of dict keyed by field name
-            files_node = []
-            form_fields_collected = {}
-            part_index = 0
-            async for part in reader:
-                part_index += 1
-                cd = part.headers.get('Content-Disposition', '')
-                # Extract name & filename from content-disposition manually (lightweight)
-                field_name = None
-                file_name = None
-                if cd:
-                    for item in cd.split(';'):
-                        item = item.strip()
-                        if item.startswith('name='):
-                            field_name = item[5:].strip().strip('"')
-                        elif item.startswith('filename='):
-                            file_name = item[9:].strip().strip('"')
-                if field_name is None:
-                    field_name = f"part_{part_index}"
-
-                if file_name:
-                    # It's a file part
-                    data = await part.read(decode=False)
-                    file_record = {
-                        "field": field_name,
-                        "name": file_name,
-                        "size": len(data),
-                        "content_type": part.headers.get('Content-Type') or '',
-                        "content": data
-                    }
-                    files_node.append(file_record)
-                else:
-                    # Regular form field (text) - attempt utf-8 decode
-                    try:
-                        value_text = (await part.text())
-                    except UnicodeDecodeError:
-                        raw_val = await part.read(decode=False)
-                        value_text = base64.b64encode(raw_val).decode('utf-8')
-                    prev = form_fields_collected.get(field_name)
-                    if prev is None:
-                        form_fields_collected[field_name] = value_text
-                    else:
-                        if isinstance(prev, list):
-                            prev.append(value_text)
-                        else:
-                            form_fields_collected[field_name] = [
-                                prev, value_text]
-
-            # Add form fields
-            for k, v in form_fields_collected.items():
-                HttpListener.__add_header(
-                    cms_object, HttpBaseDataType.FORM, k, v)
-            # Add files node if present
-            if files_node:
-                cms_object['files'] = files_node
-            # Store safe body summary
-            HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                      HttpBaseDataName.BODY, f"[multipart parts={part_index} files={len(files_node)}]")
-            return
-
-        # Non-multipart ---------------------------------------------------------------
-        raw_body = await request.read()
-        if not raw_body:
-            HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                      HttpBaseDataName.BODY, "")
-            return
-
-        # JSON or form or binary fallback
-        if content_type.startswith('application/json'):
-            try:
-                text_body = raw_body.decode('utf-8')
-            except UnicodeDecodeError:
-                text_body = base64.b64encode(raw_body).decode('utf-8')
-            HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                      HttpBaseDataName.BODY, text_body)
-            return
-
-        # application/x-www-form-urlencoded or others treat as form attempt
-        try:
-            text_body = raw_body.decode('utf-8')
-            if content_type.startswith('application/x-www-form-urlencoded'):
-                for key, value in parse_qs(text_body).items():
-                    HttpListener.__add_header(cms_object, HttpBaseDataType.FORM, key,
-                                              value[0] if len(value) == 1 else value)
-            HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                      HttpBaseDataName.BODY, text_body)
-        except UnicodeDecodeError:
-            # Binary fallback
-            HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                      HttpBaseDataName.BODY, base64.b64encode(raw_body).decode('utf-8'))
-
-    @staticmethod
-    def __add_server_data(cms_object: dict, request: 'web.Request'):
-        HttpListener._id += 1
-        now = datetime.datetime.now()
-        HttpListener.__add_header(cms_object, HttpBaseDataType.CMS,
-                                  HttpBaseDataName.DATE, now.strftime("%d/%m/%Y"))
-        HttpListener.__add_header(cms_object, HttpBaseDataType.CMS,
-                                  HttpBaseDataName.TIME, now.strftime("%H:%M"))
-        HttpListener.__add_header(cms_object, HttpBaseDataType.CMS,
-                                  HttpBaseDataName.DATE2, now.strftime("%Y%m%d"))
-        HttpListener.__add_header(cms_object, HttpBaseDataType.CMS,
-                                  HttpBaseDataName.TIME2, now.strftime("%H%M%S"))
-        HttpListener.__add_header(cms_object, HttpBaseDataType.CMS,
-                                  HttpBaseDataName.DATE3, now.strftime("%Y.%m.%d"))
-        HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                  HttpBaseDataName.REQUEST_ID, str(HttpListener._id))
-        host_parts = request.host.split(':')
-        HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                  HttpBaseDataName.HOST_IP, host_parts[0])
-        HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                  # edit
-                                  HttpBaseDataName.HOST_PORT,  host_parts[1] if len(host_parts) > 1 else "80")
-        HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                  HttpBaseDataName.CLIENT_IP, str(request.remote))
-
-    @staticmethod
-    def __add_query_string(query: dict, cms_object: dict) -> None:
-        for key, value in query.items():
-            HttpListener.__add_header(
-                cms_object, HttpBaseDataType.QUERY, key, value)
-
-    @staticmethod
-    def __add_cookie(raw_header_value: str, cms_object) -> None:
-        for item in raw_header_value.split(';'):
-            parts = item.split('=')
-            if len(parts) == 2:
-                HttpListener.__add_header(cms_object, HttpBaseDataName.COOKIE,
-                                          parts[0].strip(), parts[1].strip())
-
-    @staticmethod
-    def __add_host(row_host: str, row_url: str, cms_object) -> None:
-        host_parts = row_host.split(':')
-        HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                  HttpBaseDataName.HOST, host_parts[0])
-        if len(host_parts) == 2:
-            HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                      HttpBaseDataName.PORT, host_parts[1])
-        HttpListener.__add_header(cms_object, HttpBaseDataType.REQUEST,
-                                  HttpBaseDataName.FULL_URL,  f"{row_host}/{row_url}")
-
-    @staticmethod
-    def __add_header(cms_object: dict, value_type: str, value_name: str, value: str) -> None:
-        if value_type not in cms_object:
-            cms_object[value_type] = dict()
-        type_node = cms_object[value_type]
-        if value_name in type_node:
-            name_node = type_node[value_name]
-            if isinstance(name_node, list):
-                name_node.append(value)
-            else:
-                type_node[value_name] = [name_node, value]
-        else:
-            type_node[value_name] = value
