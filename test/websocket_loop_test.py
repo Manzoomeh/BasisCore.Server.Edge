@@ -7,8 +7,8 @@ import asyncio
 from aiohttp import web
 
 from bclib.listener.websocket_message import WebSocketMessage
-from bclib.listener.websocket_session import WebSocketSession
-from bclib.listener.websocket_session_manager import WebSocketSessionManager
+from bclib.dispatcher.websocket_session import WebSocketSession
+from bclib.dispatcher.websocket_session_manager import WebSocketSessionManager
 
 
 async def test_handler(context: WebSocketSession):

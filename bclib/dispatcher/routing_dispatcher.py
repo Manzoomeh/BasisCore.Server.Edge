@@ -10,6 +10,7 @@ from bclib.context import (ClientSourceContext, Context, RequestContext,
                            WebContext, WebSocketContext)
 from bclib.dispatcher.dispatcher import Dispatcher
 from bclib.dispatcher.dispatcher_helper import DispatcherHelper
+from bclib.dispatcher.websocket_session_manager import WebSocketSessionManager
 from bclib.listener import (HttpBaseDataType, Message, MessageType,
                             ReceiveMessage)
 from bclib.listener.web_message import WebMessage
@@ -26,6 +27,13 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
             else None
         self.name = self.options["name"] if self.options.has("name") else None
         self.__log_name = f"{self.name}: " if self.name else ''
+
+        # Initialize WebSocket session manager
+        self.__ws_manager = WebSocketSessionManager(
+            on_message_receive_async=self._on_message_receive_async,
+            heartbeat_interval=30.0
+        )
+
         if self.options.has('router'):
             router = self.options.router
             if isinstance(router, str):
@@ -38,8 +46,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
         elif self.__default_router:
             self.__context_type_detector: 'Callable[[str],str]' = lambda _: self.__default_router
         else:
-            raise error(
-                "Invalid routing config! Please at least set one of 'router' or 'defaultRouter' property in host options.")
+            print("'router' or 'defaultRouter' property not found in host options! so only websocket and socket contexts will be supported.")
 
     def init_router_lookup(self):
         """create router lookup dictionary"""
@@ -156,6 +163,11 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
             raise NameError(
                 f"Configured context type '{context_type}' not found for '{url}'")
         return ret_val
+
+    @property
+    def ws_manager(self) -> WebSocketSessionManager:
+        """Get WebSocket session manager"""
+        return self.__ws_manager
 
     def run_in_background(self, callback: 'Callable|Coroutine', *args: Any) -> asyncio.Future:
         """helper for run function in background thread"""

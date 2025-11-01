@@ -1,15 +1,14 @@
 """WebSocket Context - context for WebSocket-based requests"""
 from typing import TYPE_CHECKING
 
-from listener.websocket_message import WebSocketMessage
-from listener.websocket_session import WebSocketSession
-
 from bclib.context.request_context import RequestContext
 
 if TYPE_CHECKING:
     from bclib.dispatcher import IDispatcher
+    from bclib.dispatcher.websocket_session import WebSocketSession
+    from bclib.dispatcher.websocket_session_manager import \
+        WebSocketSessionManager
     from bclib.listener.websocket_message import WebSocketMessage
-    from bclib.listener.websocket_session import WebSocketSession
 
 
 class WebSocketContext(RequestContext):
@@ -28,8 +27,9 @@ class WebSocketContext(RequestContext):
             ws_message: WebSocket message instance
         """
         super().__init__(cms_object, dispatcher)
-        self.ws_message: 'WebSocketMessage' = ws_message
+        self.message: 'WebSocketMessage' = ws_message
         self.session: 'WebSocketSession' = ws_message.session
+        self.session_manager: 'WebSocketSessionManager' = self.session.session_manager
         self.is_adhoc = False
 
     def __repr__(self) -> str:

@@ -11,10 +11,11 @@ from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
                            WebSocketContext)
 from bclib.db_manager import *
 from bclib.dispatcher import (DevServerDispatcher, EndpointDispatcher,
-                              IDispatcher, RoutingDispatcher, SocketDispatcher)
+                              IDispatcher, RoutingDispatcher, SocketDispatcher,
+                              WebSocketSession)
 from bclib.exception import *
 from bclib.listener import (HttpBaseDataName, HttpBaseDataType, Message,
-                            MessageType, WebSocketSession)
+                            MessageType)
 from bclib.predicate import Predicate
 from bclib.utility import (DictEx, HttpHeaders, HttpMimeTypes, HttpStatusCodes,
                            ResponseTypes)

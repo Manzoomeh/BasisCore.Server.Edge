@@ -4,7 +4,6 @@ from bclib import edge
 
 options = {
     "server": "localhost:8080",
-    "router": "websocket",
     "log_request": True,
     "log_error": True
 }
@@ -15,9 +14,10 @@ app = edge.from_options(options)
 @app.websocket_action()
 async def handle_websocket(context: edge.WebSocketContext):
     """Handle WebSocket messages"""
-
+    print(
+        f"[SESSION] Session ID: {context.session.session_id[:8]} (messageType={context.message.type.name})")
     # Connection established
-    if context.ws_message.is_connect:
+    if context.message.is_connect:
         print(
             f"✓ Client connected - Session: {context.session.session_id[:8]}...")
         await context.session.send_json_async({
@@ -27,8 +27,8 @@ async def handle_websocket(context: edge.WebSocketContext):
         })
 
     # Text message received
-    elif context.ws_message.is_text:
-        text = context.ws_message.text
+    elif context.message.is_text:
+        text = context.message.text
         print(f"✓ Received text: {text}")
 
         try:
@@ -48,28 +48,28 @@ async def handle_websocket(context: edge.WebSocketContext):
             await context.session.send_text_async(f"Echo: {text}")
 
     # Binary message received
-    elif context.ws_message.is_binary:
-        data = context.ws_message.binary
+    elif context.message.is_binary:
+        data = context.message.binary
         print(f"✓ Received binary: {len(data)} bytes")
         await context.session.send_bytes_async(data)  # Echo back
 
     # Connection closed
-    elif context.ws_message.is_disconnect:
+    elif context.message.is_disconnect:
         print(
             f"✓ Client disconnected - Session: {context.session.session_id[:8]}...")
 
     # Close message
-    elif context.ws_message.is_close:
+    elif context.message.is_close:
         print(f"✓ Close message received")
 
     # Ping/Pong
-    elif context.ws_message.is_ping:
+    elif context.message.is_ping:
         print(f"✓ Ping received")
-    elif context.ws_message.is_pong:
+    elif context.message.is_pong:
         print(f"✓ Pong received")
 
     # Error
-    elif context.ws_message.is_error:
+    elif context.message.is_error:
         print(f"✗ Error occurred")
     return True
 

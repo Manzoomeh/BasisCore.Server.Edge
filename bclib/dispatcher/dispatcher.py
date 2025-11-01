@@ -122,7 +122,7 @@ class Dispatcher(ABC):
         """Decorator for WebSocket action"""
 
         def _decorator(websocket_action_handler: 'Callable[[Any, Any], None]'):
-            from bclib.listener.websocket_session import WebSocketSession
+            from bclib.dispatcher.websocket_session import WebSocketSession
 
             @wraps(websocket_action_handler)
             async def non_async_wrapper(context: WebSocketSession):

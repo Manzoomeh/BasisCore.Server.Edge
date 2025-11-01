@@ -12,6 +12,8 @@ from bclib.utility import DictEx
 if TYPE_CHECKING:
     from aiohttp import web
 
+    from bclib.dispatcher.websocket_session_manager import \
+        WebSocketSessionManager
     from bclib.listener.websocket_message import WebSocketMessage
 
 
@@ -24,7 +26,8 @@ class WebSocketSession:
                  request: 'web.Request',
                  session_id: str,
                  on_message_receive_async: Callable[[Message], Awaitable[Message]],
-                 heartbeat_interval: float = 30.0):
+                 heartbeat_interval: float = 30.0,
+                 session_manager: Optional['WebSocketSessionManager'] = None):
         self.ws = ws
         self.session_id = session_id
         self.request = request
@@ -32,6 +35,7 @@ class WebSocketSession:
         self.url = self.cms.request.url if self.cms and 'request' in self.cms else None
         self._on_message_receive = on_message_receive_async
         self._heartbeat_interval = heartbeat_interval
+        self.session_manager = session_manager
         self._lifecycle_task: Optional[asyncio.Task] = asyncio.create_task(
             self._start_async())
 

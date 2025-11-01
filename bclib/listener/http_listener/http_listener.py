@@ -25,6 +25,7 @@ from ..web_message import WebMessage
 
 if TYPE_CHECKING:
     from aiohttp import web
+    from bclib.dispatcher.websocket_session_manager import WebSocketSessionManager
 
 from aiohttp.log import web_logger
 
@@ -42,7 +43,7 @@ class HttpListener:
     _DEFAULT_HANDLER_ARGS = None
     _DEFAULT_CLIENT_MAX_SIZE = 1024 ** 2
 
-    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[Message], Awaitable[Message]]', ssl_options: 'dict', configuration: Optional[DictEx]):
+    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[Message], Awaitable[Message]]', ssl_options: 'dict', configuration: Optional[DictEx], ws_manager: 'WebSocketSessionManager'):
         self.__endpoint = endpoint
         self.on_message_receive_async = async_callback
         self.ssl_options = ssl_options
@@ -57,21 +58,15 @@ class HttpListener:
             HttpListener.HANDLER_ARGS, HttpListener._DEFAULT_HANDLER_ARGS)
         self.__client_max_size = self.__config.get(
             HttpListener.CLIENT_MAX_SIZE, HttpListener._DEFAULT_CLIENT_MAX_SIZE)
+        self.__ws_manager = ws_manager
 
-        # Initialize WebSocket session manager (lazy import to avoid circular import)
-        from bclib.listener.websocket_session_manager import \
-            WebSocketSessionManager
-        self.__ws_manager = WebSocketSessionManager(
-            on_message_receive_async=self.on_message_receive_async,
-            heartbeat_interval=30.0
-        )
+        # Use WebSocket session manager from dispatcher
 
     def initialize_task(self, event_loop: asyncio.AbstractEventLoop):
         event_loop.create_task(self.__server_task(event_loop))
 
     async def __server_task(self, event_loop: asyncio.AbstractEventLoop):
         from aiohttp import web
-        from multidict import MultiDict
 
         async def on_request_receive_async(request: 'web.Request') -> web.Response:
             # Check for WebSocket upgrade

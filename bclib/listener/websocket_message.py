@@ -7,7 +7,7 @@ from bclib.listener.message import Message
 from bclib.listener.message_type import MessageType
 
 if TYPE_CHECKING:
-    from bclib.listener.websocket_session import WebSocketSession
+    from bclib.dispatcher.websocket_session import WebSocketSession
 
 
 class WSMessageType(Enum):

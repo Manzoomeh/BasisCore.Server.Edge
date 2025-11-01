@@ -4,3 +4,5 @@ from bclib.dispatcher.endpoint_dispatcher import EndpointDispatcher
 from bclib.dispatcher.idispatcher import IDispatcher
 from bclib.dispatcher.routing_dispatcher import RoutingDispatcher
 from bclib.dispatcher.socket_dispatcher import SocketDispatcher
+from bclib.dispatcher.websocket_session import WebSocketSession
+from bclib.dispatcher.websocket_session_manager import WebSocketSessionManager
