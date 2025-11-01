@@ -111,7 +111,7 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
                 HttpBaseDataType.CMS) if message_json else None
         elif isinstance(message, WebSocketMessage):
             context_type = "websocket"
-            cms_object = message.cms_object
+            cms_object = message.session.cms
         elif message.buffer is not None:
             message_json = json.loads(message.buffer)
             cms_object = message_json.get(

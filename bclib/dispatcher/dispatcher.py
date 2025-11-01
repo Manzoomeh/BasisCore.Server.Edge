@@ -12,7 +12,7 @@ from bclib.cache import CacheFactory
 from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
                            Context, RabbitContext, RESTfulContext,
                            ServerSourceContext, ServerSourceMemberContext,
-                           SocketContext, WebContext)
+                           SocketContext, WebContext, WebSocketContext)
 from bclib.db_manager import DbManager
 from bclib.exception import HandlerNotFoundErr
 from bclib.listener import RabbitBusListener
@@ -126,30 +126,16 @@ class Dispatcher(ABC):
 
             @wraps(websocket_action_handler)
             async def non_async_wrapper(context: WebSocketSession):
-                # Extract current message
-                message = context.current_message
-                if message is None:
-                    return None
-
-                # Call handler with context and message
-                await self.event_loop.run_in_executor(None, websocket_action_handler, context, message)
-                return None
+                return await self.event_loop.run_in_executor(None, websocket_action_handler, context)
 
             @wraps(websocket_action_handler)
             async def async_wrapper(context: WebSocketSession):
-                # Extract current message
-                message = context.current_message
-                if message is None:
-                    return None
-
-                # Call handler with context and message
-                await websocket_action_handler(context, message)
-                return None
+                return await websocket_action_handler(context)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 websocket_action_handler) else non_async_wrapper
 
-            self._get_context_lookup(WebSocketSession.__name__)\
+            self._get_context_lookup(WebSocketContext.__name__)\
                 .append(CallbackInfo([*predicates], wrapper))
             return websocket_action_handler
         return _decorator

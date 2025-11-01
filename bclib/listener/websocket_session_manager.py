@@ -40,7 +40,7 @@ class WebSocketSessionManager:
             cms_object: CMS object created by HttpListener
 
         Returns:
-            WebSocketResponse object
+            WebSocketResponse object (after connection closes)
         """
         # Create WebSocket response
         ws = web.WebSocketResponse()
@@ -62,7 +62,19 @@ class WebSocketSessionManager:
         # Register session
         self._sessions[session_id] = session
 
-        # Return WebSocket response immediately (lifecycle runs in background)
+        # Wait for session lifecycle to complete (blocks until connection closes)
+        if session._lifecycle_task:
+            try:
+                await session._lifecycle_task
+            except asyncio.CancelledError:
+                pass
+            except Exception:
+                pass
+
+        # Clean up session after completion
+        self._sessions.pop(session_id, None)
+
+        # Return WebSocket response after connection closes
         return ws
 
     # ==================== Session Management ====================

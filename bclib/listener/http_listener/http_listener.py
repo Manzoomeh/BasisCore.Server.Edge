@@ -199,7 +199,7 @@ class HttpListener:
         cms_object = await self.create_cms_async(request)
 
         # Manager creates WebSocket, prepares it, and handles everything
-        return await self.__ws_manager.handle_connection(request, cms_object)
+        return await self.__ws_manager.handle_connection(request, cms_object["cms"])
 
     @staticmethod
     def convert_pfx_to_temp_files(pfxfile: str, password: str):

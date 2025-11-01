@@ -6,12 +6,13 @@ from typing import TYPE_CHECKING, Any, Awaitable, Callable, Optional
 from aiohttp import WSMsgType
 
 from bclib.listener.message import Message
+from bclib.listener.message_type import MessageType
 from bclib.utility import DictEx
 
 if TYPE_CHECKING:
     from aiohttp import web
 
-    from bclib.listener.websocket_message import WebSocketMessage, WSMsg
+    from bclib.listener.websocket_message import WebSocketMessage
 
 
 class WebSocketSession:
@@ -27,36 +28,17 @@ class WebSocketSession:
         self.ws = ws
         self.session_id = session_id
         self.request = request
-        self._cms_container = DictEx(cms_object) if cms_object else DictEx()
-        self.cms = DictEx(
-            self._cms_container.cms) if 'cms' in self._cms_container else DictEx()
+        self.cms = DictEx(cms_object) if cms_object else DictEx()
         self.url = self.cms.request.url if self.cms and 'request' in self.cms else None
-        self._current_message: Optional['WebSocketMessage'] = None
         self._on_message_receive = on_message_receive_async
         self._heartbeat_interval = heartbeat_interval
-        self._lifecycle_task: Optional[asyncio.Task] = None
-
-        # Start lifecycle automatically
-        self._lifecycle_task = asyncio.create_task(self._start_async())
-
-    def _set_current_message(self, message: Optional['WebSocketMessage']) -> None:
-        """Internal: set current message being processed"""
-        self._current_message = message
-
-    @property
-    def current_message(self) -> Optional['WebSocketMessage']:
-        """Get the current message being processed"""
-        return self._current_message
+        self._lifecycle_task: Optional[asyncio.Task] = asyncio.create_task(
+            self._start_async())
 
     @property
     def closed(self) -> bool:
         """Check if WebSocket is closed"""
         return self.ws.closed
-
-    @property
-    def cms_object(self) -> dict:
-        """Get the full CMS container object"""
-        return self._cms_container._data if hasattr(self._cms_container, '_data') else dict(self._cms_container)
 
     # ==================== Send Methods ====================
 
@@ -90,34 +72,18 @@ class WebSocketSession:
             except asyncio.CancelledError:
                 pass
 
-    # ==================== Request Info ====================
-
-    @property
-    def headers(self) -> DictEx:
-        """Get request headers"""
-        if self.cms and 'request' in self.cms:
-            return DictEx(self.cms.request)
-        return DictEx()
-
-    @property
-    def query(self) -> DictEx:
-        """Get query parameters"""
-        if self._cms_container and 'query' in self._cms_container:
-            return DictEx(self._cms_container.query)
-        return DictEx()
-
     # ==================== Connection Lifecycle ====================
 
     async def _start_async(self) -> None:
         """Start the connection loop and heartbeat (internal method)"""
-        from bclib.listener.websocket_message import WSMsg
+        from bclib.listener.websocket_message import WebSocketMessage
 
         # Heartbeat task as local variable
         heartbeat_task: Optional[asyncio.Task] = None
 
         try:
             # Send CONNECT message
-            connect_msg = WSMsg.connect()
+            connect_msg = WebSocketMessage.connect(self, MessageType.CONNECT)
             await self._dispatch_message(connect_msg)
 
             # Start heartbeat
@@ -125,40 +91,60 @@ class WebSocketSession:
                 self._heartbeat_loop()
             )
 
-            # Infinite message receiving loop
-            async for msg in self.ws:
-                if msg.type == WSMsgType.TEXT:
-                    # Text message
-                    ws_msg = WSMsg.text(msg.data)
-                    await self._dispatch_message(ws_msg)
+            # Infinite message receiving loop - continues until connection closes
+            exit_code = None
+            while not self.ws.closed:
+                try:
+                    msg = await self.ws.receive()
 
-                elif msg.type == WSMsgType.BINARY:
-                    # Binary message
-                    ws_msg = WSMsg.binary(msg.data)
-                    await self._dispatch_message(ws_msg)
+                    if msg.type == WSMsgType.TEXT:
+                        # Text message
+                        ws_msg = WebSocketMessage.text_message(
+                            self, MessageType.MESSAGE, msg.data)
+                        await self._dispatch_message(ws_msg)
 
-                elif msg.type == WSMsgType.PING:
-                    # Ping message
-                    ws_msg = WSMsg.ping()
-                    await self._dispatch_message(ws_msg)
-                    # aiohttp automatically sends pong
+                    elif msg.type == WSMsgType.BINARY:
+                        # Binary message
+                        ws_msg = WebSocketMessage.binary_message(
+                            self, MessageType.MESSAGE, msg.data)
+                        await self._dispatch_message(ws_msg)
 
-                elif msg.type == WSMsgType.PONG:
-                    # Pong message
-                    ws_msg = WSMsg.pong()
-                    await self._dispatch_message(ws_msg)
+                    elif msg.type == WSMsgType.PING:
+                        # Ping message
+                        ws_msg = WebSocketMessage.ping(
+                            self, MessageType.MESSAGE)
+                        await self._dispatch_message(ws_msg)
+                        # aiohttp automatically sends pong
 
-                elif msg.type == WSMsgType.CLOSE:
-                    # Close message
-                    ws_msg = WSMsg.close(
-                        code=msg.data if msg.data else 1000)
-                    await self._dispatch_message(ws_msg)
-                    break
+                    elif msg.type == WSMsgType.PONG:
+                        # Pong message
+                        ws_msg = WebSocketMessage.pong(
+                            self, MessageType.MESSAGE)
+                        await self._dispatch_message(ws_msg)
 
-                elif msg.type == WSMsgType.ERROR:
-                    # Error message
-                    ws_msg = WSMsg.error(self.ws.exception())
-                    await self._dispatch_message(ws_msg)
+                    elif msg.type == WSMsgType.CLOSE:
+                        # Close message
+                        exit_code = msg.data
+
+                        # Connection is closing, exit loop
+                        break
+
+                    elif msg.type == WSMsgType.ERROR:
+                        # Error message
+                        ws_msg = WebSocketMessage.error(
+                            self, MessageType.MESSAGE, self.ws.exception())
+                        await self._dispatch_message(ws_msg)
+                        # Connection has error, exit loop
+                        break
+
+                except Exception as recv_ex:
+                    # Handle receive errors
+                    error_msg = WebSocketMessage.error(
+                        self, MessageType.MESSAGE, recv_ex)
+                    try:
+                        await self._dispatch_message(error_msg)
+                    except:
+                        pass
                     break
 
         except asyncio.CancelledError:
@@ -166,13 +152,15 @@ class WebSocketSession:
             pass
         except Exception as ex:
             # Handle unexpected errors
-            from bclib.listener.websocket_message import WSMsg
-            error_msg = WSMsg.error(ex)
+            error_msg = WebSocketMessage.error(self, MessageType.MESSAGE, ex)
             try:
                 await self._dispatch_message(error_msg)
             except:
                 pass  # Best effort
         finally:
+            # Send DISCONNECT message
+            await self._send_disconnect(exit_code)
+
             # Cancel heartbeat task
             if heartbeat_task:
                 heartbeat_task.cancel()
@@ -181,9 +169,6 @@ class WebSocketSession:
                 except asyncio.CancelledError:
                     pass
 
-            # Send DISCONNECT message
-            await self._send_disconnect()
-
             # Close WebSocket if not already closed
             if not self.closed:
                 try:
@@ -191,30 +176,15 @@ class WebSocketSession:
                 except:
                     pass
 
-    async def _dispatch_message(self, message: 'WSMsg') -> None:
+    async def _dispatch_message(self, message: 'WebSocketMessage') -> None:
         """
         Dispatch message to handler
 
         Args:
-            message: WebSocket message (internal data structure)
+            message: WebSocketMessage object ready to dispatch
         """
-        from bclib.listener.websocket_message import WebSocketMessage
-
-        # Set current message on context
-        self._set_current_message(message)
-
-        try:
-            # Create WebSocketMessage (inherits from Message)
-            ws_msg = WebSocketMessage.create_from_websocket(
-                session=self,
-                ws_message=message
-            )
-
-            # Call dispatcher with Message object
-            await self._on_message_receive(ws_msg)
-        finally:
-            # Clear current message
-            self._set_current_message(None)
+        # Call dispatcher with Message object (message is already WebSocketMessage)
+        await self._on_message_receive(message)
 
     async def _heartbeat_loop(self) -> None:
         """Send periodic pings to keep connection alive"""
@@ -228,10 +198,11 @@ class WebSocketSession:
         except Exception:
             pass  # Best effort
 
-    async def _send_disconnect(self) -> None:
+    async def _send_disconnect(self, exit_code: int) -> None:
         """Send DISCONNECT message"""
-        from bclib.listener.websocket_message import WSMsg
-        disconnect_msg = WSMsg.disconnect()
+        from bclib.listener.websocket_message import WebSocketMessage
+        disconnect_msg = WebSocketMessage.disconnect(
+            self, MessageType.DISCONNECT, code=exit_code)
         try:
             await self._dispatch_message(disconnect_msg)
         except:

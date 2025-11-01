@@ -1,0 +1,83 @@
+import json
+
+from bclib import edge
+
+options = {
+    "server": "localhost:8080",
+    "router": "websocket",
+    "log_request": True,
+    "log_error": True
+}
+
+app = edge.from_options(options)
+
+
+@app.websocket_action()
+async def handle_websocket(context: edge.WebSocketContext):
+    """Handle WebSocket messages"""
+
+    # Connection established
+    if context.ws_message.is_connect:
+        print(
+            f"✓ Client connected - Session: {context.session.session_id[:8]}...")
+        await context.session.send_json_async({
+            "type": "welcome",
+            "message": "Connected to WebSocket server!",
+            "session_id": context.session.session_id
+        })
+
+    # Text message received
+    elif context.ws_message.is_text:
+        text = context.ws_message.text
+        print(f"✓ Received text: {text}")
+
+        try:
+            # Try to parse as JSON
+            data = json.loads(text)
+            print(f"  Parsed JSON: {data}")
+
+            # Echo back with response
+            response = {
+                "type": "echo",
+                "original": data,
+                "processed": True
+            }
+            await context.session.send_json_async(response)
+        except json.JSONDecodeError:
+            # Just echo text back
+            await context.session.send_text_async(f"Echo: {text}")
+
+    # Binary message received
+    elif context.ws_message.is_binary:
+        data = context.ws_message.binary
+        print(f"✓ Received binary: {len(data)} bytes")
+        await context.session.send_bytes_async(data)  # Echo back
+
+    # Connection closed
+    elif context.ws_message.is_disconnect:
+        print(
+            f"✓ Client disconnected - Session: {context.session.session_id[:8]}...")
+
+    # Close message
+    elif context.ws_message.is_close:
+        print(f"✓ Close message received")
+
+    # Ping/Pong
+    elif context.ws_message.is_ping:
+        print(f"✓ Ping received")
+    elif context.ws_message.is_pong:
+        print(f"✓ Pong received")
+
+    # Error
+    elif context.ws_message.is_error:
+        print(f"✗ Error occurred")
+    return True
+
+
+print("WebSocket server starting on ws://localhost:8080")
+print("Test with:")
+print("  - Browser: Open test.html")
+print("  - Python: python test/websocket/client.py")
+print("-" * 60)
+
+app.listening()
