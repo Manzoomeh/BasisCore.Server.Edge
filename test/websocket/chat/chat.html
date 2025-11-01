@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 800px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px 10px 0 0;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #dc3545;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+        }
+
+        .room-info {
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.system {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            font-size: 14px;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #dc3545;
+        }
+
+        .message.user {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .message.user .sender {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .message.user .room-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+
+        .message.user .text {
+            color: #333;
+        }
+
+        .input-area {
+            padding: 20px;
+            background: white;
+            border-radius: 0 0 10px 10px;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .commands {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .commands button {
+            padding: 5px 12px;
+            font-size: 12px;
+            margin-right: 5px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💬 WebSocket Chat</h1>
+            <div id="sessionId" style="font-size: 12px; opacity: 0.8;"></div>
+        </div>
+
+        <div class="status">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
+            <div class="room-info" id="roomInfo">Not in any room</div>
+        </div>
+
+        <div class="messages" id="messages">
+            <div class="message system">Connecting to chat server...</div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-group">
+                <input type="text" id="messageInput" placeholder="Type your message..." disabled>
+                <button id="sendBtn" disabled>Send</button>
+            </div>
+            <div class="commands">
+                <button onclick="sendCommand('/help')">Help</button>
+                <button onclick="sendCommand('/list')">List Rooms</button>
+                <button onclick="promptJoinRoom()">Join Room</button>
+                <button onclick="sendCommand('/leave')">Leave All</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let currentRooms = [];
+
+        function connect() {
+            ws = new WebSocket('ws://localhost:8080');
+
+            ws.onopen = () => {
+                console.log('Connected to chat server');
+                updateStatus(true);
+                document.getElementById('messageInput').disabled = false;
+                document.getElementById('sendBtn').disabled = false;
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleMessage(data);
+                } catch (e) {
+                    addMessage('error', 'Failed to parse message: ' + event.data);
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('Disconnected from chat server');
+                updateStatus(false);
+                document.getElementById('messageInput').disabled = true;
+                document.getElementById('sendBtn').disabled = true;
+                addMessage('system', 'Disconnected from server. Refresh to reconnect.');
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                addMessage('error', 'Connection error');
+            };
+        }
+
+        function handleMessage(data) {
+            const type = data.type || 'unknown';
+
+            if (type === 'system') {
+                addMessage('system', data.message);
+
+                // Update room info if available
+                if (data.data && data.data.my_rooms) {
+                    currentRooms = data.data.my_rooms;
+                    updateRoomInfo();
+                }
+            } else if (type === 'message') {
+                addUserMessage(data.sender, data.message, data.room);
+            } else if (type === 'error') {
+                addMessage('error', data.message);
+            } else {
+                console.log('Unknown message type:', data);
+            }
+        }
+
+        function addMessage(type, text) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addUserMessage(sender, text, room) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+
+            const senderDiv = document.createElement('div');
+            senderDiv.className = 'sender';
+            senderDiv.innerHTML = `${sender} <span class="room-badge">${room}</span>`;
+
+            const textDiv = document.createElement('div');
+            textDiv.className = 'text';
+            textDiv.textContent = text;
+
+            messageDiv.appendChild(senderDiv);
+            messageDiv.appendChild(textDiv);
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function updateStatus(connected) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            if (connected) {
+                statusDot.classList.add('connected');
+                statusText.textContent = 'Connected';
+            } else {
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Disconnected';
+            }
+        }
+
+        function updateRoomInfo() {
+            const roomInfo = document.getElementById('roomInfo');
+            if (currentRooms.length === 0) {
+                roomInfo.textContent = 'Not in any room';
+            } else {
+                roomInfo.textContent = `Rooms: ${currentRooms.join(', ')}`;
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (message && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(message);
+                input.value = '';
+
+                // Update rooms list if it's a command
+                if (message.startsWith('/')) {
+                    setTimeout(() => sendCommand('/rooms'), 100);
+                }
+            }
+        }
+
+        function sendCommand(command) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(command);
+
+                // Update rooms list after command
+                setTimeout(() => {
+                    if (command !== '/rooms') {
+                        sendCommand('/rooms');
+                    }
+                }, 100);
+            }
+        }
+
+        function promptJoinRoom() {
+            const room = prompt('Enter room name to join:');
+            if (room && room.trim()) {
+                sendCommand(`/join ${room.trim()}`);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('sendBtn').addEventListener('click', sendMessage);
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Connect on load
+        connect();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #005a9e;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        input[type="text"] {
+            width: 60%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .messages {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .message {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #007acc;
+            background: white;
+        }
+
+        .message.sent {
+            border-left-color: #28a745;
+        }
+
+        .message.received {
+            border-left-color: #007acc;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔌 WebSocket Test</h1>
+
+    <div id="status" class="status disconnected">Disconnected</div>
+
+    <div>
+        <button id="connectBtn" onclick="connect()">Connect</button>
+        <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+        <button onclick="clearMessages()">Clear</button>
+    </div>
+
+    <div style="margin: 20px 0;">
+        <input type="text" id="messageInput" placeholder="Type message..." onkeypress="if(event.key==='Enter') sendText()">
+        <button onclick="sendText()">Send Text</button>
+    </div>
+
+    <div>
+        <button onclick="sendJson()">Send JSON</button>
+        <button onclick="sendBinary()">Send Binary</button>
+    </div>
+
+    <h3>Messages:</h3>
+    <div id="messages" class="messages"></div>
+
+    <script>
+        let ws = null;
+        const messagesDiv = document.getElementById('messages');
+        const statusDiv = document.getElementById('status');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const messageInput = document.getElementById('messageInput');
+
+        function addMessage(content, type = 'received') {
+            const time = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            div.innerHTML = `<small>${time}</small><br>${content}`;
+            messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function updateStatus(connected) {
+            statusDiv.textContent = connected ? 'Connected' : 'Disconnected';
+            statusDiv.className = `status ${connected ? 'connected' : 'disconnected'}`;
+            connectBtn.disabled = connected;
+            disconnectBtn.disabled = !connected;
+            messageInput.disabled = !connected;
+        }
+
+        function connect() {
+            ws = new WebSocket('ws://localhost:8080');
+
+            ws.onopen = () => {
+                addMessage('Connected!', 'received');
+                updateStatus(true);
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    addMessage(JSON.stringify(data, null, 2), 'received');
+                } catch {
+                    addMessage(event.data, 'received');
+                }
+            };
+
+            ws.onerror = () => {
+                addMessage('Error occurred', 'received');
+            };
+
+            ws.onclose = () => {
+                addMessage('Disconnected', 'received');
+                updateStatus(false);
+                ws = null;
+            };
+        }
+
+        function disconnect() {
+            if (ws) ws.close();
+        }
+
+        function sendText() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('Not connected!');
+                return;
+            }
+            const message = messageInput.value.trim();
+            if (message) {
+                ws.send(message);
+                addMessage(message, 'sent');
+                messageInput.value = '';
+            }
+        }
+
+        function sendJson() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('Not connected!');
+                return;
+            }
+            const data = {
+                action: 'test',
+                message: 'Hello from browser!',
+                timestamp: new Date().toISOString()
+            };
+            ws.send(JSON.stringify(data));
+            addMessage(JSON.stringify(data, null, 2), 'sent');
+        }
+
+        function sendBinary() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('Not connected!');
+                return;
+            }
+            const data = new TextEncoder().encode('Binary test data');
+            ws.send(data);
+            addMessage(`Binary: ${data.length} bytes`, 'sent');
+        }
+
+        function clearMessages() {
+            messagesDiv.innerHTML = '';
+        }
+
+        updateStatus(false);
+    </script>
+</body>
+
+</html>
