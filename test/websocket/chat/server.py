@@ -174,9 +174,24 @@ async def notify_room(manager, room_name: str, message: str, msg_type: str = "sy
 
 app = edge.from_options({
     "server":  "localhost:8080",
+    "router": {
+        "web": ["*"]
+    },
     "log_error": True,
     "log_request": True,
 })
+
+
+def readAsset(asset_name: str) -> str:
+    path = os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), asset_name)
+    with open(path, "r", encoding="utf-8") as file:
+        return file.read()
+
+
+@app.web_action()
+def default_handler(context: edge.WebContext):
+    return readAsset("chat.html")
 
 
 # Register WebSocket handler

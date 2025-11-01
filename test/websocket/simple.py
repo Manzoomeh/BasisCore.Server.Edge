@@ -1,14 +1,25 @@
 import json
+import os
 
 from bclib import edge
 
 options = {
     "server": "localhost:8080",
+    "router": {
+        "web": ["*"]
+    },
     "log_request": True,
     "log_error": True
 }
 
 app = edge.from_options(options)
+
+
+def readAsset(asset_name: str) -> str:
+    path = os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), asset_name)
+    with open(path, "r", encoding="utf-8") as file:
+        return file.read()
 
 
 @app.websocket_action()
@@ -72,6 +83,11 @@ async def handle_websocket(context: edge.WebSocketContext):
     elif context.message.is_error:
         print(f"✗ Error occurred")
     return True
+
+
+@app.web_action()
+def default_handler(context: edge.WebContext):
+    return readAsset("test.html")
 
 
 print("WebSocket server starting on ws://localhost:8080")
