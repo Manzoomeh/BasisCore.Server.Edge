@@ -8,6 +8,8 @@ from abc import ABC
 from functools import wraps
 from typing import Any, Callable, Coroutine, Optional
 
+from utility.static_file_handler import StaticFileHandler
+
 from bclib.cache import CacheFactory
 from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
                            Context, RabbitContext, RESTfulContext,
@@ -429,3 +431,12 @@ class Dispatcher(ABC):
         return self.event_loop.create_task(
             self.log_async(log_object, **kwargs)
         )
+
+    def add_static_handler(self, handler: StaticFileHandler) -> None:
+        """Add static file handler to dispatcher"""
+        async def async_wrapper(context: WebContext):
+            action_result = await handler.handle(context)
+            return None if action_result is None else context.generate_response(action_result)
+
+        self._get_context_lookup(WebContext.__name__)\
+            .append(CallbackInfo([], async_wrapper))

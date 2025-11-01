@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 
 from bclib import edge
 
@@ -12,14 +13,13 @@ options = {
     "log_error": True
 }
 
+static_handler = edge.StaticFileHandler(
+    base_dir=Path(__file__).parent,
+    enable_index=True,
+    index_files=['test.html']
+)
 app = edge.from_options(options)
-
-
-def readAsset(asset_name: str) -> str:
-    path = os.path.join(os.path.dirname(
-        os.path.abspath(__file__)), asset_name)
-    with open(path, "r", encoding="utf-8") as file:
-        return file.read()
+app.add_static_handler(static_handler)
 
 
 @app.websocket_action()
@@ -83,11 +83,6 @@ async def handle_websocket(context: edge.WebSocketContext):
     elif context.message.is_error:
         print(f"✗ Error occurred")
     return True
-
-
-@app.web_action()
-def default_handler(context: edge.WebContext):
-    return readAsset("test.html")
 
 
 print("WebSocket server starting on ws://localhost:8080")

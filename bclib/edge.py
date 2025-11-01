@@ -18,7 +18,7 @@ from bclib.listener import (HttpBaseDataName, HttpBaseDataType, Message,
                             MessageType)
 from bclib.predicate import Predicate
 from bclib.utility import (DictEx, HttpHeaders, HttpMimeTypes, HttpStatusCodes,
-                           ResponseTypes)
+                           ResponseTypes, StaticFileHandler)
 
 
 def from_config(option_file_path: str, file_name: str = "host.json"):

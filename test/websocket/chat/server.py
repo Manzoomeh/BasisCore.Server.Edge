@@ -1,6 +1,7 @@
 """Simple WebSocket Chat Server - Group Chat Example"""
 import os
 import sys
+from pathlib import Path
 
 from bclib import edge
 from bclib.context import WebSocketContext
@@ -9,7 +10,27 @@ from bclib.context import WebSocketContext
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '../../..')))
 
+# ==================== Edge Configuration ====================
 
+app = edge.from_options({
+    "server":  "localhost:8080",
+    "router": {
+        "web": ["*"]
+    },
+    "log_error": True,
+    "log_request": True,
+})
+
+static_handler = edge.StaticFileHandler(
+    base_dir=Path(__file__).parent,
+    enable_index=True,
+    index_files=['chat.html']
+)
+app.add_static_handler(static_handler)
+
+
+# Register WebSocket handler
+@app.websocket_action()
 async def websocket_handler(context: WebSocketContext):
     """Handle WebSocket chat messages"""
     # Get session and manager from context
@@ -169,33 +190,6 @@ async def notify_room(manager, room_name: str, message: str, msg_type: str = "sy
         except:
             pass
 
-
-# ==================== Edge Configuration ====================
-
-app = edge.from_options({
-    "server":  "localhost:8080",
-    "router": {
-        "web": ["*"]
-    },
-    "log_error": True,
-    "log_request": True,
-})
-
-
-def readAsset(asset_name: str) -> str:
-    path = os.path.join(os.path.dirname(
-        os.path.abspath(__file__)), asset_name)
-    with open(path, "r", encoding="utf-8") as file:
-        return file.read()
-
-
-@app.web_action()
-def default_handler(context: edge.WebContext):
-    return readAsset("chat.html")
-
-
-# Register WebSocket handler
-app.websocket_action()(websocket_handler)
 
 # Run the server
 
