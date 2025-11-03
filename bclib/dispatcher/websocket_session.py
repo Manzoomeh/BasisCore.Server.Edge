@@ -178,6 +178,7 @@ class WebSocketSession:
                 try:
                     await self.close_async()
                 except:
+                    # Ignore all exceptions during cleanup to ensure session closes gracefully
                     pass
 
     async def _dispatch_message(self, message: 'WebSocketMessage') -> None:
