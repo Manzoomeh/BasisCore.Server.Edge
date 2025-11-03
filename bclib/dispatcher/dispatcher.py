@@ -8,7 +8,7 @@ from abc import ABC
 from functools import wraps
 from typing import Any, Callable, Coroutine, Optional
 
-from utility.static_file_handler import StaticFileHandler
+from bclib.utility.static_file_handler import StaticFileHandler
 
 from bclib.cache import CacheFactory
 from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
