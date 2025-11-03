@@ -171,7 +171,7 @@ class WebSocketSession:
                 try:
                     await heartbeat_task
                 except asyncio.CancelledError:
-                    pass
+                    pass  # Task was cancelled during cleanup; this is expected and safe to ignore.
 
             # Close WebSocket if not already closed
             if not self.closed:
