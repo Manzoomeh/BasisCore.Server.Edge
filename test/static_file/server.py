@@ -2,11 +2,9 @@
 Example: Static File Handler
 Serves static files from ./public directory
 """
-import sys
 from pathlib import Path
 
 from bclib import edge
-from bclib.context import RESTfulContext
 from bclib.utility import StaticFileHandler
 
 # Get the directory where this script is located

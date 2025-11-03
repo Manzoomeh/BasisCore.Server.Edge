@@ -1,5 +1,4 @@
 """WebSocket Message - Message implementation for WebSocket communications"""
-import json
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -128,9 +127,9 @@ class WebSocketMessage(Message):
         return cls(message_type, session, WSMessageType.CONNECT)
 
     @classmethod
-    def disconnect(cls, session: 'WebSocketSession', message_type: MessageType) -> 'WebSocketMessage':
+    def disconnect(cls, session: 'WebSocketSession', message_type: MessageType, code: int) -> 'WebSocketMessage':
         """Create DISCONNECT message"""
-        return cls(message_type, session, WSMessageType.DISCONNECT)
+        return cls(message_type, session, WSMessageType.DISCONNECT, extra=code)
 
     @classmethod
     def text_message(cls, session: 'WebSocketSession', message_type: MessageType, value: str) -> 'WebSocketMessage':

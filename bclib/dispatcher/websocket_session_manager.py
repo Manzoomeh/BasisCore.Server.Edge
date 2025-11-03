@@ -71,8 +71,10 @@ class WebSocketSessionManager:
             try:
                 await session._lifecycle_task
             except asyncio.CancelledError:
+                # graceful shutdown
                 pass
             except Exception:
+                # graceful shutdown
                 pass
 
         # Clean up session after completion
@@ -100,6 +102,7 @@ class WebSocketSessionManager:
                 try:
                     await session.close_async()
                 except:
+                    # graceful shutdown
                     pass
 
     def get_session(self, session_id: str) -> Optional[WebSocketSession]:

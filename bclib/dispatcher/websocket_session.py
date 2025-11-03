@@ -1,6 +1,5 @@
 """WebSocket Session - manages an active WebSocket connection session"""
 import asyncio
-import json
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, Optional
 
 from aiohttp import WSMsgType

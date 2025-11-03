@@ -3,7 +3,7 @@ import mimetypes
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Set
 
-from bclib.exception import ForbiddenErr, MethodNotAllowedErr, NotFoundErr
+from bclib.exception import ForbiddenErr
 from bclib.utility.response_types import ResponseTypes
 
 if TYPE_CHECKING:

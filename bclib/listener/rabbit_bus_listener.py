@@ -5,7 +5,6 @@ from bclib.listener.rabbit_listener import RabbitListener
 from bclib.utility import DictEx
 
 if TYPE_CHECKING:
-    from bclib.context import RabbitContext
     from .. import dispatcher
 
 
@@ -19,7 +18,7 @@ class RabbitBusListener(RabbitListener):
         try:
             # Lazy import to avoid circular dependency
             from bclib.context import RabbitContext
-            
+
             message = {
                 "host": self._host,
                 "queue": self._queue_name,
