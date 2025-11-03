@@ -192,10 +192,7 @@ class HttpListener:
                         raw_blob_content.encode("utf-8"))
         else:
             # Graceful fallback when no result (or no explicit Response) is returned
-            if result is not None and getattr(result, "Response", None) is not None:
-                ret_val = result.Response
-            else:
-                ret_val = web.Response()
+            ret_val = web.Response()
         return ret_val
 
     async def __handle_websocket_async(self, request: 'web.Request') -> 'web.Response':
