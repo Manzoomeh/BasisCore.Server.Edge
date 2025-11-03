@@ -71,7 +71,7 @@ class WebSocketSessionManager:
             try:
                 await session._lifecycle_task
             except asyncio.CancelledError:
-                # graceful shutdown
+                # Task cancellation is expected during normal shutdown; ignore.
                 pass
             except Exception:
                 # graceful shutdown
