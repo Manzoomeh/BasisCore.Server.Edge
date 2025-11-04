@@ -27,9 +27,9 @@ class WebSocketContext(RequestContext):
             ws_message: WebSocket message instance
         """
         super().__init__(cms_object, dispatcher)
-        self.message: 'WebSocketMessage' = ws_message
-        self.session: 'WebSocketSession' = ws_message.session
-        self.session_manager: 'WebSocketSessionManager' = self.session.session_manager
+        self.message: WebSocketMessage = ws_message
+        self.session: WebSocketSession = ws_message.session
+        self.session_manager: WebSocketSessionManager = self.session.session_manager
         self.is_adhoc = False
 
     def __repr__(self) -> str:
