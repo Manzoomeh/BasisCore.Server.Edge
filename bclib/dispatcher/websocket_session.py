@@ -73,6 +73,7 @@ class WebSocketSession:
             try:
                 await self._lifecycle_task
             except asyncio.CancelledError:
+                # Task cancellation is expected when stopping the session; ignore.
                 pass
 
     # ==================== Connection Lifecycle ====================
@@ -146,7 +147,8 @@ class WebSocketSession:
                         self, MessageType.MESSAGE, recv_ex)
                     try:
                         await self._dispatch_message(error_msg)
-                    except:
+                    except Exception:
+                        # Suppress all exceptions here as the connection may already be broken; best effort to dispatch error message.
                         pass
                     break
 
@@ -158,7 +160,7 @@ class WebSocketSession:
             error_msg = WebSocketMessage.error(self, MessageType.MESSAGE, ex)
             try:
                 await self._dispatch_message(error_msg)
-            except:
+            except Exception:
                 pass  # Best effort
         finally:
             # Send DISCONNECT message
@@ -170,13 +172,14 @@ class WebSocketSession:
                 try:
                     await heartbeat_task
                 except asyncio.CancelledError:
-                    pass  # Task was cancelled during cleanup; this is expected and safe to ignore.
+                    # Task was cancelled during cleanup; this is expected and safe to ignore.
+                    pass
 
             # Close WebSocket if not already closed
             if not self.closed:
                 try:
                     await self.close_async()
-                except:
+                except Exception:
                     # Ignore all exceptions during cleanup to ensure session closes gracefully
                     pass
 
@@ -209,7 +212,7 @@ class WebSocketSession:
             self, MessageType.DISCONNECT, code=exit_code)
         try:
             await self._dispatch_message(disconnect_msg)
-        except:
+        except Exception:
             pass  # Best effort
 
     def __repr__(self) -> str:
