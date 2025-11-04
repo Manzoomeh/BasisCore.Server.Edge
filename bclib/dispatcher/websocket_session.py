@@ -1,5 +1,6 @@
 """WebSocket Session - manages an active WebSocket connection session"""
 import asyncio
+import logging
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, Optional
 
 from aiohttp import WSMsgType
@@ -147,20 +148,25 @@ class WebSocketSession:
                         self, MessageType.MESSAGE, recv_ex)
                     try:
                         await self._dispatch_message(error_msg)
-                    except Exception:
+                    except Exception as log_ex:
                         # Suppress all exceptions here as the connection may already be broken; best effort to dispatch error message.
+                        logging.exception(
+                            "Exception while dispatching error message in WebSocketSession: %s", log_ex)
                         pass
                     break
 
         except asyncio.CancelledError:
             # Task was cancelled - normal cleanup
             pass
-        except Exception as ex:
+        except Exception as log_ex:
             # Handle unexpected errors
-            error_msg = WebSocketMessage.error(self, MessageType.MESSAGE, ex)
+            error_msg = WebSocketMessage.error(
+                self, MessageType.MESSAGE, log_ex)
             try:
                 await self._dispatch_message(error_msg)
-            except Exception:
+            except Exception as log_ex:
+                logging.exception(
+                    "Exception occurred while dispatching error message during WebSocketSession._start_async cleanup. %s", log_ex)
                 pass  # Best effort
         finally:
             # Send DISCONNECT message
@@ -179,8 +185,9 @@ class WebSocketSession:
             if not self.closed:
                 try:
                     await self.close_async()
-                except Exception:
-                    # Ignore all exceptions during cleanup to ensure session closes gracefully
+                except Exception as log_ex:
+                    logging.exception(
+                        "Exception occurred while closing WebSocket during cleanup: %s", log_ex)
                     pass
 
     async def _dispatch_message(self, message: 'WebSocketMessage') -> None:
@@ -202,7 +209,8 @@ class WebSocketSession:
                     await self.ws.ping()
         except asyncio.CancelledError:
             pass  # Normal cancellation
-        except Exception:
+        except Exception as log_ex:
+            logging.exception("Failed to send ping: %s", log_ex)
             pass  # Best effort
 
     async def _send_disconnect(self, exit_code: int) -> None:
@@ -212,7 +220,9 @@ class WebSocketSession:
             self, MessageType.DISCONNECT, code=exit_code)
         try:
             await self._dispatch_message(disconnect_msg)
-        except Exception:
+        except Exception as log_ex:
+            logging.exception(
+                "Failed to dispatch disconnect message: %s", log_ex)
             pass  # Best effort
 
     def __repr__(self) -> str:

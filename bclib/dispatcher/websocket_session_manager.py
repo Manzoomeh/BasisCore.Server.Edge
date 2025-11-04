@@ -1,5 +1,6 @@
 """WebSocket Session Manager - manages dictionary of all WebSocket sessions"""
 import asyncio
+import logging
 import uuid
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Set
 from weakref import WeakValueDictionary
@@ -70,12 +71,12 @@ class WebSocketSessionManager:
         if session._lifecycle_task:
             try:
                 await session._lifecycle_task
-            except asyncio.CancelledError:
+            except asyncio.CancelledError as log_ex:
                 # Task cancellation is expected during normal shutdown; ignore.
-                pass
-            except Exception:
-                # graceful shutdown
-                pass
+                logging.warning("WebSocket session cancelled: %s", log_ex)
+            except Exception as log_ex:
+                logging.error(
+                    "Error occurred while waiting for WebSocket session to close: %s", log_ex)
 
         # Clean up session after completion
         self._sessions.pop(session_id, None)
@@ -101,8 +102,9 @@ class WebSocketSessionManager:
             if not session.closed:
                 try:
                     await session.close_async()
-                except:
-                    # graceful shutdown
+                except Exception as log_ex:
+                    logging.warning(
+                        "Error occurred while closing WebSocket session: %s", log_ex)
                     pass
 
     def get_session(self, session_id: str) -> Optional[WebSocketSession]:
