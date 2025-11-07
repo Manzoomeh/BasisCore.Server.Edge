@@ -1,27 +1,34 @@
 """Base class for dispatching request"""
 import asyncio
 import inspect
-from abc import ABC
 import signal
 import sys
 import traceback
-from typing import Callable, Any, Coroutine, Optional
+from abc import ABC
 from functools import wraps
-from bclib.logger import ILogger, LoggerFactory, LogObject
+from typing import Any, Callable, Coroutine, Optional
+
+from bclib.utility.static_file_handler import StaticFileHandler
+
 from bclib.cache import CacheFactory
-from bclib.listener import RabbitBusListener
-from bclib.predicate import Predicate
-from bclib.context import ClientSourceContext, ClientSourceMemberContext, WebContext, Context, RESTfulContext, RabbitContext, SocketContext, ServerSourceContext, ServerSourceMemberContext, NamedPipeContext
+from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
+                           Context, RabbitContext, RESTfulContext,
+                           ServerSourceContext, ServerSourceMemberContext,
+                           SocketContext, WebContext, WebSocketContext)
 from bclib.db_manager import DbManager
-from bclib.utility import DictEx
 from bclib.exception import HandlerNotFoundErr
+from bclib.listener import RabbitBusListener
+from bclib.logger import ILogger, LoggerFactory, LogObject
+from bclib.predicate import Predicate
+from bclib.utility import DictEx
+
 from ..dispatcher.callback_info import CallbackInfo
 
 
 class Dispatcher(ABC):
     """Base class for dispatching request"""
 
-    def __init__(self, options: dict = None,loop:asyncio.AbstractEventLoop = None):
+    def __init__(self, options: dict = None, loop: asyncio.AbstractEventLoop = None):
         self.options = DictEx(options)
         self.__look_up: 'dict[str, list[CallbackInfo]]' = dict()
         cache_options = self.options.cache if "cache" in self.options else None
@@ -30,7 +37,7 @@ class Dispatcher(ABC):
             # Use Windows version of proactor event loop using IOCP
             loop = asyncio.ProactorEventLoop()
             asyncio.set_event_loop(loop)
-        self.event_loop =  asyncio.get_event_loop() if loop is None else loop
+        self.event_loop = asyncio.get_event_loop() if loop is None else loop
         self.cache_manager = CacheFactory.create(cache_options)
         self.db_manager = DbManager(self.options, self.event_loop)
         self.__logger: ILogger = LoggerFactory.create(self.options)
@@ -111,6 +118,28 @@ class Dispatcher(ABC):
             self._get_context_lookup(WebContext.__name__)\
                 .append(CallbackInfo([*predicates], wrapper))
             return web_action_handler
+        return _decorator
+
+    def websocket_action(self, * predicates: (Predicate)):
+        """Decorator for WebSocket action"""
+
+        def _decorator(websocket_action_handler: 'Callable[[Any, Any], None]'):
+            from bclib.dispatcher.websocket_session import WebSocketSession
+
+            @wraps(websocket_action_handler)
+            async def non_async_wrapper(context: WebSocketSession):
+                return await self.event_loop.run_in_executor(None, websocket_action_handler, context)
+
+            @wraps(websocket_action_handler)
+            async def async_wrapper(context: WebSocketSession):
+                return await websocket_action_handler(context)
+
+            wrapper = async_wrapper if inspect.iscoroutinefunction(
+                websocket_action_handler) else non_async_wrapper
+
+            self._get_context_lookup(WebSocketContext.__name__)\
+                .append(CallbackInfo([*predicates], wrapper))
+            return websocket_action_handler
         return _decorator
 
     def client_source_action(self, *predicates: (Predicate)):
@@ -323,28 +352,6 @@ class Dispatcher(ABC):
             return rabbit_action_handler
         return _decorator
 
-    def named_pipe_action(self, * predicates: (Predicate)):
-        """Decorator for determine named pipe message request action"""
-
-        def _decorator(named_pipe_action_handler: 'Callable[[RabbitContext], bool]'):
-
-            @wraps(named_pipe_action_handler)
-            async def non_async_wrapper(context: NamedPipeContext):
-                return await self.event_loop.run_in_executor(None, named_pipe_action_handler, context)
-
-            @wraps(named_pipe_action_handler)
-            async def async_wrapper(context: NamedPipeContext):
-                return await named_pipe_action_handler(context)
-
-            wrapper = async_wrapper if inspect.iscoroutinefunction(
-                named_pipe_action_handler) else non_async_wrapper
-
-            self._get_context_lookup(NamedPipeContext.__name__)\
-                .append(CallbackInfo([*predicates], wrapper))
-
-            return named_pipe_action_handler
-        return _decorator
-
     def _get_context_lookup(self, key: str) -> 'list[CallbackInfo]':
         """Get key related action list object"""
 
@@ -387,12 +394,13 @@ class Dispatcher(ABC):
         for dispatcher in self.__rabbit_dispatcher:
             dispatcher.initialize_task(self.event_loop)
 
-    def listening(self, before_start: Coroutine=None, after_end: Coroutine=None,with_block:bool = True):
+    def listening(self, before_start: Coroutine = None, after_end: Coroutine = None, with_block: bool = True):
         """Start listening to request for process"""
         for sig in (signal.SIGTERM, signal.SIGINT):
             signal.signal(sig, lambda sig, _: self.event_loop.stop())
         if before_start != None:
-            self.event_loop.run_until_complete(self.event_loop.create_task(before_start()))
+            self.event_loop.run_until_complete(
+                self.event_loop.create_task(before_start()))
         self.initialize_task()
         if with_block:
             self.event_loop.run_forever()
@@ -402,7 +410,8 @@ class Dispatcher(ABC):
             group = asyncio.gather(*tasks, return_exceptions=True)
             self.event_loop.run_until_complete(group)
             if after_end != None:
-                self.event_loop.run_until_complete(self.event_loop.create_task(after_end()))
+                self.event_loop.run_until_complete(
+                    self.event_loop.create_task(after_end()))
             self.event_loop.close()
 
     def new_object_log(self, schema_name: str, routing_key: Optional[str] = None, **kwargs) -> LogObject:
@@ -422,3 +431,12 @@ class Dispatcher(ABC):
         return self.event_loop.create_task(
             self.log_async(log_object, **kwargs)
         )
+
+    def add_static_handler(self, handler: StaticFileHandler) -> None:
+        """Add static file handler to dispatcher"""
+        async def async_wrapper(context: WebContext):
+            action_result = await handler.handle(context)
+            return None if action_result is None else context.generate_response(action_result)
+
+        self._get_context_lookup(WebContext.__name__)\
+            .append(CallbackInfo([], async_wrapper))

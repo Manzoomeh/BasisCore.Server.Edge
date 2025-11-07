@@ -1,6 +1,6 @@
 from struct import error
-from bclib.context import RabbitContext
 from typing import TYPE_CHECKING
+
 from bclib.listener.rabbit_listener import RabbitListener
 from bclib.utility import DictEx
 
@@ -16,6 +16,9 @@ class RabbitBusListener(RabbitListener):
 
     def on_rabbit_message_received(self, body):
         try:
+            # Lazy import to avoid circular dependency
+            from bclib.context import RabbitContext
+
             message = {
                 "host": self._host,
                 "queue": self._queue_name,

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Static File Server - BasisCore Edge</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎉 Static File Server Works!</h1>
+            <p class="subtitle">BasisCore.Server.Edge - Static File Handler</p>
+        </header>
+
+        <main>
+            <section class="info">
+                <h2>✅ Success!</h2>
+                <p>Your static file server is running correctly.</p>
+                <p>This HTML file was served by <code>StaticFileHandler</code>.</p>
+            </section>
+
+            <section class="features">
+                <h3>Features:</h3>
+                <ul>
+                    <li>✓ URL path to file system mapping</li>
+                    <li>✓ Security (path traversal prevention)</li>
+                    <li>✓ MIME type detection</li>
+                    <li>✓ Index file support</li>
+                    <li>✓ Extension whitelisting</li>
+                </ul>
+            </section>
+
+            <section class="examples">
+                <h3>Try these URLs:</h3>
+                <ul class="url-list">
+                    <li><a href="/">/</a> → index.html (this page)</li>
+                    <li><a href="/index.html">/index.html</a> → this page</li>
+                    <li><a href="/css/style.css">/css/style.css</a> → stylesheet</li>
+                    <li><a href="/js/app.js">/js/app.js</a> → JavaScript file</li>
+                </ul>
+            </section>
+
+            <section class="test-js">
+                <h3>JavaScript Test:</h3>
+                <button id="testBtn">Click Me!</button>
+                <p id="result"></p>
+            </section>
+        </main>
+
+        <footer>
+            <p>Powered by <strong>BasisCore.Server.Edge</strong></p>
+        </footer>
+    </div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
