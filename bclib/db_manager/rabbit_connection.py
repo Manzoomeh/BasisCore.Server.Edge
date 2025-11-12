@@ -26,7 +26,7 @@ class RabbitConnection(Db):
     def __enter__(self):
         import pika
         self.__connection = pika.BlockingConnection(
-            pika.URLParameters(self.__connection_setting.host))
+            pika.URLParameters(self.__connection_setting.url))
         self.__channel = self.__connection.channel()
 
         # Only declare queue if queue is specified (not when using exchange)
