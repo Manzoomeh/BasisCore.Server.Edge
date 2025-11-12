@@ -362,6 +362,69 @@ class ServiceProvider:
             except Exception:
                 return None
 
+    def inject_dependencies(self, handler: Callable, *args, **kwargs) -> dict:
+        """
+        Inject dependencies from DI container into handler parameters
+
+        Analyzes the handler's signature and type hints to automatically
+        resolve and inject services. Already-provided arguments are skipped.
+
+        Args:
+            handler: The handler function to inject dependencies into
+            *args: Positional arguments already being passed
+            **kwargs: Keyword arguments already being passed
+
+        Returns:
+            Dictionary of parameter names and resolved service instances
+
+        Example:
+            ```python
+            def process_order(logger: ILogger, db: IDatabase, order_id: str):
+                logger.log(f"Processing order {order_id}")
+                db.save(order_id)
+
+            # Inject logger and db, but not order_id (already provided)
+            injected = services.inject_dependencies(process_order, order_id="123")
+            # injected = {"logger": <ConsoleLogger>, "db": <PostgresDatabase>}
+
+            # Call with injected dependencies
+            process_order(order_id="123", **injected)
+            ```
+        """
+        injected_kwargs = {}
+
+        try:
+            # Get handler signature and type hints
+            sig = inspect.signature(handler)
+            type_hints = get_type_hints(handler)
+
+            # Inject dependencies for each parameter
+            for param_name, param in sig.parameters.items():
+                # Skip if already provided in kwargs
+                if param_name in kwargs:
+                    continue
+
+                # Get type hint for this parameter
+                param_type = type_hints.get(param_name)
+
+                if param_type is None:
+                    continue
+
+                # Check if it's already in positional args by type
+                if any(isinstance(arg, param_type) for arg in args):
+                    continue
+
+                # Try to resolve from DI container
+                service = self.get_service(param_type)
+                if service is not None:
+                    injected_kwargs[param_name] = service
+
+        except Exception:
+            # If DI fails, continue without injection
+            pass
+
+        return injected_kwargs
+
     def create_scope(self) -> 'ServiceProvider':
         """
         Create a new scope for scoped services (per-request)
@@ -428,45 +491,11 @@ class ServiceProvider:
             ```
         """
         try:
-            # Get method signature
-            sig = inspect.signature(method)
+            # Use inject_dependencies to get injected parameters
+            injected_kwargs = self.inject_dependencies(method, *args, **kwargs)
 
-            # Get type hints
-            try:
-                type_hints = get_type_hints(method)
-            except Exception:
-                # If type hints fail, call with provided args/kwargs
-                return method(*args, **kwargs)
-
-            # Build arguments
-            final_kwargs = dict(kwargs)
-            arg_index = 0
-
-            for param_name, param in sig.parameters.items():
-                # Skip if already provided in kwargs
-                if param_name in kwargs:
-                    continue
-
-                # Skip if provided in args
-                if arg_index < len(args):
-                    arg_index += 1
-                    continue
-
-                # Get type hint for this parameter
-                param_type = type_hints.get(param_name)
-
-                if param_type is not None:
-                    # Try to resolve from DI container
-                    service = self.get_service(param_type)
-
-                    if service is not None:
-                        final_kwargs[param_name] = service
-                    elif param.default == inspect.Parameter.empty:
-                        # Required parameter but not available
-                        pass
-                    else:
-                        # Has default value
-                        pass
+            # Merge with provided kwargs
+            final_kwargs = {**kwargs, **injected_kwargs}
 
             # Invoke method with injected dependencies
             return method(*args, **final_kwargs)
@@ -501,45 +530,11 @@ class ServiceProvider:
             ```
         """
         try:
-            # Get method signature
-            sig = inspect.signature(method)
+            # Use inject_dependencies to get injected parameters
+            injected_kwargs = self.inject_dependencies(method, *args, **kwargs)
 
-            # Get type hints
-            try:
-                type_hints = get_type_hints(method)
-            except Exception:
-                # If type hints fail, call with provided args/kwargs
-                return await method(*args, **kwargs)
-
-            # Build arguments
-            final_kwargs = dict(kwargs)
-            arg_index = 0
-
-            for param_name, param in sig.parameters.items():
-                # Skip if already provided in kwargs
-                if param_name in kwargs:
-                    continue
-
-                # Skip if provided in args
-                if arg_index < len(args):
-                    arg_index += 1
-                    continue
-
-                # Get type hint for this parameter
-                param_type = type_hints.get(param_name)
-
-                if param_type is not None:
-                    # Try to resolve from DI container
-                    service = self.get_service(param_type)
-
-                    if service is not None:
-                        final_kwargs[param_name] = service
-                    elif param.default == inspect.Parameter.empty:
-                        # Required parameter but not available
-                        pass
-                    else:
-                        # Has default value
-                        pass
+            # Merge with provided kwargs
+            final_kwargs = {**kwargs, **injected_kwargs}
 
             # Invoke async method with injected dependencies
             return await method(*args, **final_kwargs)

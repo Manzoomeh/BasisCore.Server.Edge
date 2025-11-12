@@ -6,7 +6,7 @@ import sys
 import traceback
 from abc import ABC
 from functools import wraps
-from typing import Any, Callable, Coroutine, Optional, get_type_hints
+from typing import Any, Callable, Coroutine, Optional
 
 from bclib.cache import CacheFactory
 from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
@@ -50,55 +50,20 @@ class Dispatcher(ABC):
                 self.__rabbit_dispatcher.append(
                     RabbitBusListener(setting, self))
 
-    def _inject_dependencies(self, handler: Callable, context: Context) -> dict:
+    def _inject_from_context(self, handler: Callable, context: Context) -> dict:
         """
-        Inject dependencies from DI container into handler parameters
-
-        Uses type hints to automatically resolve and inject services.
-        Context parameter is always passed, other type-hinted parameters
-        are resolved from the DI container if available.
+        Helper method to inject dependencies from context's service provider
 
         Args:
-            handler: The handler function to inject dependencies into
-            context: The request context (always injected)
+            handler: The handler function
+            context: The request context with services
 
         Returns:
-            Dictionary of parameter names and values to pass to handler
+            Dictionary of injected dependencies
         """
-        kwargs = {}
-
-        # Check if dispatcher has services (DI container)
-        if not hasattr(self, 'services'):
-            return kwargs
-
-        try:
-            # Get handler signature and type hints
-            sig = inspect.signature(handler)
-            type_hints = get_type_hints(handler)
-
-            # Inject dependencies for each parameter
-            for param_name, param in sig.parameters.items():
-                # Get type hint for this parameter
-                param_type = type_hints.get(param_name)
-
-                if param_type is None:
-                    continue
-
-                # Check if it's a Context type (already provided)
-                if isinstance(context, param_type):
-                    continue
-
-                # Try to resolve from DI container
-                if hasattr(context, 'services') and context.services:
-                    service = context.services.get_service(param_type)
-                    if service is not None:
-                        kwargs[param_name] = service
-
-        except Exception:
-            # If DI fails, continue without injection
-            pass
-
-        return kwargs
+        if hasattr(context, 'services') and context.services:
+            return context.services.inject_dependencies(handler, context)
+        return {}
 
     def socket_action(self, * predicates: (Predicate)):
         """Decorator for determine Socket action with automatic DI"""
@@ -107,16 +72,14 @@ class Dispatcher(ABC):
 
             @wraps(socket_action_handler)
             async def non_async_wrapper(context: SocketContext):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     socket_action_handler, context)
                 await self.event_loop.run_in_executor(None, socket_action_handler, context, **injected_kwargs)
                 return True
 
             @wraps(socket_action_handler)
             async def async_wrapper(context: SocketContext):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     socket_action_handler, context)
                 await socket_action_handler(context, **injected_kwargs)
                 return True
@@ -136,8 +99,7 @@ class Dispatcher(ABC):
 
             @wraps(restful_action_handler)
             async def non_async_wrapper(context: RESTfulContext):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     restful_action_handler, context)
                 action_result = await self.event_loop.run_in_executor(
                     None, restful_action_handler, context, **injected_kwargs
@@ -146,8 +108,7 @@ class Dispatcher(ABC):
 
             @wraps(restful_action_handler)
             async def async_wrapper(context: RESTfulContext):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     restful_action_handler, context)
                 action_result = await restful_action_handler(context, **injected_kwargs)
                 return None if action_result is None else context.generate_response(action_result)
@@ -167,8 +128,7 @@ class Dispatcher(ABC):
 
             @wraps(web_action_handler)
             async def non_async_wrapper(context: WebContext):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     web_action_handler, context)
                 action_result = await self.event_loop.run_in_executor(
                     None, web_action_handler, context, **injected_kwargs
@@ -177,8 +137,7 @@ class Dispatcher(ABC):
 
             @wraps(web_action_handler)
             async def async_wrapper(context: WebContext):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     web_action_handler, context)
                 action_result = await web_action_handler(context, **injected_kwargs)
                 return None if action_result is None else context.generate_response(action_result)
@@ -199,15 +158,13 @@ class Dispatcher(ABC):
 
             @wraps(websocket_action_handler)
             async def non_async_wrapper(context: WebSocketSession):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     websocket_action_handler, context)
                 return await self.event_loop.run_in_executor(None, websocket_action_handler, context, **injected_kwargs)
 
             @wraps(websocket_action_handler)
             async def async_wrapper(context: WebSocketSession):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     websocket_action_handler, context)
                 return await websocket_action_handler(context, **injected_kwargs)
 
@@ -225,8 +182,7 @@ class Dispatcher(ABC):
         def _decorator(client_source_action_handler: 'Callable[[ClientSourceContext], Any]'):
             @wraps(client_source_action_handler)
             async def non_async_wrapper(context: ClientSourceContext):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     client_source_action_handler, context)
                 data = await self.event_loop.run_in_executor(None, client_source_action_handler, context, **injected_kwargs)
                 result_set = list()
@@ -258,8 +214,7 @@ class Dispatcher(ABC):
 
             @wraps(client_source_action_handler)
             async def async_wrapper(context: ClientSourceContext):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     client_source_action_handler, context)
                 data = await client_source_action_handler(context, **injected_kwargs)
                 result_set = list()
@@ -305,15 +260,13 @@ class Dispatcher(ABC):
 
             @wraps(client_source_member_handler)
             async def non_async_wrapper(context: WebContext):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     client_source_member_handler, context)
                 return await self.event_loop.run_in_executor(None, client_source_member_handler, context, **injected_kwargs)
 
             @wraps(client_source_member_handler)
             async def async_wrapper(context: WebContext):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     client_source_member_handler, context)
                 return await client_source_member_handler(context, **injected_kwargs)
 
@@ -331,8 +284,7 @@ class Dispatcher(ABC):
         def _decorator(server_source_action_handler: 'Callable[[ServerSourceContext], Any]'):
             @wraps(server_source_action_handler)
             async def non_async_wrapper(context: ServerSourceContext):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     server_source_action_handler, context)
                 data = await self.event_loop.run_in_executor(None, server_source_action_handler, context, **injected_kwargs)
                 result_set = list()
@@ -364,8 +316,7 @@ class Dispatcher(ABC):
 
             @wraps(server_source_action_handler)
             async def async_wrapper(context: ServerSourceContext):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     server_source_action_handler, context)
                 data = await server_source_action_handler(context, **injected_kwargs)
                 result_set = list()
@@ -411,15 +362,13 @@ class Dispatcher(ABC):
 
             @wraps(server_source_member_action_handler)
             async def non_async_wrapper(context: WebContext):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     server_source_member_action_handler, context)
                 return await self.event_loop.run_in_executor(None, server_source_member_action_handler, context, **injected_kwargs)
 
             @wraps(server_source_member_action_handler)
             async def async_wrapper(context: WebContext):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     server_source_member_action_handler, context)
                 return await server_source_member_action_handler(context, **injected_kwargs)
 
@@ -438,15 +387,13 @@ class Dispatcher(ABC):
 
             @wraps(rabbit_action_handler)
             async def non_async_wrapper(context: RabbitContext):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     rabbit_action_handler, context)
                 return await self.event_loop.run_in_executor(None, rabbit_action_handler, context, **injected_kwargs)
 
             @wraps(rabbit_action_handler)
             async def async_wrapper(context: RabbitContext):
-                # Inject dependencies from DI container
-                injected_kwargs = self._inject_dependencies(
+                injected_kwargs = self._inject_from_context(
                     rabbit_action_handler, context)
                 return await rabbit_action_handler(context, **injected_kwargs)
 
