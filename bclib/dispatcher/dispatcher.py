@@ -66,7 +66,14 @@ class Dispatcher(ABC):
         return {}
 
     def socket_action(self, * predicates: (Predicate)):
-        """Decorator for determine Socket action with automatic DI"""
+        """
+        Decorator for Socket action with automatic DI
+
+        Context parameter is optional - handler can choose to:
+        - Accept context: def handler(context: SocketContext)
+        - Skip context and use only services: def handler(logger: ILogger)
+        - Mix both: def handler(context: SocketContext, logger: ILogger)
+        """
 
         def _decorator(socket_action_handler: 'Callable[[SocketContext],bool]'):
 
@@ -74,14 +81,14 @@ class Dispatcher(ABC):
             async def non_async_wrapper(context: SocketContext):
                 injected_kwargs = self._inject_from_context(
                     socket_action_handler, context)
-                await self.event_loop.run_in_executor(None, socket_action_handler, context, **injected_kwargs)
+                await self.event_loop.run_in_executor(None, socket_action_handler, **injected_kwargs)
                 return True
 
             @wraps(socket_action_handler)
             async def async_wrapper(context: SocketContext):
                 injected_kwargs = self._inject_from_context(
                     socket_action_handler, context)
-                await socket_action_handler(context, **injected_kwargs)
+                await socket_action_handler(**injected_kwargs)
                 return True
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
@@ -93,7 +100,14 @@ class Dispatcher(ABC):
         return _decorator
 
     def restful_action(self, * predicates: (Predicate)):
-        """Decorator for determine RESTful action with automatic DI"""
+        """
+        Decorator for RESTful action with automatic DI
+
+        Context parameter is now optional - handler can choose to:
+        - Accept context: def handler(context: RESTfulContext)
+        - Skip context and use only services: def handler(logger: ILogger)
+        - Mix both: def handler(context: RESTfulContext, logger: ILogger)
+        """
 
         def _decorator(restful_action_handler: 'Callable[[RESTfulContext], dict]'):
 
@@ -101,8 +115,10 @@ class Dispatcher(ABC):
             async def non_async_wrapper(context: RESTfulContext):
                 injected_kwargs = self._inject_from_context(
                     restful_action_handler, context)
+
+                # Call handler - it will take context if parameter exists
                 action_result = await self.event_loop.run_in_executor(
-                    None, restful_action_handler, context, **injected_kwargs
+                    None, restful_action_handler, **injected_kwargs
                 )
                 return None if action_result is None else context.generate_response(action_result)
 
@@ -110,7 +126,9 @@ class Dispatcher(ABC):
             async def async_wrapper(context: RESTfulContext):
                 injected_kwargs = self._inject_from_context(
                     restful_action_handler, context)
-                action_result = await restful_action_handler(context, **injected_kwargs)
+
+                # Call handler - it will take context if parameter exists
+                action_result = await restful_action_handler(**injected_kwargs)
                 return None if action_result is None else context.generate_response(action_result)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
@@ -122,7 +140,14 @@ class Dispatcher(ABC):
         return _decorator
 
     def web_action(self, * predicates: (Predicate)):
-        """Decorator for determine legacy web request action with automatic DI"""
+        """
+        Decorator for legacy web request action with automatic DI
+
+        Context parameter is optional - handler can choose to:
+        - Accept context: def handler(context: WebContext)
+        - Skip context and use only services: def handler(logger: ILogger)
+        - Mix both: def handler(context: WebContext, logger: ILogger)
+        """
 
         def _decorator(web_action_handler: 'Callable[[WebContext], str]'):
 
@@ -131,7 +156,7 @@ class Dispatcher(ABC):
                 injected_kwargs = self._inject_from_context(
                     web_action_handler, context)
                 action_result = await self.event_loop.run_in_executor(
-                    None, web_action_handler, context, **injected_kwargs
+                    None, web_action_handler, **injected_kwargs
                 )
                 return None if action_result is None else context.generate_response(action_result)
 
@@ -139,7 +164,7 @@ class Dispatcher(ABC):
             async def async_wrapper(context: WebContext):
                 injected_kwargs = self._inject_from_context(
                     web_action_handler, context)
-                action_result = await web_action_handler(context, **injected_kwargs)
+                action_result = await web_action_handler(**injected_kwargs)
                 return None if action_result is None else context.generate_response(action_result)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
@@ -151,7 +176,14 @@ class Dispatcher(ABC):
         return _decorator
 
     def websocket_action(self, * predicates: (Predicate)):
-        """Decorator for WebSocket action with automatic DI"""
+        """
+        Decorator for WebSocket action with automatic DI
+
+        Context parameter is optional - handler can choose to:
+        - Accept context: def handler(context: WebSocketSession)
+        - Skip context and use only services: def handler(logger: ILogger)
+        - Mix both: def handler(context: WebSocketSession, logger: ILogger)
+        """
 
         def _decorator(websocket_action_handler: 'Callable[[Any, Any], None]'):
             from bclib.dispatcher.websocket_session import WebSocketSession
@@ -160,13 +192,13 @@ class Dispatcher(ABC):
             async def non_async_wrapper(context: WebSocketSession):
                 injected_kwargs = self._inject_from_context(
                     websocket_action_handler, context)
-                return await self.event_loop.run_in_executor(None, websocket_action_handler, context, **injected_kwargs)
+                return await self.event_loop.run_in_executor(None, websocket_action_handler, **injected_kwargs)
 
             @wraps(websocket_action_handler)
             async def async_wrapper(context: WebSocketSession):
                 injected_kwargs = self._inject_from_context(
                     websocket_action_handler, context)
-                return await websocket_action_handler(context, **injected_kwargs)
+                return await websocket_action_handler(**injected_kwargs)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 websocket_action_handler) else non_async_wrapper
@@ -177,14 +209,21 @@ class Dispatcher(ABC):
         return _decorator
 
     def client_source_action(self, *predicates: (Predicate)):
-        """Decorator for determine source action with automatic DI"""
+        """
+        Decorator for client source action with automatic DI
+
+        Context parameter is optional - handler can choose to:
+        - Accept context: def handler(context: ClientSourceContext)
+        - Skip context and use only services: def handler(logger: ILogger)
+        - Mix both: def handler(context: ClientSourceContext, logger: ILogger)
+        """
 
         def _decorator(client_source_action_handler: 'Callable[[ClientSourceContext], Any]'):
             @wraps(client_source_action_handler)
             async def non_async_wrapper(context: ClientSourceContext):
                 injected_kwargs = self._inject_from_context(
                     client_source_action_handler, context)
-                data = await self.event_loop.run_in_executor(None, client_source_action_handler, context, **injected_kwargs)
+                data = await self.event_loop.run_in_executor(None, client_source_action_handler, **injected_kwargs)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -216,7 +255,7 @@ class Dispatcher(ABC):
             async def async_wrapper(context: ClientSourceContext):
                 injected_kwargs = self._inject_from_context(
                     client_source_action_handler, context)
-                data = await client_source_action_handler(context, **injected_kwargs)
+                data = await client_source_action_handler(**injected_kwargs)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -254,7 +293,14 @@ class Dispatcher(ABC):
         return _decorator
 
     def client_source_member_action(self, *predicates: (Predicate)):
-        """Decorator for determine source member action method with automatic DI"""
+        """
+        Decorator for client source member action with automatic DI
+
+        Context parameter is optional - handler can choose to:
+        - Accept context: def handler(context: ClientSourceMemberContext)
+        - Skip context and use only services: def handler(logger: ILogger)
+        - Mix both: def handler(context: ClientSourceMemberContext, logger: ILogger)
+        """
 
         def _decorator(client_source_member_handler: 'Callable[[ClientSourceMemberContext], Any]'):
 
@@ -262,13 +308,13 @@ class Dispatcher(ABC):
             async def non_async_wrapper(context: WebContext):
                 injected_kwargs = self._inject_from_context(
                     client_source_member_handler, context)
-                return await self.event_loop.run_in_executor(None, client_source_member_handler, context, **injected_kwargs)
+                return await self.event_loop.run_in_executor(None, client_source_member_handler, **injected_kwargs)
 
             @wraps(client_source_member_handler)
             async def async_wrapper(context: WebContext):
                 injected_kwargs = self._inject_from_context(
                     client_source_member_handler, context)
-                return await client_source_member_handler(context, **injected_kwargs)
+                return await client_source_member_handler(**injected_kwargs)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 client_source_member_handler) else non_async_wrapper
@@ -279,14 +325,21 @@ class Dispatcher(ABC):
         return _decorator
 
     def server_source_action(self, *predicates: (Predicate)):
-        """Decorator for determine source action with automatic DI"""
+        """
+        Decorator for server source action with automatic DI
+
+        Context parameter is optional - handler can choose to:
+        - Accept context: def handler(context: ServerSourceContext)
+        - Skip context and use only services: def handler(logger: ILogger)
+        - Mix both: def handler(context: ServerSourceContext, logger: ILogger)
+        """
 
         def _decorator(server_source_action_handler: 'Callable[[ServerSourceContext], Any]'):
             @wraps(server_source_action_handler)
             async def non_async_wrapper(context: ServerSourceContext):
                 injected_kwargs = self._inject_from_context(
                     server_source_action_handler, context)
-                data = await self.event_loop.run_in_executor(None, server_source_action_handler, context, **injected_kwargs)
+                data = await self.event_loop.run_in_executor(None, server_source_action_handler, **injected_kwargs)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -318,7 +371,7 @@ class Dispatcher(ABC):
             async def async_wrapper(context: ServerSourceContext):
                 injected_kwargs = self._inject_from_context(
                     server_source_action_handler, context)
-                data = await server_source_action_handler(context, **injected_kwargs)
+                data = await server_source_action_handler(**injected_kwargs)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -356,7 +409,14 @@ class Dispatcher(ABC):
         return _decorator
 
     def server_source_member_action(self, *predicates: (Predicate)):
-        """Decorator for determine server source member action method with automatic DI"""
+        """
+        Decorator for server source member action with automatic DI
+
+        Context parameter is optional - handler can choose to:
+        - Accept context: def handler(context: ServerSourceMemberContext)
+        - Skip context and use only services: def handler(logger: ILogger)
+        - Mix both: def handler(context: ServerSourceMemberContext, logger: ILogger)
+        """
 
         def _decorator(server_source_member_action_handler: 'Callable[[ServerSourceMemberContext], Any]'):
 
@@ -364,13 +424,13 @@ class Dispatcher(ABC):
             async def non_async_wrapper(context: WebContext):
                 injected_kwargs = self._inject_from_context(
                     server_source_member_action_handler, context)
-                return await self.event_loop.run_in_executor(None, server_source_member_action_handler, context, **injected_kwargs)
+                return await self.event_loop.run_in_executor(None, server_source_member_action_handler, **injected_kwargs)
 
             @wraps(server_source_member_action_handler)
             async def async_wrapper(context: WebContext):
                 injected_kwargs = self._inject_from_context(
                     server_source_member_action_handler, context)
-                return await server_source_member_action_handler(context, **injected_kwargs)
+                return await server_source_member_action_handler(**injected_kwargs)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 server_source_member_action_handler) else non_async_wrapper
@@ -381,7 +441,14 @@ class Dispatcher(ABC):
         return _decorator
 
     def rabbit_action(self, * predicates: (Predicate)):
-        """Decorator for determine rabbit-mq message request action with automatic DI"""
+        """
+        Decorator for RabbitMQ message action with automatic DI
+
+        Context parameter is optional - handler can choose to:
+        - Accept context: def handler(context: RabbitContext)
+        - Skip context and use only services: def handler(logger: ILogger)
+        - Mix both: def handler(context: RabbitContext, logger: ILogger)
+        """
 
         def _decorator(rabbit_action_handler: 'Callable[[RabbitContext], bool]'):
 
@@ -389,13 +456,13 @@ class Dispatcher(ABC):
             async def non_async_wrapper(context: RabbitContext):
                 injected_kwargs = self._inject_from_context(
                     rabbit_action_handler, context)
-                return await self.event_loop.run_in_executor(None, rabbit_action_handler, context, **injected_kwargs)
+                return await self.event_loop.run_in_executor(None, rabbit_action_handler, **injected_kwargs)
 
             @wraps(rabbit_action_handler)
             async def async_wrapper(context: RabbitContext):
                 injected_kwargs = self._inject_from_context(
                     rabbit_action_handler, context)
-                return await rabbit_action_handler(context, **injected_kwargs)
+                return await rabbit_action_handler(**injected_kwargs)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 rabbit_action_handler) else non_async_wrapper
