@@ -6,9 +6,7 @@ import sys
 import traceback
 from abc import ABC
 from functools import wraps
-from typing import Any, Callable, Coroutine, Optional
-
-from bclib.utility.static_file_handler import StaticFileHandler
+from typing import Any, Callable, Coroutine, Optional, get_type_hints
 
 from bclib.cache import CacheFactory
 from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
@@ -21,6 +19,7 @@ from bclib.listener import RabbitBusListener
 from bclib.logger import ILogger, LoggerFactory, LogObject
 from bclib.predicate import Predicate
 from bclib.utility import DictEx
+from bclib.utility.static_file_handler import StaticFileHandler
 
 from ..dispatcher.callback_info import CallbackInfo
 
@@ -51,19 +50,75 @@ class Dispatcher(ABC):
                 self.__rabbit_dispatcher.append(
                     RabbitBusListener(setting, self))
 
+    def _inject_dependencies(self, handler: Callable, context: Context) -> dict:
+        """
+        Inject dependencies from DI container into handler parameters
+
+        Uses type hints to automatically resolve and inject services.
+        Context parameter is always passed, other type-hinted parameters
+        are resolved from the DI container if available.
+
+        Args:
+            handler: The handler function to inject dependencies into
+            context: The request context (always injected)
+
+        Returns:
+            Dictionary of parameter names and values to pass to handler
+        """
+        kwargs = {}
+
+        # Check if dispatcher has services (DI container)
+        if not hasattr(self, 'services'):
+            return kwargs
+
+        try:
+            # Get handler signature and type hints
+            sig = inspect.signature(handler)
+            type_hints = get_type_hints(handler)
+
+            # Inject dependencies for each parameter
+            for param_name, param in sig.parameters.items():
+                # Get type hint for this parameter
+                param_type = type_hints.get(param_name)
+
+                if param_type is None:
+                    continue
+
+                # Check if it's a Context type (already provided)
+                if isinstance(context, param_type):
+                    continue
+
+                # Try to resolve from DI container
+                if hasattr(context, 'services') and context.services:
+                    service = context.services.get_service(param_type)
+                    if service is not None:
+                        kwargs[param_name] = service
+
+        except Exception:
+            # If DI fails, continue without injection
+            pass
+
+        return kwargs
+
     def socket_action(self, * predicates: (Predicate)):
-        """Decorator for determine Socket action"""
+        """Decorator for determine Socket action with automatic DI"""
 
         def _decorator(socket_action_handler: 'Callable[[SocketContext],bool]'):
 
             @wraps(socket_action_handler)
             async def non_async_wrapper(context: SocketContext):
-                await self.event_loop.run_in_executor(None, socket_action_handler, context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    socket_action_handler, context)
+                await self.event_loop.run_in_executor(None, socket_action_handler, context, **injected_kwargs)
                 return True
 
             @wraps(socket_action_handler)
             async def async_wrapper(context: SocketContext):
-                await socket_action_handler(context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    socket_action_handler, context)
+                await socket_action_handler(context, **injected_kwargs)
                 return True
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
@@ -75,18 +130,26 @@ class Dispatcher(ABC):
         return _decorator
 
     def restful_action(self, * predicates: (Predicate)):
-        """Decorator for determine RESTful action"""
+        """Decorator for determine RESTful action with automatic DI"""
 
         def _decorator(restful_action_handler: 'Callable[[RESTfulContext], dict]'):
 
             @wraps(restful_action_handler)
             async def non_async_wrapper(context: RESTfulContext):
-                action_result = await self.event_loop.run_in_executor(None, restful_action_handler, context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    restful_action_handler, context)
+                action_result = await self.event_loop.run_in_executor(
+                    None, restful_action_handler, context, **injected_kwargs
+                )
                 return None if action_result is None else context.generate_response(action_result)
 
             @wraps(restful_action_handler)
             async def async_wrapper(context: RESTfulContext):
-                action_result = await restful_action_handler(context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    restful_action_handler, context)
+                action_result = await restful_action_handler(context, **injected_kwargs)
                 return None if action_result is None else context.generate_response(action_result)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
@@ -98,18 +161,26 @@ class Dispatcher(ABC):
         return _decorator
 
     def web_action(self, * predicates: (Predicate)):
-        """Decorator for determine legacy web request action"""
+        """Decorator for determine legacy web request action with automatic DI"""
 
         def _decorator(web_action_handler: 'Callable[[WebContext], str]'):
 
             @wraps(web_action_handler)
             async def non_async_wrapper(context: WebContext):
-                action_result = await self.event_loop.run_in_executor(None, web_action_handler, context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    web_action_handler, context)
+                action_result = await self.event_loop.run_in_executor(
+                    None, web_action_handler, context, **injected_kwargs
+                )
                 return None if action_result is None else context.generate_response(action_result)
 
             @wraps(web_action_handler)
             async def async_wrapper(context: WebContext):
-                action_result = await web_action_handler(context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    web_action_handler, context)
+                action_result = await web_action_handler(context, **injected_kwargs)
                 return None if action_result is None else context.generate_response(action_result)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
@@ -121,18 +192,24 @@ class Dispatcher(ABC):
         return _decorator
 
     def websocket_action(self, * predicates: (Predicate)):
-        """Decorator for WebSocket action"""
+        """Decorator for WebSocket action with automatic DI"""
 
         def _decorator(websocket_action_handler: 'Callable[[Any, Any], None]'):
             from bclib.dispatcher.websocket_session import WebSocketSession
 
             @wraps(websocket_action_handler)
             async def non_async_wrapper(context: WebSocketSession):
-                return await self.event_loop.run_in_executor(None, websocket_action_handler, context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    websocket_action_handler, context)
+                return await self.event_loop.run_in_executor(None, websocket_action_handler, context, **injected_kwargs)
 
             @wraps(websocket_action_handler)
             async def async_wrapper(context: WebSocketSession):
-                return await websocket_action_handler(context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    websocket_action_handler, context)
+                return await websocket_action_handler(context, **injected_kwargs)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 websocket_action_handler) else non_async_wrapper
@@ -143,12 +220,15 @@ class Dispatcher(ABC):
         return _decorator
 
     def client_source_action(self, *predicates: (Predicate)):
-        """Decorator for determine source action"""
+        """Decorator for determine source action with automatic DI"""
 
         def _decorator(client_source_action_handler: 'Callable[[ClientSourceContext], Any]'):
             @wraps(client_source_action_handler)
             async def non_async_wrapper(context: ClientSourceContext):
-                data = await self.event_loop.run_in_executor(None, client_source_action_handler, context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    client_source_action_handler, context)
+                data = await self.event_loop.run_in_executor(None, client_source_action_handler, context, **injected_kwargs)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -178,7 +258,10 @@ class Dispatcher(ABC):
 
             @wraps(client_source_action_handler)
             async def async_wrapper(context: ClientSourceContext):
-                data = await client_source_action_handler(context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    client_source_action_handler, context)
+                data = await client_source_action_handler(context, **injected_kwargs)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -216,17 +299,23 @@ class Dispatcher(ABC):
         return _decorator
 
     def client_source_member_action(self, *predicates: (Predicate)):
-        """Decorator for determine source member action method"""
+        """Decorator for determine source member action method with automatic DI"""
 
         def _decorator(client_source_member_handler: 'Callable[[ClientSourceMemberContext], Any]'):
 
             @wraps(client_source_member_handler)
             async def non_async_wrapper(context: WebContext):
-                return await self.event_loop.run_in_executor(None, client_source_member_handler, context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    client_source_member_handler, context)
+                return await self.event_loop.run_in_executor(None, client_source_member_handler, context, **injected_kwargs)
 
             @wraps(client_source_member_handler)
             async def async_wrapper(context: WebContext):
-                return await client_source_member_handler(context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    client_source_member_handler, context)
+                return await client_source_member_handler(context, **injected_kwargs)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 client_source_member_handler) else non_async_wrapper
@@ -237,12 +326,15 @@ class Dispatcher(ABC):
         return _decorator
 
     def server_source_action(self, *predicates: (Predicate)):
-        """Decorator for determine source action"""
+        """Decorator for determine source action with automatic DI"""
 
         def _decorator(server_source_action_handler: 'Callable[[ServerSourceContext], Any]'):
             @wraps(server_source_action_handler)
             async def non_async_wrapper(context: ServerSourceContext):
-                data = await self.event_loop.run_in_executor(None, server_source_action_handler, context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    server_source_action_handler, context)
+                data = await self.event_loop.run_in_executor(None, server_source_action_handler, context, **injected_kwargs)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -272,7 +364,10 @@ class Dispatcher(ABC):
 
             @wraps(server_source_action_handler)
             async def async_wrapper(context: ServerSourceContext):
-                data = await server_source_action_handler(context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    server_source_action_handler, context)
+                data = await server_source_action_handler(context, **injected_kwargs)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -310,17 +405,23 @@ class Dispatcher(ABC):
         return _decorator
 
     def server_source_member_action(self, *predicates: (Predicate)):
-        """Decorator for determine server source member action method"""
+        """Decorator for determine server source member action method with automatic DI"""
 
         def _decorator(server_source_member_action_handler: 'Callable[[ServerSourceMemberContext], Any]'):
 
             @wraps(server_source_member_action_handler)
             async def non_async_wrapper(context: WebContext):
-                return await self.event_loop.run_in_executor(None, server_source_member_action_handler, context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    server_source_member_action_handler, context)
+                return await self.event_loop.run_in_executor(None, server_source_member_action_handler, context, **injected_kwargs)
 
             @wraps(server_source_member_action_handler)
             async def async_wrapper(context: WebContext):
-                return await server_source_member_action_handler(context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    server_source_member_action_handler, context)
+                return await server_source_member_action_handler(context, **injected_kwargs)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 server_source_member_action_handler) else non_async_wrapper
@@ -331,17 +432,23 @@ class Dispatcher(ABC):
         return _decorator
 
     def rabbit_action(self, * predicates: (Predicate)):
-        """Decorator for determine rabbit-mq message request action"""
+        """Decorator for determine rabbit-mq message request action with automatic DI"""
 
         def _decorator(rabbit_action_handler: 'Callable[[RabbitContext], bool]'):
 
             @wraps(rabbit_action_handler)
             async def non_async_wrapper(context: RabbitContext):
-                return await self.event_loop.run_in_executor(None, rabbit_action_handler, context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    rabbit_action_handler, context)
+                return await self.event_loop.run_in_executor(None, rabbit_action_handler, context, **injected_kwargs)
 
             @wraps(rabbit_action_handler)
             async def async_wrapper(context: RabbitContext):
-                return await rabbit_action_handler(context)
+                # Inject dependencies from DI container
+                injected_kwargs = self._inject_dependencies(
+                    rabbit_action_handler, context)
+                return await rabbit_action_handler(context, **injected_kwargs)
 
             wrapper = async_wrapper if inspect.iscoroutinefunction(
                 rabbit_action_handler) else non_async_wrapper
