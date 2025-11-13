@@ -609,6 +609,55 @@ class ServiceProvider:
         descriptor = self._descriptors.get(service_type)
         return descriptor.lifetime if descriptor else None
 
+    async def invoke_in_executor(self, method: Callable, event_loop, *args, **kwargs) -> Any:
+        """
+        Invoke a method with DI, running sync methods in thread pool to avoid blocking
+
+        This method is designed for HTTP servers where sync handlers should not block
+        the event loop. Async handlers are awaited directly, sync handlers run in executor.
+
+        Args:
+            method: The method/function to invoke (sync or async)
+            event_loop: The asyncio event loop for run_in_executor
+            *args: Positional arguments (override DI for positional params)
+            **kwargs: Keyword arguments (override DI for named params)
+
+        Returns:
+            Awaited method return value
+
+        Example:
+            ```python
+            # In HTTP handler decorator
+            @wraps(handler)
+            async def wrapper(context):
+                return await context.services.invoke_in_executor(
+                    handler, self.event_loop)
+            ```
+        """
+        try:
+            # Use inject_dependencies to get injected parameters
+            injected_kwargs = self.inject_dependencies(method, *args, **kwargs)
+
+            # Merge with provided kwargs
+            final_kwargs = {**kwargs, **injected_kwargs}
+
+            # Check if method is async or sync
+            if inspect.iscoroutinefunction(method):
+                # Async: await directly
+                return await method(*args, **final_kwargs)
+            else:
+                # Sync: run in thread pool to avoid blocking event loop
+                return await event_loop.run_in_executor(
+                    None, lambda: method(*args, **final_kwargs))
+
+        except Exception as e:
+            # Fallback
+            if inspect.iscoroutinefunction(method):
+                return await method(*args, **kwargs)
+            else:
+                return await event_loop.run_in_executor(
+                    None, lambda: method(*args, **kwargs))
+
     def __repr__(self) -> str:
         """String representation of service provider"""
         return (

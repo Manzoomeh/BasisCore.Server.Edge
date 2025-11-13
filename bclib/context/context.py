@@ -29,6 +29,8 @@ class Context(ABC):
         self.__service_provider: Optional[ServiceProvider] = None
         if hasattr(dispatcher, 'services'):
             self.__service_provider = dispatcher.services.create_scope()
+            # Register current context as singleton in the scoped service provider
+            self.__service_provider.add_singleton(type(self), instance=self)
 
     def open_sql_connection(self, key: str) -> SqlDb:
         return self.dispatcher.db_manager.open_sql_connection(key)

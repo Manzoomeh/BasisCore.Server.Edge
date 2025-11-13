@@ -87,7 +87,8 @@ class UserService(IUserService):
 
 options = {
     "server": "localhost:8096",
-    "router": "restful"
+    "router": "restful",
+    "log_errors": True
 }
 
 app = edge.DevServerDispatcher(options)

@@ -59,8 +59,8 @@ app.configure_services(setup_services)
 
 # ==================== Handlers ====================
 
-@app.restful_action()
-def traditional_handler(context: RESTfulContext):
+@app.restful_action(app.url("traditional_handler"))
+def traditional_handler():
     """Traditional way - still works perfectly!"""
     return {
         "style": "traditional",
@@ -69,7 +69,7 @@ def traditional_handler(context: RESTfulContext):
     }
 
 
-@app.restful_action()
+@app.restful_action(app.url("clean_handler"))
 def clean_handler(logger: ILogger, time: ITimeService):
     """New way - no context needed!"""
     logger.log(f"Clean handler called at {time.get_time()}")
@@ -80,8 +80,8 @@ def clean_handler(logger: ILogger, time: ITimeService):
     }
 
 
-@app.restful_action()
-def logger_only(logger: ILogger):
+@app.restful_action(app.url("logger_only"))
+def logger_only(context: RESTfulContext, logger: ILogger):
     """Minimal handler - just one service"""
     logger.log("Minimal handler with only logger")
     return {
@@ -90,7 +90,7 @@ def logger_only(logger: ILogger):
     }
 
 
-@app.restful_action()
+@app.restful_action(app.url("mixed_handler"))
 def mixed_handler(context: RESTfulContext, logger: ILogger, time: ITimeService):
     """Mix of old and new - context + services"""
     logger.log(f"Mixed handler at {time.get_time()}")
@@ -102,7 +102,7 @@ def mixed_handler(context: RESTfulContext, logger: ILogger, time: ITimeService):
     }
 
 
-@app.restful_action()
+@app.restful_action(app.url("async_clean"))
 async def async_clean(logger: ILogger):
     """Async handler without context"""
     logger.log("Async handler without context!")
@@ -113,7 +113,7 @@ async def async_clean(logger: ILogger):
     }
 
 
-@app.restful_action()
+@app.restful_action(app.url("comparison"))
 def comparison():
     """Show the difference"""
     return {
