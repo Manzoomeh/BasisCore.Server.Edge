@@ -175,14 +175,16 @@ async def generate_report(
 # ==================== Dispatcher ====================
 
 class MethodInjectionDispatcher(edge.DevServerDispatcher):
-    def _configure_services(self, services: ServiceProvider):
+    def __init__(self, options):
+        super().__init__(options)
+
         print("\n" + "=" * 70)
         print("Configuring Method Injection Services")
         print("=" * 70)
 
-        services.add_singleton(ILogger, ConsoleLogger)
-        services.add_scoped(IDatabase, MockDatabase)
-        services.add_transient(IEmailService, MockEmailService)
+        self.services.add_singleton(ILogger, ConsoleLogger)
+        self.services.add_scoped(IDatabase, MockDatabase)
+        self.services.add_transient(IEmailService, MockEmailService)
 
         print("✓ Services registered")
         print("=" * 70 + "\n")

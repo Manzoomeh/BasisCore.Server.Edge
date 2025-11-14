@@ -34,10 +34,6 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
             heartbeat_interval=30.0
         )
 
-        # Initialize Dependency Injection container
-        self.__service_provider = ServiceProvider()
-        self._configure_services(self.__service_provider)
-
         if self.options.has('router'):
             router = self.options.router
             if isinstance(router, str):
@@ -172,75 +168,6 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
     def ws_manager(self) -> WebSocketSessionManager:
         """Get WebSocket session manager"""
         return self.__ws_manager
-
-    @property
-    def services(self) -> ServiceProvider:
-        """Get the service provider (DI container)"""
-        return self.__service_provider
-
-    def configure_services(self, configurator: Callable[[ServiceProvider], None]) -> 'RoutingDispatcher':
-        """
-        Configure services without inheritance using a callback function
-
-        This method allows you to configure DI services without creating a derived class.
-        You can pass a function that receives the ServiceProvider and registers services.
-
-        Args:
-            configurator: A function that takes ServiceProvider and configures it
-
-        Returns:
-            Self for method chaining
-
-        Example:
-            ```python
-            from bclib import edge
-            from bclib.utility import ServiceProvider
-
-            # Without inheritance - using callback
-            app = edge.DevServerDispatcher(options)
-
-            def setup_services(services: ServiceProvider):
-                services.add_singleton(ILogger, ConsoleLogger)
-                services.add_scoped(IDatabase, PostgresDatabase)
-                services.add_transient(IEmailService, SmtpEmailService)
-
-            app.configure_services(setup_services)
-
-            # Or inline with lambda
-            app.configure_services(lambda services: (
-                services.add_singleton(ILogger, ConsoleLogger),
-                services.add_scoped(IDatabase, PostgresDatabase)
-            ))
-            ```
-        """
-        if configurator and callable(configurator):
-            configurator(self.__service_provider)
-        return self
-
-    def _configure_services(self, services: ServiceProvider):
-        """
-        Configure dependency injection services
-
-        Override this method in derived dispatchers to register application services.
-
-        Args:
-            services: The service provider to configure
-
-        Example:
-            ```python
-            class MyDispatcher(RoutingDispatcher):
-                def _configure_services(self, services: ServiceProvider):
-                    # Register singleton services
-                    services.add_singleton(ILogger, ConsoleLogger)
-
-                    # Register scoped services (per-request)
-                    services.add_scoped(IDatabase, PostgresDatabase)
-
-                    # Register transient services (new instance every time)
-                    services.add_transient(IEmailService, SmtpEmailService)
-            ```
-        """
-        pass
 
     def run_in_background(self, callback: 'Callable|Coroutine', *args: Any) -> asyncio.Future:
         """helper for run function in background thread"""

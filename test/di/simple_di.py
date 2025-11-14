@@ -86,7 +86,9 @@ class GreetingService(IGreetingService):
 class DIDispatcher(edge.DevServerDispatcher):
     """Custom dispatcher that configures DI services"""
 
-    def _configure_services(self, services: ServiceProvider):
+    def __init__(self, options):
+        super().__init__(options)
+
         """Configure dependency injection services"""
 
         print("\n" + "=" * 60)
@@ -94,16 +96,16 @@ class DIDispatcher(edge.DevServerDispatcher):
         print("=" * 60)
 
         # Singleton services (one instance for entire application)
-        services.add_singleton(ILogger, ConsoleLogger)
-        services.add_singleton(ITimeService, TimeService)
+        self.services.add_singleton(ILogger, ConsoleLogger)
+        self.services.add_singleton(ITimeService, TimeService)
 
         # Transient services (new instance every time)
         # Note: We use factory to inject dependencies
-        services.add_transient(
+        self.services.add_transient(
             IGreetingService,
             factory=lambda: GreetingService(
-                logger=services.get_service(ILogger),
-                time_service=services.get_service(ITimeService)
+                logger=self.services.get_service(ILogger),
+                time_service=self.services.get_service(ITimeService)
             )
         )
 

@@ -93,23 +93,17 @@ options = {
 
 app = edge.DevServerDispatcher(options)
 
-# Configure services
+# Configure services directly
+print("\n" + "=" * 70)
+print("Configuring Services for Automatic DI Injection")
+print("=" * 70)
 
+app.services.add_singleton(ILogger, ConsoleLogger)
+app.services.add_singleton(ITimeService, TimeService)
+app.services.add_transient(IUserService, UserService)
 
-def setup_services(services: ServiceProvider):
-    print("\n" + "=" * 70)
-    print("Configuring Services for Automatic DI Injection")
-    print("=" * 70)
-
-    services.add_singleton(ILogger, ConsoleLogger)
-    services.add_singleton(ITimeService, TimeService)
-    services.add_transient(IUserService, UserService)
-
-    print("✓ Services configured")
-    print("=" * 70 + "\n")
-
-
-app.configure_services(setup_services)
+print("✓ Services configured")
+print("=" * 70 + "\n")
 
 
 # ==================== Handlers with Automatic DI ====================

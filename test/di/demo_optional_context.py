@@ -47,14 +47,9 @@ options = {
 
 app = edge.DevServerDispatcher(options)
 
-
-# Configure DI
-def setup_services(services):
-    services.add_singleton(ILogger, ConsoleLogger)
-    services.add_transient(ITimeService, TimeService)
-
-
-app.configure_services(setup_services)
+# Configure DI directly
+app.services.add_singleton(ILogger, ConsoleLogger)
+app.services.add_transient(ITimeService, TimeService)
 
 
 # ==================== Handlers ====================

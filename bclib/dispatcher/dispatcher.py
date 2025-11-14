@@ -18,6 +18,7 @@ from bclib.listener import RabbitBusListener
 from bclib.logger import ILogger, LoggerFactory, LogObject
 from bclib.predicate import Predicate
 from bclib.utility import DictEx
+from bclib.utility.service_provider import ServiceProvider
 from bclib.utility.static_file_handler import StaticFileHandler
 
 from ..dispatcher.callback_info import CallbackInfo
@@ -29,6 +30,7 @@ class Dispatcher(ABC):
     def __init__(self, options: dict = None, loop: asyncio.AbstractEventLoop = None):
         self.options = DictEx(options)
         self.__look_up: 'dict[str, list[CallbackInfo]]' = dict()
+        self.__service_provider = ServiceProvider()
         cache_options = self.options.cache if "cache" in self.options else None
         if loop is None and sys.platform == 'win32':
             # By default Windows can use only 64 sockets in asyncio loop. This is a limitation of underlying select() API call.
@@ -49,6 +51,11 @@ class Dispatcher(ABC):
                 self.__rabbit_dispatcher.append(
                     RabbitBusListener(setting, self))
 
+    @property
+    def services(self) -> ServiceProvider:
+        """Get the service provider (DI container)"""
+        return self.__service_provider
+
     def socket_action(self, * predicates: (Predicate)):
         """
         Decorator for Socket action with automatic DI
@@ -59,7 +66,7 @@ class Dispatcher(ABC):
         - Mix both: def handler(context: SocketContext, logger: ILogger)
         """
 
-        def _decorator(socket_action_handler: 'Callable[[SocketContext],bool]'):
+        def _decorator(socket_action_handler: Callable):
 
             @wraps(socket_action_handler)
             async def wrapper(context: SocketContext):
@@ -81,7 +88,7 @@ class Dispatcher(ABC):
         - Mix both: def handler(context: RESTfulContext, logger: ILogger)
         """
 
-        def _decorator(restful_action_handler: 'Callable[[RESTfulContext], dict]'):
+        def _decorator(restful_action_handler: Callable):
 
             @wraps(restful_action_handler)
             async def wrapper(context: RESTfulContext):
@@ -103,7 +110,7 @@ class Dispatcher(ABC):
         - Mix both: def handler(context: WebContext, logger: ILogger)
         """
 
-        def _decorator(web_action_handler: 'Callable[[WebContext], str]'):
+        def _decorator(web_action_handler: Callable):
 
             @wraps(web_action_handler)
             async def wrapper(context: WebContext):
@@ -125,7 +132,7 @@ class Dispatcher(ABC):
         - Mix both: def handler(context: WebSocketSession, logger: ILogger)
         """
 
-        def _decorator(websocket_action_handler: 'Callable[[Any, Any], None]'):
+        def _decorator(websocket_action_handler: Callable):
             from bclib.dispatcher.websocket_session import WebSocketSession
 
             @wraps(websocket_action_handler)
@@ -147,7 +154,7 @@ class Dispatcher(ABC):
         - Mix both: def handler(context: ClientSourceContext, logger: ILogger)
         """
 
-        def _decorator(client_source_action_handler: 'Callable[[ClientSourceContext], Any]'):
+        def _decorator(client_source_action_handler: Callable):
             @wraps(client_source_action_handler)
             async def wrapper(context: ClientSourceContext):
                 data = await context.services.invoke_in_executor(client_source_action_handler, self.event_loop)
@@ -194,7 +201,7 @@ class Dispatcher(ABC):
         - Mix both: def handler(context: ClientSourceMemberContext, logger: ILogger)
         """
 
-        def _decorator(client_source_member_handler: 'Callable[[ClientSourceMemberContext], Any]'):
+        def _decorator(client_source_member_handler: Callable):
 
             @wraps(client_source_member_handler)
             async def wrapper(context: WebContext):
@@ -215,7 +222,7 @@ class Dispatcher(ABC):
         - Mix both: def handler(context: ServerSourceContext, logger: ILogger)
         """
 
-        def _decorator(server_source_action_handler: 'Callable[[ServerSourceContext], Any]'):
+        def _decorator(server_source_action_handler: Callable):
             @wraps(server_source_action_handler)
             async def wrapper(context: ServerSourceContext):
                 data = await context.services.invoke_in_executor(server_source_action_handler, self.event_loop)
@@ -262,7 +269,7 @@ class Dispatcher(ABC):
         - Mix both: def handler(context: ServerSourceMemberContext, logger: ILogger)
         """
 
-        def _decorator(server_source_member_action_handler: 'Callable[[ServerSourceMemberContext], Any]'):
+        def _decorator(server_source_member_action_handler: Callable):
 
             @wraps(server_source_member_action_handler)
             async def wrapper(context: WebContext):
@@ -283,7 +290,7 @@ class Dispatcher(ABC):
         - Mix both: def handler(context: RabbitContext, logger: ILogger)
         """
 
-        def _decorator(rabbit_action_handler: 'Callable[[RabbitContext], bool]'):
+        def _decorator(rabbit_action_handler: Callable):
 
             @wraps(rabbit_action_handler)
             async def wrapper(context: RabbitContext):

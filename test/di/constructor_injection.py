@@ -149,7 +149,9 @@ class UserService:
 class ConstructorInjectionDispatcher(edge.DevServerDispatcher):
     """Dispatcher that demonstrates constructor injection"""
 
-    def _configure_services(self, services: ServiceProvider):
+    def __init__(self, options):
+        super().__init__(options)
+
         """Configure services - notice how simple the registration is now!"""
 
         print("\n" + "=" * 70)
@@ -157,15 +159,15 @@ class ConstructorInjectionDispatcher(edge.DevServerDispatcher):
         print("=" * 70)
 
         # Register base services (singleton)
-        services.add_singleton(ILogger, ConsoleLogger)
-        services.add_singleton(IConfig, SimpleConfig)
+        self.services.add_singleton(ILogger, ConsoleLogger)
+        self.services.add_singleton(IConfig, SimpleConfig)
 
         # Register TimeService - dependencies auto-injected from constructor!
-        services.add_singleton(ITimeService, TimeService)
+        self.services.add_singleton(ITimeService, TimeService)
 
         # Register complex services - all dependencies auto-resolved!
-        services.add_transient(ReportService)
-        services.add_transient(UserService)
+        self.services.add_transient(ReportService)
+        self.services.add_transient(UserService)
 
         print("✓ All services registered with automatic constructor injection")
         print("=" * 70 + "\n")

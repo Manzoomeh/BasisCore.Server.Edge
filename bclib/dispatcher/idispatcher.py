@@ -1,13 +1,15 @@
 """Dispatcher base class module"""
-from abc import ABC, abstractmethod
 import asyncio
-from typing import Callable, Any, TYPE_CHECKING, Coroutine, Optional
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Optional
 
-from bclib.db_manager import DbManager
 from bclib.cache import CacheManager
+from bclib.db_manager import DbManager
 from bclib.listener import Message
-from bclib.utility import DictEx
 from bclib.logger import LogObject
+from bclib.utility import DictEx
+from bclib.utility.service_provider import ServiceProvider
+
 if TYPE_CHECKING:
     from context import Context
 
@@ -43,6 +45,12 @@ class IDispatcher(ABC):
     @property
     @abstractmethod
     def cache_manager(self) -> CacheManager:
+        pass
+
+    @property
+    @abstractmethod
+    def services(self) -> ServiceProvider:
+        """Get the service provider (DI container)"""
         pass
 
     @abstractmethod

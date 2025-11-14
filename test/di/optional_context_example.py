@@ -43,15 +43,9 @@ app = edge.from_options({
     "url": "http://localhost:8097"
 })
 
-# Setup DI
-
-
-def configure_di(services: ServiceProvider):
-    services.add_singleton(ILogger, ConsoleLogger)
-    services.add_transient(ITimeService, TimeService)
-
-
-app.configure_services(configure_di)
+# Setup DI directly
+app.services.add_singleton(ILogger, ConsoleLogger)
+app.services.add_transient(ITimeService, TimeService)
 
 
 # Handlers with different signatures

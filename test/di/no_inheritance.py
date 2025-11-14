@@ -92,20 +92,12 @@ def setup_services(services: ServiceProvider):
     services.add_singleton(ITimeService, TimeService)
     services.add_transient(IGreetingService, GreetingService)
 
-    print("✓ Services configured via callback function")
+    print("✓ Services configured directly")
     print("=" * 70 + "\n")
 
 
-# Configure services WITHOUT creating derived class!
-app.configure_services(setup_services)
-
-
-# Method 2: Inline configuration (alternative)
-# app.configure_services(lambda services: (
-#     services.add_singleton(ILogger, ConsoleLogger),
-#     services.add_singleton(ITimeService, TimeService),
-#     services.add_transient(IGreetingService, GreetingService)
-# ))
+# Configure services directly WITHOUT creating derived class!
+setup_services(app.services)
 
 
 # ==================== Handlers ====================
@@ -168,9 +160,9 @@ async def info(context: RESTfulContext):
         "description": "Configure services without creating a derived dispatcher class",
         "methods": [
             {
-                "method": "configure_services(callback)",
-                "description": "Pass a function to configure services",
-                "example": "app.configure_services(setup_services)"
+                "method": "app.services.add_*()",
+                "description": "Directly register services on dispatcher's service provider",
+                "example": "app.services.add_singleton(ILogger, ConsoleLogger)"
             }
         ],
         "benefits": [
@@ -182,11 +174,11 @@ async def info(context: RESTfulContext):
         ],
         "comparison": {
             "with_inheritance": {
-                "code": "class MyDispatcher(edge.DevServerDispatcher):\n    def _configure_services(self, services):\n        services.add_singleton(...)",
+                "code": "class MyDispatcher(edge.DevServerDispatcher):\n    def __init__(self, options):\n        super().__init__(options)\n        self.services.add_singleton(...)",
                 "lines": "Multiple lines, class definition"
             },
             "without_inheritance": {
-                "code": "app.configure_services(lambda s: s.add_singleton(...))",
+                "code": "app.services.add_singleton(...)",
                 "lines": "Single line, no class needed"
             }
         },
@@ -218,10 +210,10 @@ async def test_chaining(context: RESTfulContext):
         logger.log("Testing method chaining")
 
     return {
-        "message": "Method Chaining Test",
-        "note": "configure_services() returns self, allowing chaining",
-        "example": "app.configure_services(setup).configure_services(setup2)",
-        "benefit": "Can configure services in multiple steps if needed"
+        "message": "Direct Service Registration",
+        "note": "Services can be registered directly via app.services",
+        "example": "app.services.add_singleton(ILogger, ConsoleLogger)",
+        "benefit": "Simple and straightforward service registration"
     }
 
 
@@ -233,7 +225,7 @@ if __name__ == "__main__":
     print("Server URL: http://localhost:8095")
     print()
     print("Key Feature: Configure DI WITHOUT Creating Derived Class")
-    print("  - Use app.configure_services(callback)")
+    print("  - Use app.services.add_singleton/scoped/transient() directly")
     print("  - No inheritance needed")
     print("  - Perfect for simple applications")
     print()
@@ -250,8 +242,8 @@ if __name__ == "__main__":
     print("  - http://localhost:8095/test/chaining")
     print()
     print("Comparison:")
-    print("  ❌ Old way: class MyDispatcher(edge.DevServerDispatcher)")
-    print("  ✅ New way: app.configure_services(setup_function)")
+    print("  ❌ Old way: class MyDispatcher with __init__ override")
+    print("  ✅ New way: app.services.add_singleton(...) directly")
     print()
     print("=" * 70)
     print()
