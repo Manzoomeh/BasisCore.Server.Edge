@@ -74,7 +74,7 @@ options = {
 }
 
 # Create dispatcher directly - NO INHERITANCE!
-app = edge.DevServerDispatcher(options)
+app = edge.from_options(options)
 
 
 # Method 1: Using named function

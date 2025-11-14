@@ -38,9 +38,8 @@ class TimeService(ITimeService):
 
 # Create dispatcher using edge module
 app = edge.from_options({
-    "host": "localhost",
-    "port": 8097,
-    "url": "http://localhost:8097"
+    "server": "localhost:8097",
+    "router": "restful"
 })
 
 # Setup DI directly

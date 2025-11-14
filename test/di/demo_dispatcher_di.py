@@ -59,15 +59,9 @@ class GreetingService(IGreetingService):
 
 
 app = edge.from_options({
-    "server": {
-        "hosts": [
-            {
-                "name": "dispatcher_di_demo",
-                "url": "http://localhost:8098",
-                "local": True
-            }
-        ]
-    }
+    "server": "localhost:8098",
+    "router": "restful",
+    "name": "dispatcher_di_demo"
 })
 
 # ==================== Configure Services ====================

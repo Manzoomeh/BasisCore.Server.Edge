@@ -43,20 +43,20 @@ print()
 
 # Create dispatcher WITHOUT inheritance
 options = {"server": "localhost:9999", "router": "restful"}
-app = edge.DevServerDispatcher(options)
+app = edge.from_options(options)
 
-print("1. Testing configure_services with named function...")
+print("1. Testing direct services registration...")
 
 
 def setup_services(services: ServiceProvider):
     services.add_singleton(ILogger, ConsoleLogger)
     services.add_singleton(IConfig, SimpleConfig)
-    print("   Services configured via callback")
+    print("   Services configured directly")
 
 
 # Configure without inheritance!
-result = app.configure_services(setup_services)
-print(f"   Returns self for chaining: {result is app}")
+setup_services(app.services)
+print(f"   Services accessible via app.services")
 print()
 
 print("2. Verifying services are registered...")
@@ -74,7 +74,7 @@ else:
     print("   ✗ Services not available")
 print()
 
-print("3. Testing method chaining...")
+print("3. Testing additional services...")
 
 
 def add_more_services(services: ServiceProvider):
@@ -82,32 +82,31 @@ def add_more_services(services: ServiceProvider):
     print("   Additional configuration applied")
 
 
-app.configure_services(add_more_services)
-print("   ✓ Chaining works")
+add_more_services(app.services)
+print("   ✓ Additional services work")
 print()
 
-print("4. Testing with lambda (inline configuration)...")
+print("4. Testing with inline configuration...")
 options2 = {"server": "localhost:9998", "router": "restful"}
-app2 = edge.DevServerDispatcher(options2)
+app2 = edge.from_options(options2)
 
-app2.configure_services(
-    lambda services: services.add_singleton(ILogger, ConsoleLogger))
+app2.services.add_singleton(ILogger, ConsoleLogger)
 logger2 = app2.services.get_service(ILogger)
 
 if logger2:
-    print("   ✓ Lambda configuration works")
-    logger2.log("Lambda test")
+    print("   ✓ Inline configuration works")
+    logger2.log("Inline test")
 else:
-    print("   ✗ Lambda configuration failed")
+    print("   ✗ Inline configuration failed")
 print()
 
 print("=" * 70)
 print("✓ All tests passed!")
 print()
 print("Summary:")
-print("  - configure_services() works without inheritance")
-print("  - Returns self for method chaining")
-print("  - Supports both named functions and lambdas")
+print("  - Direct services registration works without inheritance")
+print("  - Services accessible via app.services")
+print("  - Supports both named functions and inline configuration")
 print("  - Services are properly registered and accessible")
 print()
 print("Benefits:")

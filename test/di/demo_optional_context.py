@@ -45,7 +45,7 @@ options = {
     "router": "restful"
 }
 
-app = edge.DevServerDispatcher(options)
+app = edge.from_options(options)
 
 # Configure DI directly
 app.services.add_singleton(ILogger, ConsoleLogger)

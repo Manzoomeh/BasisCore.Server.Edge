@@ -91,7 +91,7 @@ options = {
     "log_errors": True
 }
 
-app = edge.DevServerDispatcher(options)
+app = edge.from_options(options)
 
 # Configure services directly
 print("\n" + "=" * 70)
