@@ -92,7 +92,7 @@ class Dispatcher(ABC):
 
             @wraps(restful_action_handler)
             async def wrapper(context: RESTfulContext):
-                action_result = await context.services.invoke_in_executor(restful_action_handler, self.event_loop)
+                action_result = await context.services.invoke_in_executor(restful_action_handler, self.event_loop, context)
                 return None if action_result is None else context.generate_response(action_result)
 
             self._get_context_lookup(RESTfulContext.__name__)\
@@ -114,7 +114,7 @@ class Dispatcher(ABC):
 
             @wraps(web_action_handler)
             async def wrapper(context: WebContext):
-                action_result = await context.services.invoke_in_executor(web_action_handler, self.event_loop)
+                action_result = await context.services.invoke_in_executor(web_action_handler, self.event_loop, context)
                 return None if action_result is None else context.generate_response(action_result)
 
             self._get_context_lookup(WebContext.__name__)\
@@ -157,7 +157,7 @@ class Dispatcher(ABC):
         def _decorator(client_source_action_handler: Callable):
             @wraps(client_source_action_handler)
             async def wrapper(context: ClientSourceContext):
-                data = await context.services.invoke_in_executor(client_source_action_handler, self.event_loop)
+                data = await context.services.invoke_in_executor(client_source_action_handler, self.event_loop, context)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -204,8 +204,8 @@ class Dispatcher(ABC):
         def _decorator(client_source_member_handler: Callable):
 
             @wraps(client_source_member_handler)
-            async def wrapper(context: WebContext):
-                return await context.services.invoke_in_executor(client_source_member_handler, self.event_loop)
+            async def wrapper(context: ClientSourceMemberContext):
+                return await context.services.invoke_in_executor(client_source_member_handler, self.event_loop, context)
 
             self._get_context_lookup(ClientSourceMemberContext.__name__)\
                 .append(CallbackInfo([*predicates], wrapper))
@@ -225,7 +225,7 @@ class Dispatcher(ABC):
         def _decorator(server_source_action_handler: Callable):
             @wraps(server_source_action_handler)
             async def wrapper(context: ServerSourceContext):
-                data = await context.services.invoke_in_executor(server_source_action_handler, self.event_loop)
+                data = await context.services.invoke_in_executor(server_source_action_handler, self.event_loop, context)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -272,8 +272,8 @@ class Dispatcher(ABC):
         def _decorator(server_source_member_action_handler: Callable):
 
             @wraps(server_source_member_action_handler)
-            async def wrapper(context: WebContext):
-                return await context.services.invoke_in_executor(server_source_member_action_handler, self.event_loop)
+            async def wrapper(context: ServerSourceMemberContext):
+                return await context.services.invoke_in_executor(server_source_member_action_handler, self.event_loop, context)
 
             self._get_context_lookup(ServerSourceMemberContext.__name__)\
                 .append(CallbackInfo([*predicates], wrapper))
@@ -294,7 +294,7 @@ class Dispatcher(ABC):
 
             @wraps(rabbit_action_handler)
             async def wrapper(context: RabbitContext):
-                return await context.services.invoke_in_executor(rabbit_action_handler, self.event_loop)
+                return await context.services.invoke_in_executor(rabbit_action_handler, self.event_loop, context)
 
             self._get_context_lookup(RabbitContext.__name__)\
                 .append(CallbackInfo([*predicates], wrapper))

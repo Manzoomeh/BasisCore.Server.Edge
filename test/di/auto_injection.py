@@ -34,7 +34,7 @@ class IUserService(ABC):
     """User service interface"""
 
     @abstractmethod
-    def get_user(self, user_id: str) -> dict:
+    def get_user(self, user_id: int) -> dict:
         pass
 
 
@@ -72,13 +72,13 @@ class UserService(IUserService):
     def __init__(self, logger: ILogger):
         self.logger = logger
         self.users = {
-            "1": {"id": "1", "name": "Alice", "email": "alice@example.com"},
-            "2": {"id": "2", "name": "Bob", "email": "bob@example.com"},
-            "3": {"id": "3", "name": "Charlie", "email": "charlie@example.com"}
+            1: {"id": 1, "name": "Alice", "email": "alice@example.com"},
+            2: {"id": 2, "name": "Bob", "email": "bob@example.com"},
+            3: {"id": 3, "name": "Charlie", "email": "charlie@example.com"}
         }
         self.logger.log("UserService initialized with sample users")
 
-    def get_user(self, user_id: str) -> dict:
+    def get_user(self, user_id: int) -> dict:
         self.logger.log(f"Getting user: {user_id}")
         return self.users.get(user_id, {"error": "User not found"})
 
@@ -148,27 +148,28 @@ async def with_time(context: RESTfulContext, time_service: ITimeService):
 @app.restful_action(app.url("user/:id"))
 async def get_user(
     context: RESTfulContext,
+    id: int,
     logger: ILogger,
     user_service: IUserService
 ):
     """
-    Handler with multiple automatic injections
+    Handler with multiple automatic injections including URL segment
 
-    Notice: Both logger and user_service are automatically injected!
+    Notice: id, logger, and user_service are ALL automatically injected!
+    - id comes from URL segment :id and is automatically converted to int!
+    - logger and user_service come from DI container
 
     GET http://localhost:8096/user/1
     GET http://localhost:8096/user/2
     GET http://localhost:8096/user/99
     """
-    user_id = context.url_segments.id
-
-    # Both services automatically injected!
-    logger.log(f"Getting user {user_id} via automatic DI")
-    user = user_service.get_user(user_id)
+    # All parameters automatically injected - no need to read from context.url_segments!
+    logger.log(f"Getting user {id} via automatic DI")
+    user = user_service.get_user(id)
 
     return {
         "user": user,
-        "note": "Both ILogger and IUserService were automatically injected!"
+        "note": "id from URL segment + ILogger + IUserService were ALL automatically injected!"
     }
 
 
@@ -187,7 +188,7 @@ async def complex_handler(
     logger.log("Complex handler with 3 auto-injected services")
 
     current_time = time_service.get_current_time()
-    user = user_service.get_user("1")
+    user = user_service.get_user(1)
 
     return {
         "message": "Multiple services automatically injected",
@@ -201,25 +202,25 @@ async def complex_handler(
 @app.restful_action(app.url("mixed/:name"))
 async def mixed_parameters(
     context: RESTfulContext,
+    name: str,
     logger: ILogger,
     time_service: ITimeService
 ):
     """
-    Handler with both context and injected services
+    Handler with URL segment and injected services - all automatic!
+
+    Notice: name parameter is automatically injected from URL segment!
 
     GET http://localhost:8096/mixed/Alice
     """
-    # Get data from context (URL parameter)
-    name = context.url_segments.name
-
-    # Use injected services
+    # Everything is automatically injected - URL param AND services!
     logger.log(f"Processing request for {name}")
     current_time = time_service.get_current_time()
 
     return {
         "greeting": f"Hello {name}!",
         "time": current_time,
-        "note": "Mixed: URL param from context, services auto-injected"
+        "note": "ALL automatic: URL segment + services auto-injected!"
     }
 
 

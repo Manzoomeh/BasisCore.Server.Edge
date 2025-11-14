@@ -362,16 +362,18 @@ class ServiceProvider:
             except Exception:
                 return None
 
-    def inject_dependencies(self, handler: Callable, *args, **kwargs) -> dict:
+    def inject_dependencies(self, handler: Callable, *args, context=None, **kwargs) -> dict:
         """
         Inject dependencies from DI container into handler parameters
 
         Analyzes the handler's signature and type hints to automatically
-        resolve and inject services. Already-provided arguments are skipped.
+        resolve and inject services. Also injects URL segments if context is provided.
+        Already-provided arguments are skipped.
 
         Args:
             handler: The handler function to inject dependencies into
             *args: Positional arguments already being passed
+            context: Optional context object with url_segments attribute
             **kwargs: Keyword arguments already being passed
 
         Returns:
@@ -407,17 +409,40 @@ class ServiceProvider:
                 # Get type hint for this parameter
                 param_type = type_hints.get(param_name)
 
-                if param_type is None:
-                    continue
-
                 # Check if it's already in positional args by type
-                if any(isinstance(arg, param_type) for arg in args):
+                if param_type and any(isinstance(arg, param_type) for arg in args):
                     continue
 
-                # Try to resolve from DI container
-                service = self.get_service(param_type)
-                if service is not None:
-                    injected_kwargs[param_name] = service
+                # Try to inject URL segment if no type hint or type is str/int/float
+                if context and hasattr(context, 'url_segments') and context.url_segments:
+                    if param_type in (str, int, float, type(None)) or param_type is None:
+                        if hasattr(context.url_segments, param_name):
+                            segment_value = getattr(
+                                context.url_segments, param_name)
+                            # Convert to appropriate type if type hint exists
+                            if param_type == int:
+                                try:
+                                    injected_kwargs[param_name] = int(
+                                        segment_value)
+                                    continue
+                                except (ValueError, TypeError):
+                                    pass
+                            elif param_type == float:
+                                try:
+                                    injected_kwargs[param_name] = float(
+                                        segment_value)
+                                    continue
+                                except (ValueError, TypeError):
+                                    pass
+                            else:
+                                injected_kwargs[param_name] = segment_value
+                                continue
+
+                # Try to resolve from DI container if type hint exists
+                if param_type is not None:
+                    service = self.get_service(param_type)
+                    if service is not None:
+                        injected_kwargs[param_name] = service
 
         except Exception:
             # If DI fails, continue without injection
@@ -504,16 +529,18 @@ class ServiceProvider:
             # Fallback to direct call
             return method(*args, **kwargs)
 
-    async def invoke_method_async(self, method: Callable, *args, **kwargs) -> Any:
+    async def invoke_method_async(self, method: Callable, *args, context=None, **kwargs) -> Any:
         """
         Invoke an async method with automatic dependency injection
 
         Type-hinted parameters are automatically resolved from the DI container.
+        URL segments from context are also injected if context is provided.
         Explicitly provided args/kwargs take precedence over DI resolution.
 
         Args:
             method: The async method/function to invoke
             *args: Positional arguments (override DI for positional params)
+            context: Optional context object with url_segments attribute
             **kwargs: Keyword arguments (override DI for named params)
 
         Returns:
@@ -531,7 +558,8 @@ class ServiceProvider:
         """
         try:
             # Use inject_dependencies to get injected parameters
-            injected_kwargs = self.inject_dependencies(method, *args, **kwargs)
+            injected_kwargs = self.inject_dependencies(
+                method, *args, context=context, **kwargs)
 
             # Merge with provided kwargs
             final_kwargs = {**kwargs, **injected_kwargs}
@@ -609,16 +637,18 @@ class ServiceProvider:
         descriptor = self._descriptors.get(service_type)
         return descriptor.lifetime if descriptor else None
 
-    async def invoke_in_executor(self, method: Callable, event_loop, *args, **kwargs) -> Any:
+    async def invoke_in_executor(self, method: Callable, event_loop, context=None, *args, **kwargs) -> Any:
         """
         Invoke a method with DI, running sync methods in thread pool to avoid blocking
 
         This method is designed for HTTP servers where sync handlers should not block
         the event loop. Async handlers are awaited directly, sync handlers run in executor.
+        URL segments from context are also injected if context is provided.
 
         Args:
             method: The method/function to invoke (sync or async)
             event_loop: The asyncio event loop for run_in_executor
+            context: Optional context object with url_segments attribute
             *args: Positional arguments (override DI for positional params)
             **kwargs: Keyword arguments (override DI for named params)
 
@@ -631,12 +661,13 @@ class ServiceProvider:
             @wraps(handler)
             async def wrapper(context):
                 return await context.services.invoke_in_executor(
-                    handler, self.event_loop)
+                    handler, self.event_loop, context)
             ```
         """
         try:
             # Use inject_dependencies to get injected parameters
-            injected_kwargs = self.inject_dependencies(method, *args, **kwargs)
+            injected_kwargs = self.inject_dependencies(
+                method, *args, context=context, **kwargs)
 
             # Merge with provided kwargs
             final_kwargs = {**kwargs, **injected_kwargs}
