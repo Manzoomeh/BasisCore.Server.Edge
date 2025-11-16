@@ -1,6 +1,8 @@
 from types import FunctionType
+
 from bclib.context import Context
 from bclib.utility import DictEx
+
 from ..predicate.predicate import Predicate
 
 
@@ -15,7 +17,7 @@ class Url (Predicate):
         try:
             is_ok, url_parts = self.__validator(context.url)
             if is_ok and url_parts:
-                context.url_segments = DictEx(url_parts)
+                context.url_segments = url_parts
             return is_ok
         except Exception as ex:
             print("Error in check url predicate", ex)
@@ -60,7 +62,7 @@ def url_function(url):
     try:
         url_parts = url.split("/")
         if {" and ".join(where_part_list)}:
-            {','.join(segment_list)} = url_parts{"[0]" if len(segment_list)==1 else ""}
+            {','.join(segment_list)} = url_parts{"[0]" if len(segment_list) == 1 else ""}
             return (True,{{ {','.join(return_dict_property_names)} }})
         else:
             return (False,None)

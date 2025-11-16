@@ -1,16 +1,19 @@
-from abc import ABC
-import traceback
-from typing import TYPE_CHECKING, Tuple
-
-from bclib.exception import ShortCircuitErr
-
-from bclib.db_manager import SqlDb, SQLiteDb, MongoDb, RabbitConnection, RESTfulConnection
-from bclib.utility import DictEx, HttpStatusCodes, HttpStatusCodes
-from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
 import base64
+import traceback
+from abc import ABC
+from typing import TYPE_CHECKING, Optional, Tuple, Type, TypeVar
+
+from bclib.db_manager import (MongoDb, RabbitConnection, RESTfulConnection,
+                              SqlDb, SQLiteDb)
+from bclib.exception import ShortCircuitErr
+from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
+from bclib.service_provider import ServiceProvider
+from bclib.utility import DictEx, HttpStatusCodes
 
 if TYPE_CHECKING:
     from .. import dispatcher
+
+T = TypeVar('T')
 
 
 class Context(ABC):
@@ -19,9 +22,14 @@ class Context(ABC):
     def __init__(self, dispatcher: 'dispatcher.IDispatcher') -> None:
         super().__init__()
         self.dispatcher = dispatcher
-        self.url_segments: DictEx = None
+        self.url_segments: dict = None
         self.url: str = None
         self.is_adhoc = True
+
+        # Create scoped service provider for this request
+        self.__service_provider: ServiceProvider = dispatcher.create_scope()
+        # Register current context as singleton in the scoped service provider
+        self.__service_provider.add_singleton(type(self), instance=self)
 
     def open_sql_connection(self, key: str) -> SqlDb:
         return self.dispatcher.db_manager.open_sql_connection(key)
@@ -37,6 +45,49 @@ class Context(ABC):
 
     def open_rabbit_connection(self, key: str) -> RabbitConnection:
         return self.dispatcher.db_manager.open_rabbit_connection(key)
+
+    @property
+    def services(self) -> ServiceProvider:
+        """
+        Get scoped service provider for this request
+
+        Returns:
+            ServiceProvider instance with scoped services for this request
+
+        Example:
+            ```python
+            @app.restful_action()
+            async def my_handler(context: RESTfulContext):
+                logger = context.get_service(ILogger)
+                db = context.get_service(IDatabase)
+
+                logger.log("Processing request...")
+                await db.query("SELECT * FROM users")
+            ```
+        """
+        return self.__service_provider
+
+    def get_service(self, service_type: Type[T]) -> Optional[T]:
+        """
+        Convenience method to get a service from the DI container
+
+        Args:
+            service_type: The type of service to resolve
+
+        Returns:
+            Service instance or None if not registered
+
+        Example:
+            ```python
+            logger = context.get_service(ILogger)
+            if logger:
+                logger.log("Hello from DI!")
+            ```
+        """
+        # Flatten url_segments into kwargs for service resolution
+        kwargs = self.url_segments if self.url_segments else {}
+
+        return self.__service_provider.get_service(service_type, **kwargs)
 
     def generate_error_response(self, exception: Exception) -> dict:
         """Generate error response from process result"""
@@ -82,8 +133,9 @@ class Context(ABC):
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER][HttpBaseDataName.INDEX] = response_type
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER][HttpBaseDataName.HEADER_CODE] = status_code
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER][HttpBaseDataName.MIME] = mime
-        if isinstance(content,bytes):
-            ret_val[HttpBaseDataType.CMS][HttpBaseDataName.BLOB_CONTENT] = base64.b64encode(content).decode("utf-8")  
+        if isinstance(content, bytes):
+            ret_val[HttpBaseDataType.CMS][HttpBaseDataName.BLOB_CONTENT] = base64.b64encode(
+                content).decode("utf-8")
         else:
             ret_val[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT] = content
         if headers is not None:

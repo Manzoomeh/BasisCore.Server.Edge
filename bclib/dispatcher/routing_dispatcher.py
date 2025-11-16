@@ -15,6 +15,7 @@ from bclib.listener import (HttpBaseDataType, Message, MessageType,
                             ReceiveMessage)
 from bclib.listener.web_message import WebMessage
 from bclib.listener.websocket_message import WebSocketMessage
+from bclib.service_provider import ServiceProvider
 from bclib.utility import DictEx
 
 

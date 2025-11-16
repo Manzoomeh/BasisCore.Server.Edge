@@ -1,0 +1,568 @@
+"""
+Service Provider - Main Dependency Injection Container
+
+The core DI container that manages service registration, resolution, 
+and lifecycle. Supports three lifetimes: singleton, scoped, and transient.
+
+Features:
+- Constructor injection based on type hints
+- Method injection for handlers
+- Automatic URL segment injection
+- Async/sync handler support
+- Scoped services for request isolation
+"""
+import inspect
+from typing import Any, Callable, Dict, Optional, Type, TypeVar, get_type_hints
+
+from .injection_plan import InjectionPlan
+from .service_descriptor import ServiceDescriptor
+from .service_lifetime import ServiceLifetime
+
+T = TypeVar('T')
+
+
+class ServiceProvider:
+    """
+    Dependency Injection Container
+
+    Manages service registration, resolution, and lifecycle.
+    Supports three lifetimes: singleton, scoped, and transient.
+
+    Example:
+        ```python
+        # Create container
+        services = ServiceProvider()
+
+        # Register services
+        services.add_singleton(ILogger, ConsoleLogger)
+        services.add_scoped(IDatabase, PostgresDatabase)
+        services.add_transient(IEmailService, factory=lambda: SmtpEmailService("smtp.gmail.com"))
+
+        # Resolve services
+        logger = services.get_service(ILogger)
+        db = services.get_service(IDatabase)
+
+        # Create scope for request
+        request_services = services.create_scope()
+        request_db = request_services.get_service(IDatabase)  # New scoped instance
+        request_services.clear_scope()  # Clean up after request
+        ```
+    """
+
+    def __init__(self) -> None:
+        """Initialize service provider with empty registrations"""
+        self._descriptors: Dict[Type, ServiceDescriptor] = {}
+        self._singletons: Dict[Type, Any] = {}
+        self._scoped_instances: Dict[Type, Any] = {}
+
+    def add_singleton(
+        self,
+        service_type: Type[T],
+        implementation: Optional[Type[T]] = None,
+        factory: Optional[Callable[['ServiceProvider'], T]] = None,
+        instance: Optional[T] = None
+    ) -> 'ServiceProvider':
+        """
+        Register a singleton service (one instance for entire application)
+
+        Args:
+            service_type: The service interface/type
+            implementation: Concrete implementation class
+            factory: Factory function that receives ServiceProvider and creates the service
+            instance: Pre-created instance
+
+        Returns:
+            Self for chaining
+
+        Example:
+            ```python
+            # Register by implementation type
+            services.add_singleton(ILogger, ConsoleLogger)
+
+            # Register by factory (with ServiceProvider access)
+            services.add_singleton(ILogger, factory=lambda sp: ConsoleLogger())
+            services.add_singleton(IDatabase, factory=lambda sp: PostgresDB(sp.get_service(ILogger)))
+
+            # Register existing instance
+            logger = ConsoleLogger()
+            services.add_singleton(ILogger, instance=logger)
+            ```
+        """
+        descriptor = ServiceDescriptor(
+            service_type=service_type,
+            implementation=implementation,
+            factory=factory,
+            instance=instance,
+            lifetime=ServiceLifetime.SINGLETON
+        )
+        self._descriptors[service_type] = descriptor
+
+        # If instance provided, cache it immediately
+        if instance is not None:
+            self._singletons[service_type] = instance
+
+        return self
+
+    def add_scoped(
+        self,
+        service_type: Type[T],
+        implementation: Optional[Type[T]] = None,
+        factory: Optional[Callable[['ServiceProvider'], T]] = None
+    ) -> 'ServiceProvider':
+        """
+        Register a scoped service (one instance per request/scope)
+
+        Args:
+            service_type: The service interface/type
+            implementation: Concrete implementation class
+            factory: Factory function that receives ServiceProvider and creates the service
+
+        Returns:
+            Self for chaining
+
+        Example:
+            ```python
+            # Register by implementation type
+            services.add_scoped(IDatabase, PostgresDatabase)
+
+            # Register by factory (with ServiceProvider access)
+            services.add_scoped(IDatabase, factory=lambda sp: PostgresDatabase("connection_string"))
+            services.add_scoped(ICache, factory=lambda sp: RedisCache(sp.get_service(ILogger)))
+            ```
+        """
+        descriptor = ServiceDescriptor(
+            service_type=service_type,
+            implementation=implementation,
+            factory=factory,
+            lifetime=ServiceLifetime.SCOPED
+        )
+        self._descriptors[service_type] = descriptor
+        return self
+
+    def add_transient(
+        self,
+        service_type: Type[T],
+        implementation: Optional[Type[T]] = None,
+        factory: Optional[Callable[['ServiceProvider'], T]] = None
+    ) -> 'ServiceProvider':
+        """
+        Register a transient service (new instance every time)
+
+        Args:
+            service_type: The service interface/type
+            implementation: Concrete implementation class
+            factory: Factory function that receives ServiceProvider and creates the service
+
+        Returns:
+            Self for chaining
+
+        Example:
+            ```python
+            # Register by implementation type
+            services.add_transient(IEmailService, SmtpEmailService)
+
+            # Register by factory (with ServiceProvider access)
+            services.add_transient(IEmailService, factory=lambda sp: SmtpEmailService("smtp.gmail.com"))
+            services.add_transient(INotifier, factory=lambda sp: Notifier(sp.get_service(ILogger), sp.get_service(IEmailService)))
+            ```
+        """
+        descriptor = ServiceDescriptor(
+            service_type=service_type,
+            implementation=implementation,
+            factory=factory,
+            lifetime=ServiceLifetime.TRANSIENT
+        )
+        self._descriptors[service_type] = descriptor
+        return self
+
+    def get_service(self, service_type: Type[T], **kwargs: Any) -> Optional[T]:
+        """
+        Resolve and return a service instance
+
+        Args:
+            service_type: The service type to resolve
+            **kwargs: Additional parameters for constructor injection
+
+        Returns:
+            Service instance or None if not registered
+
+        Example:
+            ```python
+            logger = services.get_service(ILogger)
+            if logger:
+                logger.log("Service resolved")
+            ```
+        """
+        if service_type not in self._descriptors:
+            return None
+
+        descriptor = self._descriptors[service_type]
+
+        # Singleton: return cached or create once
+        if descriptor.lifetime == ServiceLifetime.SINGLETON:
+            if service_type in self._singletons:
+                return self._singletons[service_type]
+            instance = self._create_instance(descriptor, **kwargs)
+            if instance is not None:
+                self._singletons[service_type] = instance
+            return instance
+
+        # Scoped: return scoped or create for this scope
+        elif descriptor.lifetime == ServiceLifetime.SCOPED:
+            if service_type in self._scoped_instances:
+                return self._scoped_instances[service_type]
+            instance = self._create_instance(descriptor, **kwargs)
+            if instance is not None:
+                self._scoped_instances[service_type] = instance
+            return instance
+
+        # Transient: always create new
+        else:
+            return self._create_instance(descriptor, **kwargs)
+
+    def _create_instance(self, descriptor: ServiceDescriptor, **kwargs: Any) -> Any:
+        """
+        Create service instance based on descriptor
+
+        Supports automatic constructor injection based on type hints.
+        If constructor has typed parameters, they will be resolved from DI container.
+
+        Args:
+            descriptor: Service descriptor
+            **kwargs: Additional parameters for constructor injection
+
+        Returns:
+            New service instance
+        """
+        # Direct instance (already created)
+        if descriptor.instance is not None:
+            return descriptor.instance
+
+        # Factory function (pass ServiceProvider for dependency resolution)
+        if descriptor.factory is not None:
+            return descriptor.factory(self)
+
+        # Implementation type with constructor injection
+        if descriptor.implementation is not None:
+            return self._create_with_constructor_injection(descriptor.implementation, **kwargs)
+
+        # Use service type itself as implementation
+        return self._create_with_constructor_injection(descriptor.service_type, **kwargs)
+
+    def _create_with_constructor_injection(self, implementation_type: Type[T], **kwargs: Any) -> Optional[T]:
+        """
+        Create instance with automatic constructor injection based on type hints
+
+        Uses InjectionPlan for optimized parameter resolution.
+        Analyzes the __init__ method's type hints and automatically resolves
+        dependencies from the DI container.
+
+        Args:
+            implementation_type: The class to instantiate
+            **kwargs: Additional parameters for constructor injection
+
+        Returns:
+            Instance with injected dependencies
+
+        Example:
+            ```python
+            class MyService:
+                def __init__(self, logger: ILogger, db: IDatabase):
+                    self.logger = logger
+                    self.db = db
+
+            # Automatically injects logger and db from container
+            services.add_transient(MyService)
+            instance = services.get_service(MyService)
+            ```
+        """
+        try:
+            # Use InjectionPlan for optimized injection
+            plan = InjectionPlan(implementation_type)
+            return plan.create_instance(self, **kwargs)
+        except Exception:
+            # Fallback to parameterless constructor
+            try:
+                return implementation_type()
+            except Exception:
+                return None
+
+    def inject_dependencies(self, handler: Callable, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+        """
+        Inject dependencies from DI container into handler parameters
+
+        Uses InjectionPlan for optimized parameter resolution.
+        Analyzes the handler's signature and type hints to automatically
+        resolve and inject services. Also injects values from kwargs.
+
+        Args:
+            handler: The handler function to inject dependencies into
+            *args: Positional arguments already being passed
+            **kwargs: Keyword arguments already being passed (including url_segments)
+
+        Returns:
+            Dictionary of parameter names and resolved service instances
+
+        Example:
+            ```python
+            def process_order(logger: ILogger, db: IDatabase, order_id: str):
+                logger.log(f"Processing order {order_id}")
+                db.save(order_id)
+
+            # Inject logger and db, but not order_id (already provided)
+            injected = services.inject_dependencies(process_order, order_id="123")
+            # injected = {"logger": <ConsoleLogger>, "db": <PostgresDatabase>}
+
+            # Call with injected dependencies
+            process_order(order_id="123", **injected)
+            ```
+        """
+        try:
+            # Use InjectionPlan for optimized injection
+            plan = InjectionPlan(handler)
+            injected_kwargs = plan.inject_parameters(self, **kwargs)
+
+            # Filter out already provided kwargs
+            return {k: v for k, v in injected_kwargs.items() if k not in kwargs}
+
+        except Exception:
+            # If DI fails, continue without injection
+            return {}
+
+    def create_scope(self) -> 'ServiceProvider':
+        """
+        Create a new scope for scoped services (per-request)
+
+        Returns:
+            New ServiceProvider with same registrations but fresh scoped instances
+
+        Example:
+            ```python
+            # Create scope for each request
+            request_services = app.services.create_scope()
+
+            # Use scoped services
+            db = request_services.get_service(IDatabase)
+
+            # Clean up after request
+            request_services.clear_scope()
+            ```
+        """
+        scoped_provider = ServiceProvider()
+        scoped_provider._descriptors = self._descriptors
+        scoped_provider._singletons = self._singletons
+        # New scoped_instances for this scope
+        return scoped_provider
+
+    def clear_scope(self) -> None:
+        """
+        Clear scoped instances (call at end of request)
+
+        Frees memory by removing scoped service instances.
+        Singleton instances are preserved.
+        """
+        self._scoped_instances.clear()
+
+    def invoke_method(self, method: Callable, *args: Any, **kwargs: Any) -> Any:
+        """
+        Invoke a method with automatic dependency injection for its parameters
+
+        Uses InjectionPlan for optimized parameter resolution.
+        Type-hinted parameters are automatically resolved from the DI container.
+        Explicitly provided args/kwargs take precedence over DI resolution.
+
+        Args:
+            method: The method/function to invoke
+            *args: Positional arguments (override DI for positional params)
+            **kwargs: Keyword arguments (override DI for named params, including url_segments)
+
+        Returns:
+            Method return value
+
+        Example:
+            ```python
+            def process_data(logger: ILogger, db: IDatabase, data: str):
+                logger.log(f"Processing: {data}")
+                return db.save(data)
+
+            # Invoke with DI - logger and db injected automatically
+            result = services.invoke_method(process_data, data="test")
+            ```
+        """
+        try:
+            # Use inject_dependencies to get injected parameters
+            injected_kwargs = self.inject_dependencies(method, *args, **kwargs)
+
+            # Merge with provided kwargs
+            final_kwargs = {**kwargs, **injected_kwargs}
+
+            # Invoke method with injected dependencies
+            return method(*args, **final_kwargs)
+
+        except Exception:
+            # Fallback to direct call
+            return method(*args, **kwargs)
+
+    async def invoke_method_async(self, method: Callable, event_loop: Any, *args: Any, **kwargs: Any) -> Any:
+        """
+        Invoke an async method with automatic dependency injection
+
+        Uses InjectionPlan for optimized parameter resolution.
+        Type-hinted parameters are automatically resolved from the DI container.
+        Explicitly provided args/kwargs take precedence over DI resolution.
+
+        Args:
+            method: The async method/function to invoke
+            event_loop: Event loop for running sync functions in executor
+            *args: Positional arguments (override DI for positional params)
+            **kwargs: Keyword arguments (override DI for named params, including url_segments)
+
+        Returns:
+            Awaited method return value
+
+        Example:
+            ```python
+            async def process_async(logger: ILogger, db: IDatabase, data: str):
+                logger.log(f"Processing: {data}")
+                return await db.save_async(data)
+
+            # Invoke async method with DI
+            result = await services.invoke_method_async(process_async, event_loop, data="test")
+            ```
+        """
+        try:
+            # Use InjectionPlan for optimized injection
+            plan = InjectionPlan(method)
+            result = plan.execute_async(self, event_loop, *args, **kwargs)
+
+            # If result is coroutine, await it
+            if inspect.iscoroutine(result):
+                return await result
+            return result
+
+        except Exception:
+            # Fallback to direct call
+            return await method(*args, **kwargs)
+
+    def invoke(self, method: Callable, event_loop: Any, *args: Any, **kwargs: Any) -> Any:
+        """
+        Smart invoke - automatically detects if method is async or sync and calls appropriately
+
+        Uses InjectionPlan for optimized parameter resolution.
+        This is the recommended method to use as it handles both sync and async functions
+        automatically without needing to know which type the function is.
+
+        Args:
+            method: The method/function to invoke (sync or async)
+            event_loop: Event loop for running async/sync methods
+            *args: Positional arguments (override DI for positional params)
+            **kwargs: Keyword arguments (override DI for named params, including url_segments)
+
+        Returns:
+            Method return value (or coroutine for async methods)
+
+        Example:
+            ```python
+            # Works with sync functions
+            def sync_func(logger: ILogger, data: str):
+                logger.log(data)
+                return "done"
+
+            result = services.invoke(sync_func, event_loop, data="test")
+
+            # Works with async functions
+            async def async_func(logger: ILogger, db: IDatabase):
+                await db.save()
+                return "saved"
+
+            result = await services.invoke(async_func, event_loop)
+
+            # In handlers - works for both
+            result = await services.invoke(some_function, event_loop, param="value")
+            ```
+        """
+        # Check if method is a coroutine function (async)
+        if inspect.iscoroutinefunction(method):
+            return self.invoke_method_async(method, event_loop, *args, **kwargs)
+        else:
+            return self.invoke_method(method, *args, **kwargs)
+
+    def is_registered(self, service_type: Type) -> bool:
+        """
+        Check if a service type is registered
+
+        Args:
+            service_type: The service type to check
+
+        Returns:
+            True if registered, False otherwise
+        """
+        return service_type in self._descriptors
+
+    def get_lifetime(self, service_type: Type) -> Optional[ServiceLifetime]:
+        """
+        Get the lifetime of a registered service
+
+        Args:
+            service_type: The service type
+
+        Returns:
+            ServiceLifetime or None if not registered
+        """
+        descriptor = self._descriptors.get(service_type)
+        return descriptor.lifetime if descriptor else None
+
+    async def invoke_in_executor(self, method: Callable, event_loop: Any, *args: Any, **kwargs: Any) -> Any:
+        """
+        Invoke a method with DI, running sync methods in thread pool to avoid blocking
+
+        Uses InjectionPlan for optimized parameter resolution.
+        This method is designed for HTTP servers where sync handlers should not block
+        the event loop. Async handlers are awaited directly, sync handlers run in executor.
+
+        Args:
+            method: The method/function to invoke (sync or async)
+            event_loop: The asyncio event loop for run_in_executor
+            *args: Positional arguments (override DI for positional params)
+            **kwargs: Keyword arguments (override DI for named params, including url_segments)
+
+        Returns:
+            Awaited method return value
+
+        Example:
+            ```python
+            # In HTTP handler decorator
+            @wraps(handler)
+            async def wrapper(context):
+                # Flatten url_segments into kwargs
+                url_kwargs = context.url_segments.__dict__ if context.url_segments else {}
+                return await context.services.invoke_in_executor(
+                    handler, context.dispatcher.event_loop, **url_kwargs)
+            ```
+        """
+        try:
+            # Use InjectionPlan for optimized injection
+            plan = InjectionPlan(method)
+            result = plan.execute_async(self, event_loop, *args, **kwargs)
+
+            # If result is coroutine, await it
+            if inspect.iscoroutine(result):
+                return await result
+            return result
+
+        except Exception:
+            # Fallback
+            if inspect.iscoroutinefunction(method):
+                return await method(*args, **kwargs)
+            else:
+                return await event_loop.run_in_executor(
+                    None, lambda: method(*args, **kwargs))
+
+    def __repr__(self) -> str:
+        """String representation of service provider"""
+        return (
+            f"ServiceProvider("
+            f"registered={len(self._descriptors)}, "
+            f"singletons={len(self._singletons)}, "
+            f"scoped={len(self._scoped_instances)})"
+        )
