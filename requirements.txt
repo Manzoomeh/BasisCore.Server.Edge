@@ -3,3 +3,5 @@ requests
 pyodbc
 aiohttp
 legacy-cgi
+celery>=5.3,<6
+redis>=5.0.0

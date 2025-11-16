@@ -3,6 +3,7 @@ from bclib.context.client_source_member_context import \
     ClientSourceMemberContext
 from bclib.context.context import Context
 from bclib.context.merge_type import MergeType
+from bclib.context.celery_context import CeleryContext
 from bclib.context.rabbit_context import RabbitContext
 from bclib.context.request_context import RequestContext
 from bclib.context.restful_context import RESTfulContext

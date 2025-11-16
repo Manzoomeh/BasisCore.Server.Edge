@@ -3,12 +3,12 @@
 import asyncio
 
 from bclib import __version__
-from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
-                           Context, MergeType, RabbitContext, RequestContext,
-                           RESTfulContext, ServerSourceContext,
-                           ServerSourceMemberContext, SocketContext,
-                           SourceContext, SourceMemberContext, WebContext,
-                           WebSocketContext)
+from bclib.context import (CeleryContext, ClientSourceContext,
+                           ClientSourceMemberContext, Context, MergeType,
+                           RabbitContext, RequestContext, RESTfulContext,
+                           ServerSourceContext, ServerSourceMemberContext,
+                           SocketContext, SourceContext, SourceMemberContext,
+                           WebContext, WebSocketContext)
 from bclib.db_manager import *
 from bclib.dispatcher import (DevServerDispatcher, EndpointDispatcher,
                               IDispatcher, RoutingDispatcher, SocketDispatcher,

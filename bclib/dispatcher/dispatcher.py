@@ -11,10 +11,11 @@ from typing import Any, Callable, Coroutine, Optional
 from bclib.utility.static_file_handler import StaticFileHandler
 
 from bclib.cache import CacheFactory
-from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
-                           Context, RabbitContext, RESTfulContext,
-                           ServerSourceContext, ServerSourceMemberContext,
-                           SocketContext, WebContext, WebSocketContext)
+from bclib.context import (CeleryContext, ClientSourceContext,
+                           ClientSourceMemberContext, Context, RabbitContext,
+                           RESTfulContext, ServerSourceContext,
+                           ServerSourceMemberContext, SocketContext,
+                           WebContext, WebSocketContext)
 from bclib.db_manager import DbManager
 from bclib.exception import HandlerNotFoundErr
 from bclib.listener import RabbitBusListener
@@ -23,6 +24,7 @@ from bclib.predicate import Predicate
 from bclib.utility import DictEx
 
 from ..dispatcher.callback_info import CallbackInfo
+from ..dispatcher.celery_manager import CeleryManager
 
 
 class Dispatcher(ABC):
@@ -50,6 +52,7 @@ class Dispatcher(ABC):
             for setting in self.options.router.rabbit:
                 self.__rabbit_dispatcher.append(
                     RabbitBusListener(setting, self))
+        self.__celery_manager = CeleryManager.try_create(self, self.options)
 
     def socket_action(self, * predicates: (Predicate)):
         """Decorator for determine Socket action"""
@@ -352,6 +355,51 @@ class Dispatcher(ABC):
             return rabbit_action_handler
         return _decorator
 
+    def celery_action(
+        self,
+        *predicates: (Predicate),
+        task_name: str = None,
+        queue: str = None,
+        **task_options,
+    ):
+        """Decorator for registering Celery-based background actions."""
+
+        def _decorator(celery_action_handler: 'Callable[[CeleryContext], Any]'):
+
+            @wraps(celery_action_handler)
+            async def non_async_wrapper(context: CeleryContext):
+                return await self.event_loop.run_in_executor(None, celery_action_handler, context)
+
+            @wraps(celery_action_handler)
+            async def async_wrapper(context: CeleryContext):
+                return await celery_action_handler(context)
+
+            wrapper = async_wrapper if inspect.iscoroutinefunction(
+                celery_action_handler) else non_async_wrapper
+
+            self._get_context_lookup(CeleryContext.__name__)\
+                .append(CallbackInfo([*predicates], wrapper))
+
+            if self.__celery_manager is not None:
+                try:
+                    self.__celery_manager.register_action(
+                        celery_action_handler,
+                        task_name=task_name or celery_action_handler.__name__,
+                        queue=queue,
+                        task_options=task_options if task_options else None,
+                    )
+                except Exception as ex:
+                    print(
+                        f"Failed to register celery task '{celery_action_handler.__name__}' ({ex})")
+            else:
+                if self.options.has("router") and "celery" in self.options.router:
+                    print(
+                        f"Celery not active; '{celery_action_handler.__name__}' registered only for direct dispatch."
+                    )
+
+            return celery_action_handler
+        return _decorator
+
     def _get_context_lookup(self, key: str) -> 'list[CallbackInfo]':
         """Get key related action list object"""
 
@@ -413,6 +461,11 @@ class Dispatcher(ABC):
                 self.event_loop.run_until_complete(
                     self.event_loop.create_task(after_end()))
             self.event_loop.close()
+
+    @property
+    def celery_app(self):
+        """Access underlying celery.Celery instance (if configured)."""
+        return self.__celery_manager.app if self.__celery_manager is not None else None
 
     def new_object_log(self, schema_name: str, routing_key: Optional[str] = None, **kwargs) -> LogObject:
         return self.__logger.new_object_log(schema_name, routing_key, **kwargs)
