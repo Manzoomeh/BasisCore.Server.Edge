@@ -4,7 +4,7 @@ Test smart invoke method that auto-detects sync/async
 import asyncio
 from abc import ABC, abstractmethod
 
-from bclib.utility import ServiceProvider
+from bclib.service_provider import ServiceProvider
 
 
 class ILogger(ABC):

@@ -4,7 +4,7 @@ Test method injection functionality
 import asyncio
 from abc import ABC, abstractmethod
 
-from bclib.utility import ServiceProvider
+from bclib.service_provider import ServiceProvider
 
 
 class ILogger(ABC):

@@ -4,7 +4,7 @@ Test DI configuration without inheritance
 from abc import ABC, abstractmethod
 
 from bclib import edge
-from bclib.utility import ServiceProvider
+from bclib.service_provider import ServiceProvider
 
 
 class ILogger(ABC):
@@ -90,7 +90,7 @@ print("4. Testing with inline configuration...")
 options2 = {"server": "localhost:9998", "router": "restful"}
 app2 = edge.from_options(options2)
 
-app2.services.add_singleton(ILogger, ConsoleLogger)
+app2.add_singleton(ILogger, ConsoleLogger)
 logger2 = app2.services.get_service(ILogger)
 
 if logger2:

@@ -10,7 +10,7 @@ from typing import Optional
 
 from bclib import edge
 from bclib.context import RESTfulContext
-from bclib.utility import ServiceProvider
+from bclib.service_provider import ServiceProvider
 
 # ==================== Services ====================
 
@@ -182,9 +182,9 @@ class MethodInjectionDispatcher(edge.DevServerDispatcher):
         print("Configuring Method Injection Services")
         print("=" * 70)
 
-        self.services.add_singleton(ILogger, ConsoleLogger)
-        self.services.add_scoped(IDatabase, MockDatabase)
-        self.services.add_transient(IEmailService, MockEmailService)
+        self.add_singleton(ILogger, ConsoleLogger)
+        self.add_scoped(IDatabase, MockDatabase)
+        self.add_transient(IEmailService, MockEmailService)
 
         print("✓ Services registered")
         print("=" * 70 + "\n")

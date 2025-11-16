@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 from bclib import edge
 from bclib.context import RESTfulContext
-from bclib.utility import ServiceProvider
+from bclib.service_provider import ServiceProvider
 
 
 # Services
@@ -43,8 +43,8 @@ app = edge.from_options({
 })
 
 # Setup DI directly
-app.services.add_singleton(ILogger, ConsoleLogger)
-app.services.add_transient(ITimeService, TimeService)
+app.add_singleton(ILogger, ConsoleLogger)
+app.add_transient(ITimeService, TimeService)
 
 
 # Handlers with different signatures

@@ -48,8 +48,8 @@ options = {
 app = edge.from_options(options)
 
 # Configure DI directly
-app.services.add_singleton(ILogger, ConsoleLogger)
-app.services.add_transient(ITimeService, TimeService)
+app.add_singleton(ILogger, ConsoleLogger)
+app.add_transient(ITimeService, TimeService)
 
 
 # ==================== Handlers ====================

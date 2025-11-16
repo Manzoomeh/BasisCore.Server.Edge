@@ -7,8 +7,8 @@ from bclib.cache import CacheManager
 from bclib.db_manager import DbManager
 from bclib.listener import Message
 from bclib.logger import LogObject
+from bclib.service_provider import ServiceProvider
 from bclib.utility import DictEx
-from bclib.utility.service_provider import ServiceProvider
 
 if TYPE_CHECKING:
     from context import Context
@@ -47,10 +47,9 @@ class IDispatcher(ABC):
     def cache_manager(self) -> CacheManager:
         pass
 
-    @property
     @abstractmethod
-    def services(self) -> ServiceProvider:
-        """Get the service provider (DI container)"""
+    def create_scope(self) -> ServiceProvider:
+        """Create a new scope for scoped services (per-request)"""
         pass
 
     @abstractmethod

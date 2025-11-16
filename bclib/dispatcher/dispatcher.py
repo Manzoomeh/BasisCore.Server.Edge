@@ -5,7 +5,7 @@ import sys
 import traceback
 from abc import ABC
 from functools import wraps
-from typing import Any, Callable, Coroutine, Optional
+from typing import Any, Callable, Coroutine, Optional, Type
 
 from bclib.cache import CacheFactory
 from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
@@ -17,8 +17,8 @@ from bclib.exception import HandlerNotFoundErr
 from bclib.listener import RabbitBusListener
 from bclib.logger import ILogger, LoggerFactory, LogObject
 from bclib.predicate import Predicate
+from bclib.service_provider import InjectionPlan, ServiceProvider
 from bclib.utility import DictEx
-from bclib.utility.service_provider import ServiceProvider
 from bclib.utility.static_file_handler import StaticFileHandler
 
 from ..dispatcher.callback_info import CallbackInfo
@@ -51,10 +51,129 @@ class Dispatcher(ABC):
                 self.__rabbit_dispatcher.append(
                     RabbitBusListener(setting, self))
 
-    @property
-    def services(self) -> ServiceProvider:
-        """Get the service provider (DI container)"""
-        return self.__service_provider
+    def add_singleton(
+        self,
+        service_type: Type,
+        implementation: Optional[Type] = None,
+        factory: Optional[Callable[['ServiceProvider'], Any]] = None,
+        instance: Optional[Any] = None
+    ) -> 'Dispatcher':
+        """
+        Register a singleton service (one instance for entire application lifetime)
+
+        Args:
+            service_type: The service interface/type
+            implementation: Concrete implementation class
+            factory: Factory function that receives ServiceProvider
+            instance: Pre-created instance
+
+        Returns:
+            Self for chaining
+
+        Example:
+            ```python
+            dispatcher.add_singleton(ILogger, ConsoleLogger)
+            dispatcher.add_singleton(IConfig, instance=config)
+            dispatcher.add_singleton(IDatabase, factory=lambda sp: PostgresDB(sp.get_service(ILogger)))
+            ```
+        """
+        self.__service_provider.add_singleton(
+            service_type, implementation, factory, instance)
+        return self
+
+    def add_scoped(
+        self,
+        service_type: Type,
+        implementation: Optional[Type] = None,
+        factory: Optional[Callable[['ServiceProvider'], Any]] = None
+    ) -> 'Dispatcher':
+        """
+        Register a scoped service (one instance per request/scope)
+
+        Args:
+            service_type: The service interface/type
+            implementation: Concrete implementation class
+            factory: Factory function that receives ServiceProvider
+
+        Returns:
+            Self for chaining
+
+        Example:
+            ```python
+            dispatcher.add_scoped(IDatabase, PostgresDatabase)
+            dispatcher.add_scoped(ICache, factory=lambda sp: RedisCache(sp.get_service(ILogger)))
+            ```
+        """
+        self.__service_provider.add_scoped(
+            service_type, implementation, factory)
+        return self
+
+    def add_transient(
+        self,
+        service_type: Type,
+        implementation: Optional[Type] = None,
+        factory: Optional[Callable[['ServiceProvider'], Any]] = None
+    ) -> 'Dispatcher':
+        """
+        Register a transient service (new instance every time)
+
+        Args:
+            service_type: The service interface/type
+            implementation: Concrete implementation class
+            factory: Factory function that receives ServiceProvider
+
+        Returns:
+            Self for chaining
+
+        Example:
+            ```python
+            dispatcher.add_transient(IEmailService, SmtpEmailService)
+            dispatcher.add_transient(INotifier, factory=lambda sp: Notifier(sp.get_service(ILogger)))
+            ```
+        """
+        self.__service_provider.add_transient(
+            service_type, implementation, factory)
+        return self
+
+    def create_scope(self) -> ServiceProvider:
+        """
+        Create a new scope for scoped services (per-request)
+
+        Returns:
+            New ServiceProvider with same registrations but fresh scoped instances
+
+        Example:
+            ```python
+            # Create scope for each request
+            request_services = dispatcher.create_scope()
+
+            # Use scoped services
+            db = request_services.get_service(IDatabase)
+
+            # Clean up after request
+            request_services.clear_scope()
+            ```
+        """
+        return self.__service_provider.create_scope()
+
+    def get_service(self, service_type: Type, **kwargs) -> Any:
+        """
+        Get a service instance from the DI container
+
+        Args:
+            service_type: The service interface/type to resolve
+            **kwargs: Additional parameters to pass to the service constructor
+
+        Returns:
+            Instance of the requested service
+
+        Example:
+            ```python
+            logger = dispatcher.get_service(ILogger)
+            db = dispatcher.get_service(IDatabase, connection_string="...")
+            ```
+        """
+        return self.__service_provider.get_service(service_type, **kwargs)
 
     def socket_action(self, * predicates: (Predicate)):
         """
@@ -67,10 +186,13 @@ class Dispatcher(ABC):
         """
 
         def _decorator(socket_action_handler: Callable):
+            # ✨ Pre-compile injection plan at decoration time (once)
+            injection_plan = InjectionPlan(socket_action_handler)
 
             @wraps(socket_action_handler)
             async def wrapper(context: SocketContext):
-                await context.services.invoke_in_executor(socket_action_handler, self.event_loop)
+                kwargs = context.url_segments if context.url_segments else {}
+                await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
                 return True
 
             self._get_context_lookup(SocketContext.__name__)\
@@ -89,10 +211,15 @@ class Dispatcher(ABC):
         """
 
         def _decorator(restful_action_handler: Callable):
+            # ✨ Pre-compile injection plan at decoration time (once)
+            injection_plan = InjectionPlan(restful_action_handler)
 
             @wraps(restful_action_handler)
             async def wrapper(context: RESTfulContext):
-                action_result = await context.services.invoke_in_executor(restful_action_handler, self.event_loop, context)
+                # ✨ Execute pre-compiled plan (fast - no reflection)
+                kwargs = context.url_segments if context.url_segments else {}
+                action_result = await injection_plan.execute_async(
+                    self.__service_provider, self.event_loop, **kwargs)
                 return None if action_result is None else context.generate_response(action_result)
 
             self._get_context_lookup(RESTfulContext.__name__)\
@@ -111,10 +238,13 @@ class Dispatcher(ABC):
         """
 
         def _decorator(web_action_handler: Callable):
+            # ✨ Pre-compile injection plan at decoration time (once)
+            injection_plan = InjectionPlan(web_action_handler)
 
             @wraps(web_action_handler)
             async def wrapper(context: WebContext):
-                action_result = await context.services.invoke_in_executor(web_action_handler, self.event_loop, context)
+                kwargs = context.url_segments if context.url_segments else {}
+                action_result = await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
                 return None if action_result is None else context.generate_response(action_result)
 
             self._get_context_lookup(WebContext.__name__)\
@@ -135,9 +265,13 @@ class Dispatcher(ABC):
         def _decorator(websocket_action_handler: Callable):
             from bclib.dispatcher.websocket_session import WebSocketSession
 
+            # ✨ Pre-compile injection plan at decoration time (once)
+            injection_plan = InjectionPlan(websocket_action_handler)
+
             @wraps(websocket_action_handler)
             async def wrapper(context: WebSocketSession):
-                return await context.services.invoke_in_executor(websocket_action_handler, self.event_loop)
+                kwargs = context.url_segments if context.url_segments else {}
+                return await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
 
             self._get_context_lookup(WebSocketContext.__name__)\
                 .append(CallbackInfo([*predicates], wrapper))
@@ -155,9 +289,13 @@ class Dispatcher(ABC):
         """
 
         def _decorator(client_source_action_handler: Callable):
+            # ✨ Pre-compile injection plan at decoration time (once)
+            injection_plan = InjectionPlan(client_source_action_handler)
+
             @wraps(client_source_action_handler)
             async def wrapper(context: ClientSourceContext):
-                data = await context.services.invoke_in_executor(client_source_action_handler, self.event_loop, context)
+                kwargs = context.url_segments if context.url_segments else {}
+                data = await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -202,10 +340,13 @@ class Dispatcher(ABC):
         """
 
         def _decorator(client_source_member_handler: Callable):
+            # ✨ Pre-compile injection plan at decoration time (once)
+            injection_plan = InjectionPlan(client_source_member_handler)
 
             @wraps(client_source_member_handler)
             async def wrapper(context: ClientSourceMemberContext):
-                return await context.services.invoke_in_executor(client_source_member_handler, self.event_loop, context)
+                kwargs = context.url_segments if context.url_segments else {}
+                return await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
 
             self._get_context_lookup(ClientSourceMemberContext.__name__)\
                 .append(CallbackInfo([*predicates], wrapper))
@@ -223,9 +364,13 @@ class Dispatcher(ABC):
         """
 
         def _decorator(server_source_action_handler: Callable):
+            # ✨ Pre-compile injection plan at decoration time (once)
+            injection_plan = InjectionPlan(server_source_action_handler)
+
             @wraps(server_source_action_handler)
             async def wrapper(context: ServerSourceContext):
-                data = await context.services.invoke_in_executor(server_source_action_handler, self.event_loop, context)
+                kwargs = context.url_segments if context.url_segments else {}
+                data = await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -270,10 +415,13 @@ class Dispatcher(ABC):
         """
 
         def _decorator(server_source_member_action_handler: Callable):
+            # ✨ Pre-compile injection plan at decoration time (once)
+            injection_plan = InjectionPlan(server_source_member_action_handler)
 
             @wraps(server_source_member_action_handler)
             async def wrapper(context: ServerSourceMemberContext):
-                return await context.services.invoke_in_executor(server_source_member_action_handler, self.event_loop, context)
+                kwargs = context.url_segments if context.url_segments else {}
+                return await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
 
             self._get_context_lookup(ServerSourceMemberContext.__name__)\
                 .append(CallbackInfo([*predicates], wrapper))
@@ -291,10 +439,13 @@ class Dispatcher(ABC):
         """
 
         def _decorator(rabbit_action_handler: Callable):
+            # ✨ Pre-compile injection plan at decoration time (once)
+            injection_plan = InjectionPlan(rabbit_action_handler)
 
             @wraps(rabbit_action_handler)
             async def wrapper(context: RabbitContext):
-                return await context.services.invoke_in_executor(rabbit_action_handler, self.event_loop, context)
+                kwargs = context.url_segments if context.url_segments else {}
+                return await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
 
             self._get_context_lookup(RabbitContext.__name__)\
                 .append(CallbackInfo([*predicates], wrapper))

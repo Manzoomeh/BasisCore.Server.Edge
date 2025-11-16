@@ -7,7 +7,8 @@ from bclib.db_manager import (MongoDb, RabbitConnection, RESTfulConnection,
                               SqlDb, SQLiteDb)
 from bclib.exception import ShortCircuitErr
 from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
-from bclib.utility import DictEx, HttpStatusCodes, ServiceProvider
+from bclib.service_provider import ServiceProvider
+from bclib.utility import DictEx, HttpStatusCodes
 
 if TYPE_CHECKING:
     from .. import dispatcher
@@ -21,13 +22,12 @@ class Context(ABC):
     def __init__(self, dispatcher: 'dispatcher.IDispatcher') -> None:
         super().__init__()
         self.dispatcher = dispatcher
-        self.url_segments: DictEx = None
+        self.url_segments: dict = None
         self.url: str = None
         self.is_adhoc = True
 
         # Create scoped service provider for this request
-        self.__service_provider: Optional[ServiceProvider] = None
-        self.__service_provider = dispatcher.services.create_scope()
+        self.__service_provider: ServiceProvider = dispatcher.create_scope()
         # Register current context as singleton in the scoped service provider
         self.__service_provider.add_singleton(type(self), instance=self)
 
@@ -47,7 +47,7 @@ class Context(ABC):
         return self.dispatcher.db_manager.open_rabbit_connection(key)
 
     @property
-    def services(self) -> Optional[ServiceProvider]:
+    def services(self) -> ServiceProvider:
         """
         Get scoped service provider for this request
 
@@ -75,7 +75,7 @@ class Context(ABC):
             service_type: The type of service to resolve
 
         Returns:
-            Service instance or None if not registered or no service provider
+            Service instance or None if not registered
 
         Example:
             ```python
@@ -84,9 +84,10 @@ class Context(ABC):
                 logger.log("Hello from DI!")
             ```
         """
-        if self.__service_provider is None:
-            return None
-        return self.__service_provider.get_service(service_type)
+        # Flatten url_segments into kwargs for service resolution
+        kwargs = self.url_segments if self.url_segments else {}
+
+        return self.__service_provider.get_service(service_type, **kwargs)
 
     def generate_error_response(self, exception: Exception) -> dict:
         """Generate error response from process result"""

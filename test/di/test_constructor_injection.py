@@ -3,7 +3,14 @@ Quick test for Constructor Injection
 """
 from abc import ABC, abstractmethod
 
-from bclib.utility import ServiceProvider
+from bclib.service_provider import ServiceProvider
+
+
+# Mock minimal Context for testing
+class MockContext:
+    def __init__(self, services: ServiceProvider):
+        self.services = services
+        self.url_segments = None
 
 
 class ILogger(ABC):

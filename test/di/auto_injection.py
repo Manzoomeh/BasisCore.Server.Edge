@@ -9,7 +9,7 @@ from datetime import datetime
 
 from bclib import edge
 from bclib.context import RESTfulContext
-from bclib.utility import ServiceProvider
+from bclib.service_provider import ServiceProvider
 
 # ==================== Service Interfaces ====================
 
@@ -98,9 +98,9 @@ print("\n" + "=" * 70)
 print("Configuring Services for Automatic DI Injection")
 print("=" * 70)
 
-app.services.add_singleton(ILogger, ConsoleLogger)
-app.services.add_singleton(ITimeService, TimeService)
-app.services.add_transient(IUserService, UserService)
+app.add_singleton(ILogger, ConsoleLogger)
+app.add_singleton(ITimeService, TimeService)
+app.add_transient(IUserService, UserService)
 
 print("✓ Services configured")
 print("=" * 70 + "\n")

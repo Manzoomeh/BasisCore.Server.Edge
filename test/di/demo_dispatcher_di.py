@@ -73,15 +73,15 @@ def configure_services():
     print("Configuring Services via Dispatcher")
     print("=" * 70)
 
-    # Register services directly through dispatcher.services
-    app.services.add_singleton(ILogger, ConsoleLogger)
-    app.services.add_singleton(ITimeService, TimeService)
-    app.services.add_transient(IGreetingService, GreetingService)
+    # Register services directly through dispatcher methods
+    app.add_singleton(ILogger, ConsoleLogger)
+    app.add_singleton(ITimeService, TimeService)
+    app.add_transient(IGreetingService, GreetingService)
 
-    print("✓ Services configured using dispatcher.services")
-    print("  - services.add_singleton(ILogger, ConsoleLogger)")
-    print("  - services.add_singleton(ITimeService, TimeService)")
-    print("  - services.add_transient(IGreetingService, GreetingService)")
+    print("✓ Services configured using dispatcher methods")
+    print("  - dispatcher.add_singleton(ILogger, ConsoleLogger)")
+    print("  - dispatcher.add_singleton(ITimeService, TimeService)")
+    print("  - dispatcher.add_transient(IGreetingService, GreetingService)")
     print("=" * 70)
     print()
 
@@ -132,10 +132,10 @@ def info_handler():
     return {
         "message": "Dispatcher Service Registration Demo",
         "features": [
-            "dispatcher.services.add_singleton()",
-            "dispatcher.services.add_scoped()",
-            "dispatcher.services.add_transient()",
-            "Direct access to ServiceProvider"
+            "dispatcher.add_singleton()",
+            "dispatcher.add_scoped()",
+            "dispatcher.add_transient()",
+            "Direct service registration on dispatcher"
         ]
     }
 
@@ -150,11 +150,11 @@ if __name__ == "__main__":
     print()
     print("Server URL: http://localhost:8098")
     print()
-    print("Key Feature: Register services through dispatcher.services")
-    print("  - dispatcher.services.add_singleton()")
-    print("  - dispatcher.services.add_scoped()")
-    print("  - dispatcher.services.add_transient()")
-    print("  - Direct ServiceProvider access")
+    print("Key Feature: Register services directly on dispatcher")
+    print("  - dispatcher.add_singleton()")
+    print("  - dispatcher.add_scoped()")
+    print("  - dispatcher.add_transient()")
+    print("  - Fluent API with method chaining")
     print()
     print("Available Endpoints:")
     print("  GET /hello (logger only)")

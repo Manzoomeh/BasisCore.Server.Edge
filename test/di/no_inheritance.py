@@ -9,7 +9,7 @@ from datetime import datetime
 
 from bclib import edge
 from bclib.context import RESTfulContext
-from bclib.utility import ServiceProvider
+from bclib.service_provider import ServiceProvider
 
 # ==================== Service Interfaces ====================
 

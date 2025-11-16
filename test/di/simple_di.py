@@ -10,7 +10,7 @@ from pathlib import Path
 
 from bclib import edge
 from bclib.context import RESTfulContext
-from bclib.utility import ServiceProvider
+from bclib.service_provider import ServiceProvider
 
 # ==================== Service Interfaces ====================
 
@@ -101,7 +101,15 @@ class DIDispatcher(edge.DevServerDispatcher):
 
         # Transient services (new instance every time)
         # Note: We use factory to inject dependencies
-        self.services.add_transient(
+        def __init__(self, options: dict = None):
+        super().__init__(options)
+        # Register services
+        self.add_singleton(ILogger, ConsoleLogger)
+        self.add_singleton(ITimeService, TimeService)
+
+        # Different lifetime - Transient means new instance every time
+        # Example showing factory function
+        self.add_transient(
             IGreetingService,
             factory=lambda: GreetingService(
                 logger=self.services.get_service(ILogger),

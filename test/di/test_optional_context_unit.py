@@ -3,7 +3,7 @@ import inspect
 import unittest
 from typing import get_type_hints
 
-from bclib.utility import ServiceProvider
+from bclib.service_provider import ServiceProvider
 
 
 class ILogger:
