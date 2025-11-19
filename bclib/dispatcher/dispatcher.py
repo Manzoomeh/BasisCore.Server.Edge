@@ -25,11 +25,48 @@ from ..dispatcher.callback_info import CallbackInfo
 
 
 class Dispatcher(ABC):
-    """Base class for dispatching request"""
+    """
+    Base class for dispatching requests with integrated dependency injection
+
+    Provides a flexible routing system for different context types (RESTful, WebSocket, etc.)
+    with automatic service resolution and handler registration capabilities.
+
+    Features:
+        - Automatic dependency injection for handlers
+        - Multiple context type support (RESTful, Socket, WebSocket, RabbitMQ, etc.)
+        - Service lifetime management (singleton, scoped, transient)
+        - Dynamic handler registration/unregistration
+        - Predicate-based routing
+        - Background task support
+
+    Example:
+        ```python
+        from bclib import edge
+
+        # Create dispatcher
+        app = edge.from_options({"server": "localhost:8080", "router": "restful"})
+
+        # Register services
+        app.add_singleton(ILogger, ConsoleLogger)
+        app.add_scoped(IDatabase, PostgresDatabase)
+
+        # Register handlers with DI
+        @app.restful_action(app.url("api/users"))
+        async def get_users(logger: ILogger, db: IDatabase):
+            logger.log("Fetching users")
+            return db.get_all_users()
+
+        # Or register programmatically
+        app.register_handler(RESTfulContext, get_users, [app.url("api/users")])
+
+        # Start server
+        app.listening()
+        ```
+    """
 
     def __init__(self, options: dict = None, loop: asyncio.AbstractEventLoop = None):
         self.options = DictEx(options)
-        self.__look_up: 'dict[str, list[CallbackInfo]]' = dict()
+        self.__look_up: 'dict[Type, list[CallbackInfo]]' = dict()
         self.__service_provider = ServiceProvider()
         cache_options = self.options.cache if "cache" in self.options else None
         if loop is None and sys.platform == 'win32':
@@ -175,6 +212,101 @@ class Dispatcher(ABC):
         """
         return self.__service_provider.get_service(service_type, **kwargs)
 
+    def register_handler(
+        self,
+        context_type: Type[Context],
+        handler: Callable,
+        predicates: list[Predicate] = None
+    ) -> 'Dispatcher':
+        """
+        Register a handler for a specific context type without using decorators
+
+        Args:
+            context_type: The context type (RESTfulContext, SocketContext, etc.)
+            handler: The handler function (can be sync or async)
+            predicates: List of predicates for routing
+
+        Returns:
+            Self for chaining
+
+        Example:
+            ```python
+            def my_handler(context: RESTfulContext, logger: ILogger):
+                return {"message": "Hello"}
+
+            dispatcher.register_handler(
+                RESTfulContext,
+                my_handler,
+                [dispatcher.url("api/hello")]
+            )
+            ```
+        """
+        if predicates is None:
+            predicates = []
+
+        # Map context types to their decorator methods
+        decorator_map = {
+            SocketContext: self.socket_action,
+            RESTfulContext: self.restful_action,
+            WebContext: self.web_action,
+            WebSocketContext: self.websocket_action,
+            ClientSourceContext: self.client_source_action,
+            ClientSourceMemberContext: self.client_source_member_action,
+            ServerSourceContext: self.server_source_action,
+            ServerSourceMemberContext: self.server_source_member_action,
+            RabbitContext: self.rabbit_action,
+        }
+
+        # Get appropriate decorator
+        decorator = decorator_map.get(context_type)
+        if decorator is None:
+            raise ValueError(f"Unsupported context type: {context_type}")
+
+        # Apply decorator to handler
+        decorator(*predicates)(handler)
+
+        return self
+
+    def unregister_handler(
+        self,
+        context_type: Type[Context],
+        handler: Callable = None
+    ) -> 'Dispatcher':
+        """
+        Unregister handler(s) for a specific context type
+
+        Args:
+            context_type: The context type (RESTfulContext, SocketContext, etc.)
+            handler: Specific handler to remove. If None, removes all handlers for this context type
+
+        Returns:
+            Self for chaining
+
+        Example:
+            ```python
+            # Remove specific handler
+            dispatcher.unregister_handler(RESTfulContext, my_handler)
+
+            # Remove all handlers for context type
+            dispatcher.unregister_handler(RESTfulContext)
+            ```
+        """
+        handlers = self._get_context_lookup(context_type)
+
+        if handler is None:
+            # Remove all handlers for this context type
+            handlers.clear()
+        else:
+            # Remove specific handler by matching the original function
+            # The wrapper contains __wrapped__ attribute pointing to original
+            handlers[:] = [
+                callback_info for callback_info in handlers
+                if not (hasattr(callback_info._CallbackInfo__async_callback, '__wrapped__') and
+                        callback_info._CallbackInfo__async_callback.__wrapped__ is handler)
+            ]
+
+        return self
+
     def socket_action(self, * predicates: (Predicate)):
         """
         Decorator for Socket action with automatic DI
@@ -195,7 +327,7 @@ class Dispatcher(ABC):
                 await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
                 return True
 
-            self._get_context_lookup(SocketContext.__name__)\
+            self._get_context_lookup(SocketContext)\
                 .append(CallbackInfo([*predicates], wrapper))
             return socket_action_handler
         return _decorator
@@ -222,7 +354,7 @@ class Dispatcher(ABC):
                     self.__service_provider, self.event_loop, **kwargs)
                 return None if action_result is None else context.generate_response(action_result)
 
-            self._get_context_lookup(RESTfulContext.__name__)\
+            self._get_context_lookup(RESTfulContext)\
                 .append(CallbackInfo([*predicates], wrapper))
             return restful_action_handler
         return _decorator
@@ -247,7 +379,7 @@ class Dispatcher(ABC):
                 action_result = await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
                 return None if action_result is None else context.generate_response(action_result)
 
-            self._get_context_lookup(WebContext.__name__)\
+            self._get_context_lookup(WebContext)\
                 .append(CallbackInfo([*predicates], wrapper))
             return web_action_handler
         return _decorator
@@ -273,7 +405,7 @@ class Dispatcher(ABC):
                 kwargs = context.url_segments if context.url_segments else {}
                 return await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
 
-            self._get_context_lookup(WebSocketContext.__name__)\
+            self._get_context_lookup(WebSocketContext)\
                 .append(CallbackInfo([*predicates], wrapper))
             return websocket_action_handler
         return _decorator
@@ -323,7 +455,7 @@ class Dispatcher(ABC):
                 else:
                     return None
 
-            self._get_context_lookup(ClientSourceContext.__name__)\
+            self._get_context_lookup(ClientSourceContext)\
                 .append(CallbackInfo([*predicates], wrapper))
 
             return client_source_action_handler
@@ -348,7 +480,7 @@ class Dispatcher(ABC):
                 kwargs = context.url_segments if context.url_segments else {}
                 return await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
 
-            self._get_context_lookup(ClientSourceMemberContext.__name__)\
+            self._get_context_lookup(ClientSourceMemberContext)\
                 .append(CallbackInfo([*predicates], wrapper))
             return client_source_member_handler
         return _decorator
@@ -398,7 +530,7 @@ class Dispatcher(ABC):
                 else:
                     return None
 
-            self._get_context_lookup(ServerSourceContext.__name__)\
+            self._get_context_lookup(ServerSourceContext)\
                 .append(CallbackInfo([*predicates], wrapper))
 
             return server_source_action_handler
@@ -423,7 +555,7 @@ class Dispatcher(ABC):
                 kwargs = context.url_segments if context.url_segments else {}
                 return await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
 
-            self._get_context_lookup(ServerSourceMemberContext.__name__)\
+            self._get_context_lookup(ServerSourceMemberContext)\
                 .append(CallbackInfo([*predicates], wrapper))
             return server_source_member_action_handler
         return _decorator
@@ -447,13 +579,13 @@ class Dispatcher(ABC):
                 kwargs = context.url_segments if context.url_segments else {}
                 return await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
 
-            self._get_context_lookup(RabbitContext.__name__)\
+            self._get_context_lookup(RabbitContext)\
                 .append(CallbackInfo([*predicates], wrapper))
 
             return rabbit_action_handler
         return _decorator
 
-    def _get_context_lookup(self, key: str) -> 'list[CallbackInfo]':
+    def _get_context_lookup(self, key: Type) -> 'list[CallbackInfo]':
         """Get key related action list object"""
 
         ret_val: None
@@ -468,15 +600,15 @@ class Dispatcher(ABC):
         """Dispatch context and get result from related action method"""
 
         result: Any = None
-        name = type(context).__name__
+        context_type = type(context)
         try:
-            items = self._get_context_lookup(name)
+            items = self._get_context_lookup(context_type)
             for item in items:
                 result = await item.try_execute_async(context)
                 if result is not None:
                     break
             else:
-                ex = HandlerNotFoundErr(name)
+                ex = HandlerNotFoundErr(context_type.__name__)
                 if self.log_error:
                     print(str(ex))
                 result = context.generate_error_response(ex)
@@ -539,5 +671,5 @@ class Dispatcher(ABC):
             action_result = await handler.handle(context)
             return None if action_result is None else context.generate_response(action_result)
 
-        self._get_context_lookup(WebContext.__name__)\
+        self._get_context_lookup(WebContext)\
             .append(CallbackInfo([], async_wrapper))
