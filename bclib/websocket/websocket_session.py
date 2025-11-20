@@ -12,9 +12,9 @@ from bclib.utility import DictEx
 if TYPE_CHECKING:
     from aiohttp import web
 
-    from bclib.dispatcher.websocket_session_manager import \
-        WebSocketSessionManager
     from bclib.listener.websocket_message import WebSocketMessage
+    from bclib.websocket.websocket_session_manager import \
+        WebSocketSessionManager
 
 
 class WebSocketSession:

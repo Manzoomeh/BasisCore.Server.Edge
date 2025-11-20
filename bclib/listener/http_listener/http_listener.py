@@ -25,7 +25,7 @@ from ..web_message import WebMessage
 
 if TYPE_CHECKING:
     from aiohttp import web
-    from bclib.dispatcher.websocket_session_manager import WebSocketSessionManager
+    from bclib.websocket import WebSocketSessionManager
 
 from aiohttp.log import web_logger
 

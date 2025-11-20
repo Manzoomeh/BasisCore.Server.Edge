@@ -19,7 +19,6 @@ from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
 from bclib.db_manager import DbManager
 from bclib.dispatcher.dispatcher_helper import DispatcherHelper
 from bclib.dispatcher.idispatcher import IDispatcher
-from bclib.dispatcher.websocket_session_manager import WebSocketSessionManager
 from bclib.exception import HandlerNotFoundErr
 from bclib.listener import (HttpBaseDataType, Message, MessageType,
                             RabbitBusListener, ReceiveMessage)
@@ -30,6 +29,7 @@ from bclib.predicate import Predicate
 from bclib.service_provider import InjectionPlan, ServiceProvider
 from bclib.utility import DictEx
 from bclib.utility.static_file_handler import StaticFileHandler
+from bclib.websocket import WebSocketSessionManager
 
 from ..dispatcher.callback_info import CallbackInfo
 

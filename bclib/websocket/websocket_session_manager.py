@@ -7,8 +7,8 @@ from weakref import WeakValueDictionary
 
 from aiohttp import web
 
-from bclib.dispatcher.websocket_session import WebSocketSession
 from bclib.listener.message import Message
+from bclib.websocket.websocket_session import WebSocketSession
 
 
 class WebSocketSessionManager:

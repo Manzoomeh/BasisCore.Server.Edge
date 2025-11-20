@@ -10,13 +10,14 @@ from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
                            SourceContext, SourceMemberContext, WebContext,
                            WebSocketContext)
 from bclib.db_manager import *
-from bclib.dispatcher import Dispatcher, IDispatcher, WebSocketSession
+from bclib.dispatcher import Dispatcher, IDispatcher
 from bclib.exception import *
 from bclib.listener import (HttpBaseDataName, HttpBaseDataType, Message,
                             MessageType)
 from bclib.predicate import Predicate
 from bclib.utility import (DictEx, HttpHeaders, HttpMimeTypes, HttpStatusCodes,
                            ResponseTypes, StaticFileHandler)
+from bclib.websocket import WebSocketSession
 
 
 def from_config(option_file_path: str, file_name: str = "host.json"):
