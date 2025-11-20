@@ -10,9 +10,7 @@ from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
                            SourceContext, SourceMemberContext, WebContext,
                            WebSocketContext)
 from bclib.db_manager import *
-from bclib.dispatcher import (DevServerDispatcher, EndpointDispatcher,
-                              IDispatcher, RoutingDispatcher, SocketDispatcher,
-                              WebSocketSession)
+from bclib.dispatcher import Dispatcher, IDispatcher, WebSocketSession
 from bclib.exception import *
 from bclib.listener import (HttpBaseDataName, HttpBaseDataType, Message,
                             MessageType)
@@ -48,11 +46,12 @@ def from_list(hosts: 'dict[str,list[str]]'):
         loop.run_until_complete(asyncio.gather(*tasks))
 
 
-def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> RoutingDispatcher:
-    """Create related RoutingDispatcher obj from config object"""
-
+def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> Dispatcher:
+    """Create Dispatcher with appropriate listeners based on configuration"""
     import getopt
     import sys
+
+    from bclib.listener import Endpoint, HttpListener, SocketListener
 
     multi: bool = False
     argumentList = sys.argv[1:]
@@ -73,14 +72,57 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> Routi
 
     if not multi:
         __print_splash(False)
-    ret_val: RoutingDispatcher = None
+
+    # Create single Dispatcher instance
+    dispatcher = Dispatcher(options=options, loop=loop)
+
+    # Add appropriate listeners based on configuration
     if "server" in options:
-        ret_val = DevServerDispatcher(options=options, loop=loop)
-    elif "endpoint" in options:
-        ret_val = EndpointDispatcher(options=options, loop=loop)
-    else:
-        ret_val = SocketDispatcher(options=options, loop=loop)
-    return ret_val
+        # HTTP/HTTPS server listener
+        listener = HttpListener(
+            Endpoint(dispatcher.options.server),
+            dispatcher.on_message_receive_async,
+            dispatcher.options.ssl if dispatcher.options.has("ssl") else None,
+            dispatcher.options.configuration if dispatcher.options.has(
+                "configuration") else None,
+            dispatcher.ws_manager
+        )
+        dispatcher.add_listener(listener)
+
+    if "receiver" in options and "sender" in options:
+        # Socket listener (can coexist with HTTP server)
+        listener = SocketListener(
+            Endpoint(dispatcher.options.receiver),
+            Endpoint(dispatcher.options.sender),
+            dispatcher.on_message_receive_async
+        )
+        dispatcher.add_listener(listener)
+        # Store listener reference for send_message_async
+        dispatcher._socket_listener = listener
+
+    if "endpoint" in options:
+        # TCP endpoint listener
+        async def on_connection_open(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+            from bclib.listener import ReceiveMessage
+            try:
+                msg = await ReceiveMessage.read_from_stream_async(reader, writer)
+                result = await dispatcher.on_message_receive_async(msg)
+                await result.write_to_stream_async(writer)
+            except:
+                pass
+            try:
+                if writer.can_write_eof():
+                    writer.write_eof()
+                await writer.drain()
+                writer.close()
+            except:
+                pass
+
+        # Store endpoint connection handler
+        dispatcher._endpoint_connection_handler = on_connection_open
+        dispatcher._endpoint = Endpoint(dispatcher.options.endpoint)
+
+    return dispatcher
 
 
 def __print_splash(inMultiMode: bool):

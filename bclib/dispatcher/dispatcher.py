@@ -1,20 +1,30 @@
 """Base class for dispatching request"""
 import asyncio
+import inspect
+import json
+import re
 import signal
 import sys
 import traceback
-from abc import ABC
 from functools import wraps
+from struct import error
 from typing import Any, Callable, Coroutine, Optional, Type
 
-from bclib.cache import CacheFactory
+from bclib.cache import CacheFactory, CacheManager
 from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
-                           Context, RabbitContext, RESTfulContext,
-                           ServerSourceContext, ServerSourceMemberContext,
-                           SocketContext, WebContext, WebSocketContext)
+                           Context, RabbitContext, RequestContext,
+                           RESTfulContext, ServerSourceContext,
+                           ServerSourceMemberContext, SocketContext,
+                           WebContext, WebSocketContext)
 from bclib.db_manager import DbManager
+from bclib.dispatcher.dispatcher_helper import DispatcherHelper
+from bclib.dispatcher.idispatcher import IDispatcher
+from bclib.dispatcher.websocket_session_manager import WebSocketSessionManager
 from bclib.exception import HandlerNotFoundErr
-from bclib.listener import RabbitBusListener
+from bclib.listener import (HttpBaseDataType, Message, MessageType,
+                            RabbitBusListener, ReceiveMessage)
+from bclib.listener.web_message import WebMessage
+from bclib.listener.websocket_message import WebSocketMessage
 from bclib.logger import ILogger, LoggerFactory, LogObject
 from bclib.predicate import Predicate
 from bclib.service_provider import InjectionPlan, ServiceProvider
@@ -24,7 +34,7 @@ from bclib.utility.static_file_handler import StaticFileHandler
 from ..dispatcher.callback_info import CallbackInfo
 
 
-class Dispatcher(ABC):
+class Dispatcher(DispatcherHelper, IDispatcher):
     """
     Base class for dispatching requests with integrated dependency injection
 
@@ -65,28 +75,93 @@ class Dispatcher(ABC):
     """
 
     def __init__(self, options: dict = None, loop: asyncio.AbstractEventLoop = None):
-        self.options = DictEx(options)
+        self.__options = DictEx(options)
         self.__look_up: 'dict[Type, list[CallbackInfo]]' = dict()
         self.__service_provider = ServiceProvider()
-        cache_options = self.options.cache if "cache" in self.options else None
+        cache_options = self.__options.cache if "cache" in self.__options else None
         if loop is None and sys.platform == 'win32':
             # By default Windows can use only 64 sockets in asyncio loop. This is a limitation of underlying select() API call.
             # Use Windows version of proactor event loop using IOCP
             loop = asyncio.ProactorEventLoop()
             asyncio.set_event_loop(loop)
-        self.event_loop = asyncio.get_event_loop() if loop is None else loop
-        self.cache_manager = CacheFactory.create(cache_options)
-        self.db_manager = DbManager(self.options, self.event_loop)
-        self.__logger: ILogger = LoggerFactory.create(self.options)
-        self.log_error: bool = self.options.log_error if self.options.has(
+        self.__event_loop = asyncio.get_event_loop() if loop is None else loop
+        self.__cache_manager = CacheFactory.create(cache_options)
+        self.__db_manager = DbManager(self.__options, self.__event_loop)
+        self.__logger: ILogger = LoggerFactory.create(self.__options)
+        self.__log_error: bool = self.__options.log_error if self.__options.has(
             "log_error") else False
-        self.log_request: bool = self.options.log_request if self.options.has(
+        self.__log_request: bool = self.__options.log_request if self.__options.has(
             "log_request") else True
-        self.__rabbit_dispatcher: 'list[RabbitBusListener]' = list()
-        if "router" in self.options and "rabbit" in self.options.router:
-            for setting in self.options.router.rabbit:
-                self.__rabbit_dispatcher.append(
-                    RabbitBusListener(setting, self))
+
+        # Routing configuration
+        self.__default_router = self.__options.defaultRouter\
+            if 'defaultRouter' in self.__options and isinstance(self.__options.defaultRouter, str)\
+            else None
+        self.name = self.__options["name"] if self.__options.has(
+            "name") else None
+        self.__log_name = f"{self.name}: " if self.name else ''
+        self.__context_type_detector: Optional['Callable[[str],str]'] = None
+        self.__manual_router_config = False  # Track if router was manually configured
+
+        # Initialize WebSocket session manager
+        self.__ws_manager = WebSocketSessionManager(
+            on_message_receive_async=self.on_message_receive_async,
+            heartbeat_interval=30.0
+        )
+
+        # Initialize listeners collection
+        self.__listeners: list = []
+
+        # Add Rabbit listeners if configured
+        if "router" in self.__options and "rabbit" in self.__options.router:
+            for setting in self.__options.router.rabbit:
+                rabbit_listener = RabbitBusListener(setting, self)
+                self.__listeners.append(rabbit_listener)
+
+        # Configure router
+        if self.__options.has('router'):
+            self.__manual_router_config = True
+            router = self.__options.router
+            if isinstance(router, str):
+                self.__context_type_detector: 'Callable[[str],str]' = lambda _: router
+            elif isinstance(router, DictEx):
+                self.__init_router_lookup()
+            else:
+                raise error(
+                    "Invalid value for 'router' property in host options! Use string or dict object only.")
+        elif self.__default_router:
+            self.__context_type_detector: 'Callable[[str],str]' = lambda _: self.__default_router
+
+    # Properties for IDispatcher interface
+    @property
+    def options(self) -> DictEx:
+        """Get dispatcher options"""
+        return self.__options
+
+    @property
+    def event_loop(self) -> asyncio.AbstractEventLoop:
+        """Get event loop"""
+        return self.__event_loop
+
+    @property
+    def cache_manager(self) -> 'CacheManager':
+        """Get cache manager"""
+        return self.__cache_manager
+
+    @property
+    def db_manager(self) -> DbManager:
+        """Get database manager"""
+        return self.__db_manager
+
+    @property
+    def log_error(self) -> bool:
+        """Get log error setting"""
+        return self.__log_error
+
+    @property
+    def log_request(self) -> bool:
+        """Get log request setting"""
+        return self.__log_request
 
     def add_singleton(
         self,
@@ -265,6 +340,9 @@ class Dispatcher(ABC):
         # Apply decorator to handler
         decorator(*predicates)(handler)
 
+        # Rebuild router if auto-generated
+        self.__rebuild_router_if_needed()
+
         return self
 
     def unregister_handler(
@@ -304,6 +382,9 @@ class Dispatcher(ABC):
                 if not (hasattr(callback_info._CallbackInfo__async_callback, '__wrapped__') and
                         callback_info._CallbackInfo__async_callback.__wrapped__ is handler)
             ]
+
+        # Rebuild router if auto-generated
+        self.__rebuild_router_if_needed()
 
         return self
 
@@ -623,9 +704,252 @@ class Dispatcher(ABC):
 
         return self.event_loop.create_task(self.dispatch_async(context))
 
+    def __build_router_from_lookup(self):
+        """Auto-generate router from registered handlers in lookup"""
+        from bclib.predicate.url import Url
+
+        # Map context types to router names
+        context_to_router = {
+            RESTfulContext: "restful",
+            WebContext: "web",
+            SocketContext: "socket",
+            WebSocketContext: "websocket",
+            ClientSourceContext: "client_source",
+            ServerSourceContext: "server_source"
+        }
+
+        # Collect all URL patterns per context type
+        context_patterns = {}
+
+        for ctx_type, handlers in self.__look_up.items():
+            if ctx_type not in context_to_router or len(handlers) == 0:
+                continue
+
+            context_name = context_to_router[ctx_type]
+            context_patterns[context_name] = []
+
+            # Extract URL patterns from predicates
+            for callback_info in handlers:
+                predicates = callback_info._CallbackInfo__predicates
+                for predicate in predicates:
+                    if isinstance(predicate, Url):
+                        pattern = predicate.exprossion
+                        regex_pattern = re.sub(
+                            r':(\w+)', r'(?P<\1>[^/]+)', pattern)
+                        context_patterns[context_name].append(regex_pattern)
+
+        available_contexts = list(context_patterns.keys())
+
+        if len(available_contexts) == 0:
+            self.__context_type_detector: 'Callable[[str],str]' = lambda _: "socket"
+            self.__default_router = "socket"
+        elif len(available_contexts) == 1:
+            default = available_contexts[0]
+            self.__context_type_detector: 'Callable[[str],str]' = lambda _: default
+            self.__default_router = default
+        else:
+            route_lookup = []
+            for context_name, patterns in context_patterns.items():
+                for pattern in patterns:
+                    route_lookup.append((pattern, context_name))
+            self.__context_type_lookup = route_lookup
+            self.__context_type_detector = self.__context_type_detect_from_lookup
+            self.__default_router = available_contexts[0]
+
+    def __init_router_lookup(self):
+        """Initialize router lookup dictionary from configuration"""
+        route_dict = dict()
+        for key, values in self.__options.router.items():
+            if key != 'rabbit'.strip():
+                if '*' in values:
+                    route_dict['*'] = key
+                    break
+                else:
+                    for value in values:
+                        if len(value.strip()) != 0 and value not in route_dict:
+                            route_dict[value] = key
+        if len(route_dict) == 1 and '*' in route_dict and self.__default_router is None:
+            router = route_dict['*']
+            self.__context_type_detector: 'Callable[[str],str]' = lambda _: router
+        else:
+            self.__context_type_lookup = route_dict.items()
+            self.__context_type_detector = self.__context_type_detect_from_lookup
+
+    def __ensure_router_initialized(self):
+        """Ensure router is initialized before message processing"""
+        if self.__context_type_detector is None:
+            self.__build_router_from_lookup()
+
+    def __rebuild_router_if_needed(self):
+        """Rebuild router if auto-generated"""
+        if not self.__manual_router_config:
+            self.__build_router_from_lookup()
+
+    def __context_type_detect_from_lookup(self, url: str) -> str:
+        """Detect context type from URL using lookup patterns"""
+        context_type: str = None
+        if url:
+            try:
+                for pattern, lookup_context_type in self.__context_type_lookup:
+                    if pattern == "*" or re.search(pattern, url):
+                        context_type = lookup_context_type
+                        break
+            except TypeError:
+                pass
+            except error as ex:
+                print("Error in detect context from routing options!", ex)
+        return context_type if context_type else self.__default_router
+
+    async def on_message_receive_async(self, message: Message) -> Message:
+        """Process received message and dispatch to appropriate handler
+
+        This is the main entry point for listeners to send messages to the dispatcher.
+        """
+        try:
+            context = self.__context_factory(message)
+            response = await self.dispatch_async(context)
+            ret_val: Message = None
+            if context.is_adhoc:
+                ret_val = message.create_response_message(
+                    message.session_id,
+                    response
+                )
+            return ret_val
+        except Exception as ex:
+            print(f"Error in process received message {ex}")
+            raise ex
+
+    def __context_factory(self, message: Message) -> Context:
+        """Create appropriate context type from message"""
+        ret_val: RequestContext = None
+        context_type = None
+        cms_object: Optional[dict] = None
+        url: Optional[str] = None
+        request_id: Optional[str] = None
+        method: Optional[str] = None
+        message_json: Optional[dict] = None
+
+        if isinstance(message, WebMessage):
+            message_json = message.cms_object
+            cms_object = message_json.get(
+                HttpBaseDataType.CMS) if message_json else None
+        elif isinstance(message, WebSocketMessage):
+            context_type = "websocket"
+            cms_object = message.session.cms
+        elif message.buffer is not None:
+            message_json = json.loads(message.buffer)
+            cms_object = message_json.get(
+                HttpBaseDataType.CMS) if message_json else None
+
+        if cms_object:
+            if 'request' in cms_object:
+                req = cms_object["request"]
+            else:
+                raise KeyError("request key not found in cms object")
+            if 'full-url' in req:
+                url = req["full-url"]
+            else:
+                raise KeyError("full-url key not found in request")
+            request_id = req['request-id'] if 'request-id' in req else 'none'
+            method = req['methode'] if 'methode' in req else 'none'
+
+        if message.type == MessageType.AD_HOC:
+            if url or self.__default_router is None:
+                context_type = self.__context_type_detector(url)
+            else:
+                context_type = self.__default_router
+        elif context_type is None:
+            context_type = "socket"
+
+        if self.log_request:
+            print(f"{self.__log_name}({context_type}::{message.type.name}){f' - {request_id} {method} {url} ' if cms_object else ''}")
+
+        if context_type == "client_source":
+            ret_val = ClientSourceContext(cms_object, self, message)
+        elif context_type == "restful":
+            ret_val = RESTfulContext(cms_object, self, message)
+        elif context_type == "server_source":
+            ret_val = ServerSourceContext(message_json, self)
+        elif context_type == "web":
+            ret_val = WebContext(cms_object, self, message)
+        elif context_type == "socket":
+            ret_val = SocketContext(cms_object, self, message, message_json)
+        elif context_type == "websocket":
+            ret_val = WebSocketContext(cms_object, self, message)
+        elif context_type is None:
+            raise NameError(f"No context found for '{url}'")
+        else:
+            raise NameError(
+                f"Configured context type '{context_type}' not found for '{url}'")
+        return ret_val
+
+    @property
+    def ws_manager(self) -> WebSocketSessionManager:
+        """Get WebSocket session manager"""
+        return self.__ws_manager
+
+    def run_in_background(self, callback: 'Callable|Coroutine', *args: Any) -> asyncio.Future:
+        """Execute function or coroutine in background"""
+        if inspect.iscoroutinefunction(callback):
+            return self.event_loop.create_task(callback(*args))
+        else:
+            return self.event_loop.run_in_executor(None, callback, *args)
+
+    def add_listener(self, listener: Any):
+        """Add a listener to the dispatcher
+
+        Args:
+            listener: Listener instance (HttpListener, SocketListener, etc.)
+        """
+        self.__listeners.append(listener)
+
+    async def send_message_async(self, message: Message) -> bool:
+        """Send ad-hoc message to endpoint via SocketListener
+
+        Args:
+            message: Message to send
+
+        Returns:
+            Success status
+
+        Raises:
+            NotImplementedError: If no SocketListener is configured
+
+        Note:
+            This method requires a SocketListener to be added to the dispatcher.
+            The SocketListener reference should be stored in _socket_listener attribute.
+        """
+        if hasattr(self, '_socket_listener'):
+            # Use SocketListener's send method with lock
+            if not hasattr(self, '_send_lock'):
+                self._send_lock = asyncio.Lock()
+            async with self._send_lock:
+                return await self._socket_listener.send_message_async(message)
+        else:
+            raise NotImplementedError(
+                "Send ad-hoc message requires SocketListener. Add SocketListener to dispatcher.")
+
     def initialize_task(self):
-        for dispatcher in self.__rabbit_dispatcher:
-            dispatcher.initialize_task(self.event_loop)
+        """Initialize all listeners and tasks"""
+        # Ensure router is ready before server starts
+        self.__ensure_router_initialized()
+
+        # Initialize all added listeners (HTTP, Socket, Rabbit, etc.)
+        for listener in self.__listeners:
+            listener.initialize_task(self.event_loop)
+
+        # Initialize endpoint listener if configured
+        if hasattr(self, '_endpoint_connection_handler') and hasattr(self, '_endpoint'):
+            async def start_endpoint_server():
+                server = await asyncio.start_server(
+                    self._endpoint_connection_handler,
+                    self._endpoint.host,
+                    self._endpoint.port
+                )
+                async with server:
+                    await server.serve_forever()
+
+            self.event_loop.create_task(start_endpoint_server())
 
     def listening(self, before_start: Coroutine = None, after_end: Coroutine = None, with_block: bool = True):
         """Start listening to request for process"""
@@ -673,3 +997,31 @@ class Dispatcher(ABC):
 
         self._get_context_lookup(WebContext)\
             .append(CallbackInfo([], async_wrapper))
+
+    def cache(self, life_time: "int" = 0, key: "str" = None):
+        """Decorator to cache function results
+
+        Args:
+            life_time: Cache duration in seconds (0 = cache forever until cleared)
+            key: Optional cache key (for manual cache clearing)
+
+        Returns:
+            Decorator function
+
+        Example:
+            ```python
+            # Time-based cache (60 seconds)
+            @app.cache(life_time=60)
+            async def get_data():
+                return expensive_operation()
+
+            # Key-based cache (clear manually)
+            @app.cache(key="user_data")
+            async def get_users():
+                return db.query_users()
+
+            # Clear cache by key
+            app.cache_manager.clear("user_data")
+            ```
+        """
+        return self.cache_manager.cache_decorator(key, life_time)
