@@ -6,9 +6,8 @@ from bclib import __version__
 from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
                            Context, MergeType, RabbitContext, RequestContext,
                            RESTfulContext, ServerSourceContext,
-                           ServerSourceMemberContext, SocketContext,
-                           SourceContext, SourceMemberContext, WebContext,
-                           WebSocketContext)
+                           ServerSourceMemberContext, SourceContext,
+                           SourceMemberContext, WebContext, WebSocketContext)
 from bclib.db_manager import *
 from bclib.dispatcher import Dispatcher, IDispatcher
 from bclib.exception import *
@@ -52,7 +51,7 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> Dispa
     import getopt
     import sys
 
-    from bclib.listener import Endpoint, HttpListener, SocketListener
+    from bclib.listener import Endpoint, EndpointListener, HttpListener
 
     multi: bool = False
     argumentList = sys.argv[1:]
@@ -90,38 +89,13 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> Dispa
         )
         dispatcher.add_listener(listener)
 
-    if "receiver" in options and "sender" in options:
-        # Socket listener (can coexist with HTTP server)
-        listener = SocketListener(
-            Endpoint(dispatcher.options.receiver),
-            Endpoint(dispatcher.options.sender),
+    if "endpoint" in options:
+        # TCP endpoint listener
+        listener = EndpointListener(
+            Endpoint(dispatcher.options.endpoint),
             dispatcher.on_message_receive_async
         )
         dispatcher.add_listener(listener)
-        # Store listener reference for send_message_async
-        dispatcher._socket_listener = listener
-
-    if "endpoint" in options:
-        # TCP endpoint listener
-        async def on_connection_open(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-            from bclib.listener import ReceiveMessage
-            try:
-                msg = await ReceiveMessage.read_from_stream_async(reader, writer)
-                result = await dispatcher.on_message_receive_async(msg)
-                await result.write_to_stream_async(writer)
-            except:
-                pass
-            try:
-                if writer.can_write_eof():
-                    writer.write_eof()
-                await writer.drain()
-                writer.close()
-            except:
-                pass
-
-        # Store endpoint connection handler
-        dispatcher._endpoint_connection_handler = on_connection_open
-        dispatcher._endpoint = Endpoint(dispatcher.options.endpoint)
 
     return dispatcher
 

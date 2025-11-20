@@ -1,14 +1,17 @@
 import asyncio
-from abc import ABC, abstractmethod
-from typing import Optional
+from abc import abstractmethod
+from typing import Awaitable, Callable, Optional
 
 import pika
 
+from bclib.listener.ilistener import IListener
+from bclib.listener.message import Message
 from bclib.utility import DictEx
 
 
-class RabbitListener(ABC):
-    def __init__(self, connection_options: DictEx) -> None:
+class RabbitListener(IListener):
+    def __init__(self, connection_options: DictEx, async_callback: Callable[[Message], Awaitable[Message]]) -> None:
+        super().__init__(async_callback)
         try:
             # Validate configuration - mutual exclusivity between queue and exchange
             if connection_options.has("queue") and connection_options.has("exchange"):

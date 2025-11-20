@@ -13,6 +13,7 @@ from cryptography.hazmat.primitives.serialization import (Encoding,
                                                           PrivateFormat,
                                                           pkcs12)
 
+from bclib.listener.ilistener import IListener
 from bclib.listener.message_type import MessageType
 from bclib.utility import DictEx, ResponseTypes
 
@@ -30,7 +31,7 @@ if TYPE_CHECKING:
 from aiohttp.log import web_logger
 
 
-class HttpListener:
+class HttpListener(IListener):
     LOGGER = "logger"
     ROUTER = "router"
     MIDDLEWARES = "middlewares"
@@ -44,8 +45,8 @@ class HttpListener:
     _DEFAULT_CLIENT_MAX_SIZE = 1024 ** 2
 
     def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[Message], Awaitable[Message]]', ssl_options: 'dict', configuration: Optional[DictEx], ws_manager: 'WebSocketSessionManager'):
+        super().__init__(async_callback)
         self.__endpoint = endpoint
-        self.on_message_receive_async = async_callback
         self.ssl_options = ssl_options
         self.__config = configuration if configuration is not None else DictEx()
         self.__logger = self.__config.get(
@@ -143,7 +144,7 @@ class HttpListener:
         # Pass cms object directly without serialization overhead.
         msg = WebMessage(str(uuid.uuid4()),
                          MessageType.AD_HOC, request_cms, request)
-        result = await self.on_message_receive_async(msg)
+        result = await self._on_message_receive(msg)
 
         # Check if handler used streaming response
         if isinstance(result, WebMessage) and result.Response is not None:

@@ -11,7 +11,11 @@ if TYPE_CHECKING:
 class RabbitBusListener(RabbitListener):
 
     def __init__(self, rabbit_options: DictEx,  dispatcher: 'dispatcher.IDispatcher') -> None:
-        super().__init__(rabbit_options)
+        # RabbitBusListener handles messages directly via dispatcher, not through callback
+        # Pass a dummy callback to satisfy IListener interface
+        async def _dummy_callback(msg):
+            return None
+        super().__init__(rabbit_options, _dummy_callback)
         self.__dispatcher = dispatcher
 
     def on_rabbit_message_received(self, body):

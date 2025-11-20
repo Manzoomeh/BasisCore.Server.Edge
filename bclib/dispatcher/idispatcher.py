@@ -60,10 +60,6 @@ class IDispatcher(ABC):
     def dispatch_in_background(self, context: 'Context') -> asyncio.Future:
         """Dispatch context in background"""
 
-    @abstractmethod
-    async def send_message_async(self, message: Message) -> None:
-        """Send message to endpoint"""
-
     def run_in_background(self, callback: Callable, *args: Any) -> asyncio.Future:
         """helper for run function in background thread"""
 

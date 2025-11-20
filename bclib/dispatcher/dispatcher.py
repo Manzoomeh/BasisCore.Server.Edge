@@ -14,14 +14,14 @@ from bclib.cache import CacheFactory, CacheManager
 from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
                            Context, RabbitContext, RequestContext,
                            RESTfulContext, ServerSourceContext,
-                           ServerSourceMemberContext, SocketContext,
-                           WebContext, WebSocketContext)
+                           ServerSourceMemberContext, WebContext,
+                           WebSocketContext)
 from bclib.db_manager import DbManager
 from bclib.dispatcher.dispatcher_helper import DispatcherHelper
 from bclib.dispatcher.idispatcher import IDispatcher
 from bclib.exception import HandlerNotFoundErr
-from bclib.listener import (HttpBaseDataType, Message, MessageType,
-                            RabbitBusListener, ReceiveMessage)
+from bclib.listener import (EndpointMessage, HttpBaseDataType, IListener,
+                            Message, MessageType, RabbitBusListener)
 from bclib.listener.web_message import WebMessage
 from bclib.listener.websocket_message import WebSocketMessage
 from bclib.logger import ILogger, LoggerFactory, LogObject
@@ -110,7 +110,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         )
 
         # Initialize listeners collection
-        self.__listeners: list = []
+        self.__listeners: list[IListener] = []
 
         # Add Rabbit listeners if configured
         if "router" in self.__options and "rabbit" in self.__options.router:
@@ -321,7 +321,6 @@ class Dispatcher(DispatcherHelper, IDispatcher):
 
         # Map context types to their decorator methods
         decorator_map = {
-            SocketContext: self.socket_action,
             RESTfulContext: self.restful_action,
             WebContext: self.web_action,
             WebSocketContext: self.websocket_action,
@@ -388,31 +387,6 @@ class Dispatcher(DispatcherHelper, IDispatcher):
 
         return self
 
-    def socket_action(self, * predicates: (Predicate)):
-        """
-        Decorator for Socket action with automatic DI
-
-        Context parameter is optional - handler can choose to:
-        - Accept context: def handler(context: SocketContext)
-        - Skip context and use only services: def handler(logger: ILogger)
-        - Mix both: def handler(context: SocketContext, logger: ILogger)
-        """
-
-        def _decorator(socket_action_handler: Callable):
-            # ✨ Pre-compile injection plan at decoration time (once)
-            injection_plan = InjectionPlan(socket_action_handler)
-
-            @wraps(socket_action_handler)
-            async def wrapper(context: SocketContext):
-                kwargs = context.url_segments if context.url_segments else {}
-                await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
-                return True
-
-            self._get_context_lookup(SocketContext)\
-                .append(CallbackInfo([*predicates], wrapper))
-            return socket_action_handler
-        return _decorator
-
     def restful_action(self, * predicates: (Predicate)):
         """
         Decorator for RESTful action with automatic DI
@@ -476,7 +450,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         """
 
         def _decorator(websocket_action_handler: Callable):
-            from bclib.dispatcher.websocket_session import WebSocketSession
+            from bclib.websocket import WebSocketSession
 
             # ✨ Pre-compile injection plan at decoration time (once)
             injection_plan = InjectionPlan(websocket_action_handler)
@@ -712,7 +686,6 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         context_to_router = {
             RESTfulContext: "restful",
             WebContext: "web",
-            SocketContext: "socket",
             WebSocketContext: "websocket",
             ClientSourceContext: "client_source",
             ServerSourceContext: "server_source"
@@ -872,8 +845,6 @@ class Dispatcher(DispatcherHelper, IDispatcher):
             ret_val = ServerSourceContext(message_json, self)
         elif context_type == "web":
             ret_val = WebContext(cms_object, self, message)
-        elif context_type == "socket":
-            ret_val = SocketContext(cms_object, self, message, message_json)
         elif context_type == "websocket":
             ret_val = WebSocketContext(cms_object, self, message)
         elif context_type is None:
@@ -895,39 +866,13 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         else:
             return self.event_loop.run_in_executor(None, callback, *args)
 
-    def add_listener(self, listener: Any):
+    def add_listener(self, listener: IListener):
         """Add a listener to the dispatcher
 
         Args:
-            listener: Listener instance (HttpListener, SocketListener, etc.)
+            listener: Listener instance implementing IListener interface
         """
         self.__listeners.append(listener)
-
-    async def send_message_async(self, message: Message) -> bool:
-        """Send ad-hoc message to endpoint via SocketListener
-
-        Args:
-            message: Message to send
-
-        Returns:
-            Success status
-
-        Raises:
-            NotImplementedError: If no SocketListener is configured
-
-        Note:
-            This method requires a SocketListener to be added to the dispatcher.
-            The SocketListener reference should be stored in _socket_listener attribute.
-        """
-        if hasattr(self, '_socket_listener'):
-            # Use SocketListener's send method with lock
-            if not hasattr(self, '_send_lock'):
-                self._send_lock = asyncio.Lock()
-            async with self._send_lock:
-                return await self._socket_listener.send_message_async(message)
-        else:
-            raise NotImplementedError(
-                "Send ad-hoc message requires SocketListener. Add SocketListener to dispatcher.")
 
     def initialize_task(self):
         """Initialize all listeners and tasks"""
