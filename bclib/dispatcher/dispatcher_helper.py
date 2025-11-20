@@ -114,24 +114,24 @@ class DispatcherHelper:
     @staticmethod
     def post(url: str) -> Predicate:
         """Create HTTP POST request checking predicate with URL"""
-        return All([DispatcherHelper.url(url), DispatcherHelper.is_post()])
+        return All(DispatcherHelper.url(url), DispatcherHelper.is_post())
 
     @staticmethod
     def get(url: str) -> Predicate:
         """Create HTTP GET request checking predicate with URL"""
-        return All([DispatcherHelper.url(url), DispatcherHelper.is_get()])
+        return All(DispatcherHelper.url(url), DispatcherHelper.is_get())
 
     @staticmethod
     def put(url: str) -> Predicate:
         """Create HTTP PUT request checking predicate with URL"""
-        return All([DispatcherHelper.url(url), DispatcherHelper.is_put()])
+        return All(DispatcherHelper.url(url), DispatcherHelper.is_put())
 
     @staticmethod
     def delete(url: str) -> Predicate:
         """Create HTTP DELETE request checking predicate with URL"""
-        return All([DispatcherHelper.url(url), DispatcherHelper.is_delete()])
+        return All(DispatcherHelper.url(url), DispatcherHelper.is_delete())
 
     @staticmethod
     def options(url: str) -> Predicate:
         """Create HTTP OPTIONS request checking predicate with URL"""
-        return All([DispatcherHelper.url(url), DispatcherHelper.is_options()])
+        return All(DispatcherHelper.url(url), DispatcherHelper.is_options())

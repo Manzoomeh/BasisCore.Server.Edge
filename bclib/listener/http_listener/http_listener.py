@@ -142,8 +142,14 @@ class HttpListener:
         request_cms = await WebRequestHelper.create_cms_async(request)
         # Pass cms object directly without serialization overhead.
         msg = WebMessage(str(uuid.uuid4()),
-                         MessageType.AD_HOC, request_cms)
+                         MessageType.AD_HOC, request_cms, request)
         result = await self.on_message_receive_async(msg)
+
+        # Check if handler used streaming response
+        if isinstance(result, WebMessage) and result.Response is not None:
+            # Handler used streaming, return the StreamResponse directly
+            return result.Response
+
         if result:
             # Use cms_object if WebMessage, otherwise decode buffer
             cms: dict = result.cms_object if isinstance(

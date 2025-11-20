@@ -1,5 +1,6 @@
-from ..predicate.predicate import Predicate
 from bclib.context import Context
+
+from ..predicate.predicate import Predicate
 
 
 class All (Predicate):
