@@ -12,7 +12,7 @@ from bclib.db_manager import *
 from bclib.dispatcher import Dispatcher, IDispatcher
 from bclib.exception import *
 from bclib.listener import (HttpBaseDataName, HttpBaseDataType, Message,
-                            MessageType)
+                            MessageType, RabbitBusListener)
 from bclib.predicate import Predicate
 from bclib.utility import (DictEx, HttpHeaders, HttpMimeTypes, HttpStatusCodes,
                            ResponseTypes, StaticFileHandler)
@@ -96,6 +96,12 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> Dispa
             dispatcher.on_message_receive_async
         )
         dispatcher.add_listener(listener)
+
+    # Add Rabbit listeners if configured
+    if "router" in options and "rabbit" in options["router"]:
+        for setting in options["router"]["rabbit"]:
+            listener = RabbitBusListener(DictEx(setting), dispatcher)
+            dispatcher.add_listener(listener)
 
     return dispatcher
 

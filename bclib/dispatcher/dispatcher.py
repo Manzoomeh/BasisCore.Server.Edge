@@ -21,7 +21,7 @@ from bclib.dispatcher.dispatcher_helper import DispatcherHelper
 from bclib.dispatcher.idispatcher import IDispatcher
 from bclib.exception import HandlerNotFoundErr
 from bclib.listener import (EndpointMessage, HttpBaseDataType, IListener,
-                            Message, MessageType, RabbitBusListener)
+                            Message, MessageType)
 from bclib.listener.web_message import WebMessage
 from bclib.listener.websocket_message import WebSocketMessage
 from bclib.logger import ILogger, LoggerFactory, LogObject
@@ -111,12 +111,6 @@ class Dispatcher(DispatcherHelper, IDispatcher):
 
         # Initialize listeners collection
         self.__listeners: list[IListener] = []
-
-        # Add Rabbit listeners if configured
-        if "router" in self.__options and "rabbit" in self.__options.router:
-            for setting in self.__options.router.rabbit:
-                rabbit_listener = RabbitBusListener(setting, self)
-                self.__listeners.append(rabbit_listener)
 
         # Configure router
         if self.__options.has('router'):
