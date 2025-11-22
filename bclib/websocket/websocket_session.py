@@ -25,7 +25,7 @@ class WebSocketSession:
                  cms_object: dict,
                  request: 'web.Request',
                  session_id: str,
-                 on_message_receive_async: Callable[[Message], Awaitable[Message]],
+                 on_message_receive_async: Callable[[Message], Awaitable[None]],
                  heartbeat_interval: float = 30.0,
                  session_manager: Optional['WebSocketSessionManager'] = None):
         self.ws = ws

@@ -7,8 +7,6 @@ import traceback
 from functools import wraps
 from typing import Any, Callable, Coroutine, Optional, Type
 
-from listener.cms_base_message import CmsBaseMessage
-
 from bclib.cache import CacheFactory, CacheManager
 from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
                            Context, RabbitContext, RequestContext,
@@ -24,6 +22,8 @@ from bclib.listener import (HttpBaseDataType, IListener, Message, MessageType,
                             SocketMessage)
 from bclib.listener.http_listener.http_message import HttpMessage
 from bclib.listener.http_listener.websocket_message import WebSocketMessage
+from bclib.listener.icms_base_message import ICmsBaseMessage
+from bclib.listener.iresponse_base_message import IResponseBaseMessage
 from bclib.logger import ILogger, LoggerFactory, LogObject
 from bclib.predicate import Predicate
 from bclib.service_provider import InjectionPlan, ServiceProvider
@@ -75,10 +75,10 @@ class Dispatcher(DispatcherHelper, IDispatcher):
     """
 
     def __init__(self, options: dict = None, loop: asyncio.AbstractEventLoop = None):
-        self.__options = DictEx(options)
+        self.__options = options if options else {}
         self.__look_up: 'dict[Type, list[CallbackInfo]]' = dict()
         self.__service_provider = ServiceProvider()
-        cache_options = self.__options.cache if "cache" in self.__options else None
+        cache_options = self.__options.get('cache')
         if loop is None and sys.platform == 'win32':
             # By default Windows can use only 64 sockets in asyncio loop. This is a limitation of underlying select() API call.
             # Use Windows version of proactor event loop using IOCP
@@ -88,13 +88,10 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         self.__cache_manager = CacheFactory.create(cache_options)
         self.__db_manager = DbManager(self.__options, self.__event_loop)
         self.__logger: ILogger = LoggerFactory.create(self.__options)
-        self.__log_error: bool = self.__options.log_error if self.__options.has(
-            "log_error") else False
-        self.__log_request: bool = self.__options.log_request if self.__options.has(
-            "log_request") else True
+        self.__log_error: bool = self.__options.get('log_error', False)
+        self.__log_request: bool = self.__options.get('log_request', True)
 
-        self.name = self.__options["name"] if self.__options.has(
-            "name") else None
+        self.name = self.__options.get('name')
 
         # Initialize WebSocket session manager
         self.__ws_manager = WebSocketSessionManager(
@@ -114,7 +111,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
 
     # Properties for IDispatcher interface
     @property
-    def options(self) -> DictEx:
+    def options(self) -> dict:
         """Get dispatcher options"""
         return self.__options
 
@@ -658,25 +655,26 @@ class Dispatcher(DispatcherHelper, IDispatcher):
 
         return self.event_loop.create_task(self.dispatch_async(context))
 
-    async def on_message_receive_async(self, message: Message) -> Message:
+    async def on_message_receive_async(self, message: Message) -> None:
         """Process received message and dispatch to appropriate handler
 
         This is the main entry point for listeners to send messages to the dispatcher.
+        The method processes the message, dispatches it to the appropriate handler,
+        and sets the response on the message object if it implements IResponseBaseMessage.
+
+        Args:
+            message: The message to process
+
+        Note:
+            This method does not return anything. For messages that implement
+            IResponseBaseMessage, the response is set directly on the message object
+            via message.set_response_async().
         """
         try:
             context = self.__context_factory.create_context(message)
             response = await self.dispatch_async(context)
-            ret_val: Message = None
-            if context.is_adhoc:
-                # Set response data directly in message
-                if isinstance(message, HttpMessage):
-                    message.set_response(response)
-                    ret_val = message
-                elif isinstance(message, SocketMessage):
-                    message.set_response(response)
-                    ret_val = message
-                # WebSocketMessage and RabbitMessage don't use this path
-            return ret_val
+            if isinstance(message, IResponseBaseMessage):
+                await message.set_response_async(response)
         except Exception as ex:
             print(f"Error in process received message {ex}")
             raise ex

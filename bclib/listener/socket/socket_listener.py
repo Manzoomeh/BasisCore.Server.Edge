@@ -44,7 +44,7 @@ class SocketListener(IListener):
     def __init__(
         self,
         endpoint: Endpoint,
-        on_message_receive_async: Callable[['Message'], Awaitable['Message']]
+        on_message_receive_async: Callable[['Message'], Awaitable[None]]
     ):
         """
         Initialize SocketListener

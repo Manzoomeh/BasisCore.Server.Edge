@@ -4,14 +4,32 @@ from typing import Any, Coroutine, Optional, Union
 from aiohttp import web
 from aiohttp.web_response import ContentCoding
 
-from bclib.listener.cms_base_message import CmsBaseMessage
+from bclib.listener.icms_base_message import ICmsBaseMessage
+from bclib.listener.iresponse_base_message import IResponseBaseMessage
+from bclib.listener.message import Message
 
 
-class HttpMessage(CmsBaseMessage):
+class HttpMessage(Message, ICmsBaseMessage, IResponseBaseMessage):
     """Message specialization for HTTP (dev server) flow.
 
     Holds the parsed cms_object directly to avoid JSON serialize/deserialize
     overhead when running inside the in-process development edge server.
+
+    The response is set asynchronously via set_response_async() which updates
+    the internal response_data that will be returned to the client.
+
+    Example:
+        ```python
+        # Create HTTP message from request
+        cms_object = await parse_request(request)
+        message = HttpMessage(cms_object, request)
+
+        # Dispatcher processes and sets response
+        await dispatcher.on_message_receive_async(message)
+
+        # Response is now available in message.response_data
+        return web.json_response(message.response_data)
+        ```
     """
 
     def __init__(self, cms_object: dict, request: 'web.Request' = None):
@@ -26,10 +44,16 @@ class HttpMessage(CmsBaseMessage):
         """Get the CMS object for this message"""
         return self._cms_object
 
-    def set_response(self, response_data: Any) -> None:
-        """Set response data directly in this message"""
-        self.response_data = response_data
-        self._cms_object = response_data  # Update cms_object with response
+    async def set_response_async(self, cms_object: dict) -> None:
+        """Set response data asynchronously
+
+        Stores the response data that will be returned to the HTTP client.
+        Called by the dispatcher after processing the request.
+
+        Args:
+            cms_object: The CMS object containing response data
+        """
+        self.response_data = cms_object
 
     async def start_stream_response_async(self, status: int = 200,
                                           reason: Optional[str] = 'OK',

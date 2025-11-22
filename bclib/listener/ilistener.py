@@ -35,7 +35,7 @@ class IListener(ABC):
 
     def __init__(
         self,
-        on_message_receive_async: Callable[['Message'], Awaitable['Message']]
+        on_message_receive_async: Callable[['Message'], Awaitable[None]]
     ):
         """
         Initialize base listener

@@ -14,19 +14,20 @@ class RESTfulContext(JsonBaseRequestContext):
     def __init__(self, cms_object: dict, dispatcher: 'dispatcher.IDispatcher', message_object: 'listener.SocketMessage') -> None:
         super().__init__(cms_object, dispatcher, message_object)
         temp_data = None
-        if self.cms.form:
-            temp_data = self.cms.form
+        if self.form:
+            temp_data = self.form
         else:
-            body = self.cms.request.body
+            request = self.cms.get('request', {})
+            body = request.get('body')
             if body:
-                content_type = self.cms.request.get("content-type")
-                if content_type.find("x-www-form-urlencoded") > -1:
+                content_type = request.get('content-type')
+                if content_type and content_type.find("x-www-form-urlencoded") > -1:
                     temp_data = dict()
                     for key, value in parse_qsl(body):
                         temp_data[key.strip()] = value
-                elif content_type.find("json") > -1:
+                elif content_type and content_type.find("json") > -1:
                     try:
-                        temp_data = json.loads(self.cms.request.body)
+                        temp_data = json.loads(body)
                     except Exception as ex:
                         print('error in extract request body', ex)
-        self.body = DictEx(temp_data) if temp_data else None
+        self.body = temp_data

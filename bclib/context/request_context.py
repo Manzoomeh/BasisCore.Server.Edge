@@ -1,9 +1,9 @@
 import json
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from bclib.utility import DictEx, HttpStatusCodes, HttpMimeTypes, ResponseTypes
-from bclib.exception import ShortCircuitErr
 from bclib.context.context import Context
+from bclib.exception import ShortCircuitErr
+from bclib.utility import DictEx, HttpMimeTypes, HttpStatusCodes, ResponseTypes
 
 if TYPE_CHECKING:
     from .. import dispatcher
@@ -14,10 +14,10 @@ class RequestContext(Context):
 
     def __init__(self, cms_object: dict,  dispatcher: 'dispatcher.IDispatcher') -> None:
         super().__init__(dispatcher)
-        self.cms = DictEx(cms_object)
-        self.url: str = self.cms.request.url
-        self.query: DictEx = self.cms.query
-        self.form: DictEx = self.cms.form
+        self.cms = cms_object
+        self.url: str = self.cms.get('request', {}).get('url')
+        self.query: dict = self.cms.get('query', {})
+        self.form: dict = self.cms.get('form', {})
         self.__headers: dict = None
         self.response_type: str = ResponseTypes.RENDERED
         self.status_code: str = HttpStatusCodes.OK

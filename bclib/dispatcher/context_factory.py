@@ -8,9 +8,9 @@ from bclib.context import (ClientSourceContext, Context, RabbitContext,
                            RequestContext, RESTfulContext, ServerSourceContext,
                            WebContext, WebSocketContext)
 from bclib.listener import HttpBaseDataType, Message, MessageType
-from bclib.listener.cms_base_message import CmsBaseMessage
 from bclib.listener.http_listener.http_message import HttpMessage
 from bclib.listener.http_listener.websocket_message import WebSocketMessage
+from bclib.listener.icms_base_message import ICmsBaseMessage
 
 if TYPE_CHECKING:
     from bclib.dispatcher import IDispatcher
@@ -98,7 +98,7 @@ class ContextFactory:
         message_json: Optional[dict] = None
 
         # Extract CMS object from message
-        if isinstance(message, CmsBaseMessage):
+        if isinstance(message, ICmsBaseMessage):
             cms_object = message.cms_object["cms"]
 
         # Extract request metadata from CMS object

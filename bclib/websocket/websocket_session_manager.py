@@ -15,7 +15,7 @@ class WebSocketSessionManager:
     """Manages dictionary of WebSocket sessions with group support"""
 
     def __init__(self,
-                 on_message_receive_async: Callable[[Message], Awaitable[Message]],
+                 on_message_receive_async: Callable[[Message], Awaitable[None]],
                  heartbeat_interval: Optional[float] = 30.0):
         """
         Initialize session manager

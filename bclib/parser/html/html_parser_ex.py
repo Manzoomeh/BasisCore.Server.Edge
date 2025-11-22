@@ -1,7 +1,9 @@
 """import html parser"""
 from html.parser import HTMLParser
 from typing import Any
+
 from bclib.utility import DictEx
+
 from ..html.html_tag import HtmlTag
 
 
@@ -34,7 +36,8 @@ class HtmlParserEx(HTMLParser):
         print("Error in parse html", message)
         return super().error(message)
 
-    def get_dict_ex(self) -> DictEx:
+    def get_dict(self) -> dict:
+        """Convert parsed HTML to dictionary"""
         def _convert_tag_to_dict(tag: HtmlTag) -> dict:
             dic = dict(tag.attributes)
             for child in tag.child_list:
@@ -45,5 +48,4 @@ class HtmlParserEx(HTMLParser):
                 child_dict = _convert_tag_to_dict(child)
                 dic_list.append(child_dict)
             return dic
-        new_dic = _convert_tag_to_dict(self.element)
-        return DictEx(new_dic)
+        return _convert_tag_to_dict(self.element)

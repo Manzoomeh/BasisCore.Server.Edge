@@ -2,7 +2,8 @@
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Optional
 
-from bclib.listener.cms_base_message import CmsBaseMessage
+from bclib.listener.icms_base_message import ICmsBaseMessage
+from bclib.listener.message import Message
 from bclib.listener.message_type import MessageType
 
 if TYPE_CHECKING:
@@ -21,7 +22,7 @@ class WSMessageType(Enum):
     ERROR = "error"
 
 
-class WebSocketMessage(CmsBaseMessage):
+class WebSocketMessage(Message, ICmsBaseMessage):
     """Message class for WebSocket communications"""
 
     def __init__(self,
@@ -162,8 +163,12 @@ class WebSocketMessage(CmsBaseMessage):
         """Create ERROR message"""
         return cls(message_type, session, WSMessageType.ERROR, extra=exception)
 
-    def set_response(self, response_data: Any) -> None:
-        """Set response data - WebSocket handles responses through session, not message"""
+    async def set_response_async(self, cms_object: dict) -> None:
+        """Set response data - WebSocket handles responses through session, not message
+
+        Args:
+            cms_object: The CMS object containing response data (not used for WebSocket)
+        """
         # WebSocket responses are sent through session.send_* methods, not via message
         pass
 

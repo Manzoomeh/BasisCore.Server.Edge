@@ -142,62 +142,56 @@ class HttpListener(IListener):
         request_cms = await WebRequestHelper.create_cms_async(request)
         # Pass cms object directly without serialization overhead.
         msg = HttpMessage(request_cms, request)
-        result = await self._on_message_receive(msg)
+        await self._on_message_receive(msg)
 
         # Check if handler used streaming response
-        if isinstance(result, HttpMessage) and result.Response is not None:
+        if msg.Response is not None:
             # Handler used streaming, return the StreamResponse directly
-            return result.Response
+            return msg.Response
 
-        if result:
-            # Use cms_object if HttpMessage, otherwise decode buffer
-            cms: dict = result.cms_object if isinstance(
-                result, HttpMessage) else json.loads(result.buffer.decode("utf-8"))
-            cms_cms = cms[HttpBaseDataType.CMS]
-            cms_cms_webserver = cms_cms[HttpBaseDataType.WEB_SERVER]
-            index = cms_cms_webserver[HttpBaseDataName.INDEX]
-            header_code: str = cms_cms_webserver[HttpBaseDataName.HEADER_CODE]
-            mime = cms_cms[HttpBaseDataName.WEB_SERVER][HttpBaseDataName.MIME]
-            headers = MultiDict()
-            if HttpBaseDataName.HTTP in cms_cms:
-                http: dict = cms_cms[HttpBaseDataName.HTTP]
-                for key, value in http.items():
-                    if isinstance(value, list):
-                        for item in value:
-                            headers.add(key, item)
-                    else:
-                        headers.add(key, value)
-            headers.add("Content-Type", mime)
-            if index == ResponseTypes.STATIC_FILE:
-                try:
-                    path = pathlib.Path(
-                        cms_cms_webserver[HttpBaseDataName.FILE_PATH])
-                    path.stat()
-                    ret_val = web.FileResponse(
-                        path=path,
-                        chunk_size=256*1024,
-                        status=int(header_code.split(' ')[0]),
-                        headers=headers
-                    )
-                except FileNotFoundError:
-                    ret_val = web.Response(
-                        status=404,
-                        reason="File not found"
-                    )
-            else:
-                ret_val = web.Response(
+        # Use cms_object if HttpMessage, otherwise decode buffer
+        cms_cms = msg.response_data[HttpBaseDataType.CMS]
+        cms_cms_webserver = cms_cms[HttpBaseDataType.WEB_SERVER]
+        index = cms_cms_webserver[HttpBaseDataName.INDEX]
+        header_code: str = cms_cms_webserver[HttpBaseDataName.HEADER_CODE]
+        mime = cms_cms[HttpBaseDataName.WEB_SERVER][HttpBaseDataName.MIME]
+        headers = MultiDict()
+        if HttpBaseDataName.HTTP in cms_cms:
+            http: dict = cms_cms[HttpBaseDataName.HTTP]
+            for key, value in http.items():
+                if isinstance(value, list):
+                    for item in value:
+                        headers.add(key, item)
+                else:
+                    headers.add(key, value)
+        headers.add("Content-Type", mime)
+        if index == ResponseTypes.STATIC_FILE:
+            try:
+                path = pathlib.Path(
+                    cms_cms_webserver[HttpBaseDataName.FILE_PATH])
+                path.stat()
+                ret_val = web.FileResponse(
+                    path=path,
+                    chunk_size=256*1024,
                     status=int(header_code.split(' ')[0]),
                     headers=headers
                 )
-                if HttpBaseDataName.CONTENT in cms_cms:
-                    ret_val.text = cms_cms[HttpBaseDataName.CONTENT]
-                else:
-                    raw_blob_content = cms_cms[HttpBaseDataName.BLOB_CONTENT]
-                    ret_val.body = base64.b64decode(
-                        raw_blob_content.encode("utf-8"))
+            except FileNotFoundError:
+                ret_val = web.Response(
+                    status=404,
+                    reason="File not found"
+                )
         else:
-            # Graceful fallback when no result (or no explicit Response) is returned
-            ret_val = web.Response()
+            ret_val = web.Response(
+                status=int(header_code.split(' ')[0]),
+                headers=headers
+            )
+            if HttpBaseDataName.CONTENT in cms_cms:
+                ret_val.text = cms_cms[HttpBaseDataName.CONTENT]
+            else:
+                raw_blob_content = cms_cms[HttpBaseDataName.BLOB_CONTENT]
+                ret_val.body = base64.b64decode(
+                    raw_blob_content.encode("utf-8"))
         return ret_val
 
     async def __handle_websocket_async(self, request: 'web.Request') -> 'web.Response':

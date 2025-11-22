@@ -37,9 +37,9 @@ class SocketMessage(Message):
             if message:
                 print(f"Received: {message.type}, Session: {message.session_id}")
 
-                # Process and send response
-                response = await dispatcher.on_message_receive_async(message)
-                await response.write_to_stream_async(writer)
+                # Process message (response is set on message object)
+                await dispatcher.on_message_receive_async(message)
+                await message.write_to_stream_async(writer)
 
         # Client side - send message and read response
         reader, writer = await asyncio.open_connection('localhost', 8080)
@@ -74,11 +74,15 @@ class SocketMessage(Message):
         self.writer = writer
         self.buffer = buffer
 
-    def set_response(self, response_data: Any) -> None:
-        """Set response data directly in this message"""
+    async def set_response_async(self, cms_object: dict) -> None:
+        """Set response data directly in this message
+
+        Args:
+            cms_object: The CMS object containing response data
+        """
         import json
-        self.buffer = json.dumps(response_data).encode(
-            'utf-8') if response_data else None
+        self.buffer = json.dumps(cms_object).encode(
+            'utf-8') if cms_object else None
 
     async def read_next_message_async(self) -> Optional['SocketMessage']:
         """

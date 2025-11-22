@@ -1,6 +1,8 @@
 import os
 from datetime import datetime
+
 from web_push import WebPush
+
 from bclib import edge
 
 options = {
@@ -65,7 +67,9 @@ def basiscore_js_handler(context: edge.WebContext):
 
 @app.web_action()
 def default_handler(context: edge.WebContext):
-    return readAsset("local-index.html").replace("___PUBLIK_KEY___", context.dispatcher.options.push.vapid.public_key)
+    public_key = context.dispatcher.options.get(
+        'push', {}).get('vapid', {}).get('public_key', '')
+    return readAsset("local-index.html").replace("___PUBLIK_KEY___", public_key)
 
 
 def readAsset(asset_name: str) -> str:

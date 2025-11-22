@@ -39,7 +39,7 @@ class IDispatcher(ABC):
 
     @property
     @abstractmethod
-    def options(self) -> DictEx:
+    def options(self) -> dict:
         pass
 
     @property

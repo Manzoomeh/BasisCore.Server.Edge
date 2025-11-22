@@ -1,4 +1,42 @@
-"""Main module of bclib.wrapper for all exist module that need in basic coding"""
+"""
+BasisCore Edge - Main module for creating dispatcher instances and starting servers
+
+This module provides the main entry points for creating and configuring BasisCore.Server.Edge
+applications. It handles initialization of dispatchers, listeners (HTTP, WebSocket, TCP, RabbitMQ),
+and server startup with various configuration options.
+
+Key Features:
+    - Multiple listener types: HTTP/HTTPS, WebSocket, TCP Socket, RabbitMQ
+    - Flexible configuration via JSON files or dictionaries
+    - Multi-instance deployment support
+    - Automatic listener creation based on configuration
+    - Built-in dependency injection support
+
+Main Functions:
+    - from_options(): Create dispatcher from configuration dictionary (recommended)
+    - from_config(): Load configuration from JSON file and create dispatcher
+    - from_list(): Run multiple instances with different configurations
+
+Example:
+    ```python
+    from bclib import edge
+    
+    # Simple HTTP server
+    options = {
+        "server": "localhost:8080",
+        "router": "restful"
+    }
+    app = edge.from_options(options)
+    
+    # Register handlers
+    @app.restful_action(app.url("api/hello"))
+    def hello_handler(context: edge.RESTfulContext):
+        return {"message": "Hello World"}
+    
+    # Start server
+    app.listening()
+    ```
+"""
 
 import asyncio
 
@@ -20,7 +58,30 @@ from bclib.websocket import WebSocketSession
 
 
 def from_config(option_file_path: str, file_name: str = "host.json"):
-    """Create related RoutingDispatcher obj from config file in related path"""
+    """
+    Create Dispatcher from JSON configuration file
+
+    Loads configuration from a JSON file and creates a dispatcher instance.
+    This is a convenience method for file-based configuration.
+
+    Args:
+        option_file_path: Path to the directory containing the config file
+        file_name: Name of the JSON configuration file (default: "host.json")
+
+    Returns:
+        Dispatcher: Configured dispatcher instance
+
+    Example:
+        ```python
+        from bclib import edge
+
+        # Load from host.json in config directory
+        app = edge.from_config("./config")
+
+        # Or specify custom filename
+        app = edge.from_config("./config", "production.json")
+        ```
+    """
     import json
     from pathlib import Path
 
@@ -30,7 +91,27 @@ def from_config(option_file_path: str, file_name: str = "host.json"):
 
 
 def from_list(hosts: 'dict[str,list[str]]'):
-    """Create related RoutingDispatcher obj from path list object"""
+    """
+    Run multiple server instances with different configurations
+
+    Creates and runs multiple dispatcher instances in parallel, each with its own
+    configuration. Useful for running multiple services or environments simultaneously.
+
+    Args:
+        hosts: Dictionary mapping host names to their configuration arguments
+               Format: {"host_name": ["arg1", "arg2", ...]}
+
+    Example:
+        ```python
+        from bclib import edge
+
+        hosts = {
+            "api_server": ["python", "api_app.py"],
+            "web_server": ["python", "web_app.py"],
+        }
+        edge.from_list(hosts)
+        ```
+    """
     import concurrent.futures
     import subprocess
 
@@ -47,7 +128,68 @@ def from_list(hosts: 'dict[str,list[str]]'):
 
 
 def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> Dispatcher:
-    """Create Dispatcher with appropriate listeners based on configuration"""
+    """
+    Create Dispatcher with listeners based on configuration dictionary
+
+    This is the main entry point for creating BasisCore applications. It creates a
+    Dispatcher instance and automatically configures appropriate listeners based on
+    the provided options.
+
+    Supported Configuration Keys:
+        - server: HTTP/HTTPS server endpoint (e.g., "localhost:8080")
+        - endpoint: TCP socket endpoint (e.g., "localhost:3000")
+        - router: Routing configuration (string or dict)
+        - ssl: SSL/TLS configuration for HTTPS
+        - configuration: Additional HTTP server configuration
+        - name: Application name for logging
+        - log_error: Enable error logging (default: False)
+        - log_request: Enable request logging (default: True)
+        - cache: Cache configuration
+        - logger: Logging configuration
+
+    Args:
+        options: Configuration dictionary with server settings
+        loop: Optional asyncio event loop (creates new one if not provided)
+
+    Returns:
+        Dispatcher: Configured dispatcher ready for handler registration
+
+    Example:
+        ```python
+        from bclib import edge
+
+        # Minimal HTTP server
+        options = {
+            "server": "localhost:8080",
+            "router": "restful"
+        }
+        app = edge.from_options(options)
+
+        # Full configuration
+        options = {
+            "name": "MyAPI",
+            "server": "0.0.0.0:443",
+            "ssl": {
+                "cert": "/path/to/cert.pem",
+                "key": "/path/to/key.pem"
+            },
+            "router": {
+                "restful": ["api/*"],
+                "web": ["*"]
+            },
+            "endpoint": "localhost:3000",
+            "log_request": True,
+            "log_error": True
+        }
+        app = edge.from_options(options)
+
+        @app.restful_action(app.url("api/users"))
+        def get_users():
+            return {"users": []}
+
+        app.listening()
+        ```
+    """
     import getopt
     import sys
 
@@ -80,11 +222,10 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> Dispa
     if "server" in options:
         # HTTP/HTTPS server listener
         listener = HttpListener(
-            Endpoint(dispatcher.options.server),
+            Endpoint(dispatcher.options.get('server')),
             dispatcher.on_message_receive_async,
-            dispatcher.options.ssl if dispatcher.options.has("ssl") else None,
-            dispatcher.options.configuration if dispatcher.options.has(
-                "configuration") else None,
+            dispatcher.options.get('ssl'),
+            dispatcher.options.get('configuration'),
             dispatcher.ws_manager
         )
         dispatcher.add_listener(listener)
@@ -92,7 +233,7 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> Dispa
     if "endpoint" in options:
         # TCP endpoint listener
         listener = SocketListener(
-            Endpoint(dispatcher.options.endpoint),
+            Endpoint(dispatcher.options.get('endpoint')),
             dispatcher.on_message_receive_async
         )
         dispatcher.add_listener(listener)
