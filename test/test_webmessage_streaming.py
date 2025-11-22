@@ -1,13 +1,13 @@
-"""Test WebMessage streaming methods"""
+"""Test HttpMessage streaming methods"""
+from bclib.listener import HttpMessage
 from bclib.listener.message_type import MessageType
-from bclib.listener.web_message import WebMessage
 
 print("=" * 70)
-print("WebMessage Streaming Methods Verification")
+print("HttpMessage Streaming Methods Verification")
 print("=" * 70)
 
-# Create WebMessage
-msg = WebMessage("test-session", MessageType.AD_HOC, {"test": "data"})
+# Create HttpMessage
+msg = HttpMessage({"test": "data"})
 
 # Check methods
 methods = [

@@ -1,12 +1,12 @@
-"""Endpoint Message - handles TCP endpoint communication with custom binary protocol"""
+"""Socket Message - handles TCP socket communication with custom binary protocol"""
 import asyncio
-from typing import Optional
+from typing import Any, Optional
 
-from .message import Message
-from .message_type import MessageType
+from bclib.listener.message import Message
+from bclib.listener.message_type import MessageType
 
 
-class EndpointMessage(Message):
+class SocketMessage(Message):
     """
     Message class for TCP endpoint communication using custom binary protocol
 
@@ -33,7 +33,7 @@ class EndpointMessage(Message):
         ```python
         # Server side - read incoming message
         async def handle_client(reader, writer):
-            message = await EndpointMessage.read_from_stream_async(reader, writer)
+            message = await SocketMessage.read_from_stream_async(reader, writer)
             if message:
                 print(f"Received: {message.type}, Session: {message.session_id}")
 
@@ -43,7 +43,7 @@ class EndpointMessage(Message):
 
         # Client side - send message and read response
         reader, writer = await asyncio.open_connection('localhost', 8080)
-        message = EndpointMessage(reader, writer, session_id, MessageType.AD_HOC, payload)
+        message = SocketMessage(reader, writer, session_id, MessageType.AD_HOC, payload)
         await message.write_to_stream_async(writer)
         response = await message.read_next_message_async()
         ```
@@ -58,7 +58,7 @@ class EndpointMessage(Message):
         buffer: Optional[bytes] = None
     ) -> None:
         """
-        Initialize EndpointMessage
+        Initialize SocketMessage
 
         Args:
             reader: asyncio StreamReader for reading from stream
@@ -67,30 +67,39 @@ class EndpointMessage(Message):
             message_type: Type of message (from MessageType enum)
             buffer: Optional message payload bytes
         """
-        super().__init__(session_id, message_type, buffer)
+        # EndpointMessage needs session_id and type for binary protocol
+        self.session_id = session_id
+        self.type = message_type
         self.reader = reader
         self.writer = writer
+        self.buffer = buffer
 
-    async def read_next_message_async(self) -> Optional['EndpointMessage']:
+    def set_response(self, response_data: Any) -> None:
+        """Set response data directly in this message"""
+        import json
+        self.buffer = json.dumps(response_data).encode(
+            'utf-8') if response_data else None
+
+    async def read_next_message_async(self) -> Optional['SocketMessage']:
         """
-        Read the next message from the stream using the same reader/writer
+        Read the next message from this connection's stream
 
         Returns:
-            Next EndpointMessage from stream, or None if stream ended
+            Next SocketMessage from stream, or None if stream ended
 
         Example:
             ```python
-            message = await EndpointMessage.read_from_stream_async(reader, writer)
+            message = await SocketMessage.read_from_stream_async(reader, writer)
             next_message = await message.read_next_message_async()
             ```
         """
-        return await EndpointMessage.read_from_stream_async(self.reader, self.writer)
+        return await SocketMessage.read_from_stream_async(self.reader, self.writer)
 
     @staticmethod
     async def read_from_stream_async(
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter
-    ) -> Optional['EndpointMessage']:
+    ) -> Optional['SocketMessage']:
         """
         Read and parse a message from TCP stream using custom binary protocol
 
@@ -107,7 +116,7 @@ class EndpointMessage(Message):
             writer: asyncio StreamWriter for response (stored in message)
 
         Returns:
-            Parsed EndpointMessage or None if stream ended
+            Parsed SocketMessage or None if stream ended
 
         Raises:
             asyncio.IncompleteReadError: If stream ends before reading expected bytes
@@ -117,14 +126,14 @@ class EndpointMessage(Message):
             ```python
             async def handle_connection(reader, writer):
                 try:
-                    message = await EndpointMessage.read_from_stream_async(reader, writer)
+                    message = await SocketMessage.read_from_stream_async(reader, writer)
                     if message:
                         print(f"Type: {message.type}, Session: {message.session_id}")
                 except asyncio.IncompleteReadError:
                     print("Connection closed unexpectedly")
             ```
         """
-        message: Optional[EndpointMessage] = None
+        message: Optional[SocketMessage] = None
 
         # Read message type (1 byte)
         data = await reader.readexactly(1)
@@ -152,7 +161,45 @@ class EndpointMessage(Message):
                 data = await reader.readexactly(payload_len)
                 payload = data
 
-            message = EndpointMessage(
+            message = SocketMessage(
                 reader, writer, session_id, message_type, payload)
 
         return message
+
+    async def write_to_stream_async(self, writer: asyncio.StreamWriter) -> bool:
+        """Write this message to TCP stream using binary protocol
+
+        Args:
+            writer: asyncio StreamWriter to write to
+
+        Returns:
+            True if sent successfully, False if cancelled
+
+        Example:
+            ```python
+            response = EndpointMessage(reader, writer, session_id, MessageType.AD_HOC, data)
+            success = await response.write_to_stream_async(writer)
+            ```
+        """
+        is_send = True
+        try:
+            # Write message type (1 byte)
+            writer.write(self.type.value.to_bytes(1, 'big'))
+
+            # Write session ID length and data
+            session_id_data = self.session_id.encode('utf-8')
+            writer.write(len(session_id_data).to_bytes(4, 'big'))
+            writer.write(session_id_data)
+
+            # Write payload for specific message types
+            if self.type in (MessageType.AD_HOC, MessageType.MESSAGE, MessageType.CONNECT):
+                if self.buffer:
+                    writer.write(len(self.buffer).to_bytes(4, 'big'))
+                    writer.write(self.buffer)
+                else:
+                    writer.write((0).to_bytes(4, 'big'))  # Zero length payload
+
+            await writer.drain()
+        except asyncio.CancelledError:
+            is_send = False
+        return is_send

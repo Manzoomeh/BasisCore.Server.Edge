@@ -72,7 +72,7 @@ async def send_endpoint_message(host: str, port: int, cms_data: dict):
     """
     import uuid
 
-    from bclib.listener import EndpointMessage, MessageType
+    from bclib.listener import MessageType, SocketMessage
 
     # Connect to server
     reader, writer = await asyncio.open_connection(host, port)
@@ -82,13 +82,13 @@ async def send_endpoint_message(host: str, port: int, cms_data: dict):
         session_id = str(uuid.uuid4())
         payload = json.dumps({"cms": cms_data}).encode("utf-8")
 
-        # Create EndpointMessage and write to stream
-        message = EndpointMessage(
+        # Create SocketMessage and write to stream
+        message = SocketMessage(
             reader, writer, session_id, MessageType.AD_HOC, payload)
         await message.write_to_stream_async(writer)
 
         # Read response
-        response = await EndpointMessage.read_from_stream_async(reader, writer)
+        response = await SocketMessage.read_from_stream_async(reader, writer)
 
         if response and response.buffer:
             response_data = json.loads(response.buffer.decode("utf-8"))

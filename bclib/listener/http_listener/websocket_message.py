@@ -2,7 +2,7 @@
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Optional
 
-from bclib.listener.message import Message
+from bclib.listener.cms_base_message import CmsBaseMessage
 from bclib.listener.message_type import MessageType
 
 if TYPE_CHECKING:
@@ -21,7 +21,7 @@ class WSMessageType(Enum):
     ERROR = "error"
 
 
-class WebSocketMessage(Message):
+class WebSocketMessage(CmsBaseMessage):
     """Message class for WebSocket communications"""
 
     def __init__(self,
@@ -42,8 +42,9 @@ class WebSocketMessage(Message):
             data: Binary data (for BINARY messages)
             extra: Extra data (code for CLOSE, exception for ERROR)
         """
-        super().__init__(session.session_id, message_type, None)
-
+        # WebSocketMessage needs session_id and type for dispatcher
+        self.session_id = session.session_id
+        self.type = message_type
         self.session = session
         self.ws_type = ws_message_type
         self._text = text
@@ -161,20 +162,10 @@ class WebSocketMessage(Message):
         """Create ERROR message"""
         return cls(message_type, session, WSMessageType.ERROR, extra=exception)
 
-    def create_response_message(self, session_id: str, cms_object: dict) -> "WebSocketMessage":
-        """
-        Create a response message
-
-        Args:
-            session_id: Session identifier
-            cms_object: CMS object for response (deprecated, uses session instead)
-
-        Returns:
-            New WebSocketMessage instance
-        """
-        if not self.session:
-            raise ValueError("Cannot create response message without session")
-        return WebSocketMessage(MessageType.MESSAGE, self.session, WSMessageType.TEXT)
+    def set_response(self, response_data: Any) -> None:
+        """Set response data - WebSocket handles responses through session, not message"""
+        # WebSocket responses are sent through session.send_* methods, not via message
+        pass
 
     def __repr__(self) -> str:
         return f"WebSocketMessage(session_id={self.session_id[:8]}..., type={self.ws_type.name})"

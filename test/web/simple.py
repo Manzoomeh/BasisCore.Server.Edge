@@ -1,13 +1,14 @@
 
 import asyncio
-from concurrent.futures import thread
-from bclib import edge
 import time
+from concurrent.futures import thread
 
+from bclib import edge
 
 options = {
+    "server": "localhost:8080",
     "endpoint": "127.0.0.1:1025",
-    "router":  "web"
+    # "router":  "web"
 }
 
 app = edge.from_options(options)

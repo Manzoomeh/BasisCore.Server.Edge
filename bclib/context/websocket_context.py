@@ -5,7 +5,7 @@ from bclib.context.request_context import RequestContext
 
 if TYPE_CHECKING:
     from bclib.dispatcher import IDispatcher
-    from bclib.listener.websocket_message import WebSocketMessage
+    from bclib.listener.http_listener.websocket_message import WebSocketMessage
     from bclib.websocket import WebSocketSession, WebSocketSessionManager
 
 

@@ -1,21 +1,21 @@
-"""Endpoint Listener - handles TCP endpoint connections"""
+"""Socket Listener - handles TCP socket connections"""
 import asyncio
 from typing import TYPE_CHECKING, Awaitable, Callable
 
-from bclib.listener.endpoint import Endpoint
-from bclib.listener.endpoint_message import EndpointMessage
+from bclib.listener import Endpoint
 from bclib.listener.ilistener import IListener
+from bclib.listener.socket.socket_message import SocketMessage
 
 if TYPE_CHECKING:
     from bclib.listener import Message
 
 
-class EndpointListener(IListener):
+class SocketListener(IListener):
     """
-    TCP Endpoint Listener for handling TCP connections with custom binary protocol
+    TCP Socket Listener for handling TCP connections with custom binary protocol
 
     This listener opens a TCP server that accepts incoming connections and
-    processes messages using the EndpointMessage binary protocol.
+    processes messages using the SocketMessage binary protocol.
 
     Features:
         - TCP server on specified host:port
@@ -47,7 +47,7 @@ class EndpointListener(IListener):
         on_message_receive_async: Callable[['Message'], Awaitable['Message']]
     ):
         """
-        Initialize EndpointListener
+        Initialize SocketListener
 
         Args:
             endpoint: Endpoint configuration (host:port)
@@ -97,11 +97,11 @@ class EndpointListener(IListener):
         """
         try:
             # Read message from stream
-            message = await EndpointMessage.read_from_stream_async(reader, writer)
+            message = await SocketMessage.read_from_stream_async(reader, writer)
 
             if message:
                 # Process message through dispatcher
-                result = await self.__on_message_receive(message)
+                result = await self._on_message_receive(message)
 
                 # Send response back to client
                 if result:

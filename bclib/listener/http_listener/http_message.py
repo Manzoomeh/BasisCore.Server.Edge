@@ -4,30 +4,32 @@ from typing import Any, Coroutine, Optional, Union
 from aiohttp import web
 from aiohttp.web_response import ContentCoding
 
-from bclib.listener.message import Message
-from bclib.listener.message_type import MessageType
+from bclib.listener.cms_base_message import CmsBaseMessage
 
 
-class WebMessage(Message):
+class HttpMessage(CmsBaseMessage):
     """Message specialization for HTTP (dev server) flow.
 
     Holds the parsed cms_object directly to avoid JSON serialize/deserialize
     overhead when running inside the in-process development edge server.
     """
 
-    def __init__(self, session_id: str, message_type: MessageType, cms_object: dict, request: 'web.Request' = None):
-        # We deliberately do NOT serialize cms_object into buffer.
-        super().__init__(session_id, message_type, buffer=None)
-        self.cms_object = cms_object  # keep local
-        self.__request = request
+    def __init__(self, cms_object: dict, request: 'web.Request' = None):
+        # HttpMessage doesn't need session_id or type - uses cms_object and request
+        self._cms_object = cms_object
+        self.request = request
         self.Response = None
+        self.response_data = None  # Store response data
 
-    def create_response_message(self, session_id: str, cms_object: dict) -> "Message":
-        self.cms_object = cms_object  # update local cms_object
-        ret_val = WebMessage(session_id, MessageType.AD_HOC,
-                             cms_object, self.__request)
-        ret_val.Response = self.Response
-        return ret_val
+    @property
+    def cms_object(self) -> dict:
+        """Get the CMS object for this message"""
+        return self._cms_object
+
+    def set_response(self, response_data: Any) -> None:
+        """Set response data directly in this message"""
+        self.response_data = response_data
+        self._cms_object = response_data  # Update cms_object with response
 
     async def start_stream_response_async(self, status: int = 200,
                                           reason: Optional[str] = 'OK',

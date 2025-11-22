@@ -51,7 +51,7 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> Dispa
     import getopt
     import sys
 
-    from bclib.listener import Endpoint, EndpointListener, HttpListener
+    from bclib.listener import Endpoint, HttpListener, SocketListener
 
     multi: bool = False
     argumentList = sys.argv[1:]
@@ -91,7 +91,7 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> Dispa
 
     if "endpoint" in options:
         # TCP endpoint listener
-        listener = EndpointListener(
+        listener = SocketListener(
             Endpoint(dispatcher.options.endpoint),
             dispatcher.on_message_receive_async
         )

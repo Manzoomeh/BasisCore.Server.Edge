@@ -5,7 +5,6 @@ import os
 import pathlib
 import ssl
 import tempfile
-import uuid
 from typing import TYPE_CHECKING, Awaitable, Callable, Optional
 
 from cryptography.hazmat.primitives.serialization import (Encoding,
@@ -22,7 +21,7 @@ from ..http_listener.http_base_data_name import HttpBaseDataName
 from ..http_listener.http_base_data_type import HttpBaseDataType
 from ..http_listener.web_request_helper import WebRequestHelper
 from ..message import Message
-from ..web_message import WebMessage
+from .http_message import HttpMessage
 
 if TYPE_CHECKING:
     from aiohttp import web
@@ -142,19 +141,18 @@ class HttpListener(IListener):
         ret_val: web.Response = None
         request_cms = await WebRequestHelper.create_cms_async(request)
         # Pass cms object directly without serialization overhead.
-        msg = WebMessage(str(uuid.uuid4()),
-                         MessageType.AD_HOC, request_cms, request)
+        msg = HttpMessage(request_cms, request)
         result = await self._on_message_receive(msg)
 
         # Check if handler used streaming response
-        if isinstance(result, WebMessage) and result.Response is not None:
+        if isinstance(result, HttpMessage) and result.Response is not None:
             # Handler used streaming, return the StreamResponse directly
             return result.Response
 
         if result:
-            # Use cms_object if WebMessage, otherwise decode buffer
+            # Use cms_object if HttpMessage, otherwise decode buffer
             cms: dict = result.cms_object if isinstance(
-                result, WebMessage) else json.loads(result.buffer.decode("utf-8"))
+                result, HttpMessage) else json.loads(result.buffer.decode("utf-8"))
             cms_cms = cms[HttpBaseDataType.CMS]
             cms_cms_webserver = cms_cms[HttpBaseDataType.WEB_SERVER]
             index = cms_cms_webserver[HttpBaseDataName.INDEX]

@@ -1,11 +1,12 @@
 from struct import error
 from typing import TYPE_CHECKING
 
-from bclib.listener.rabbit_listener import RabbitListener
+from bclib.listener.rabbit.rabbit_listener import RabbitListener
+from bclib.listener.rabbit.rabbit_message import RabbitMessage
 from bclib.utility import DictEx
 
 if TYPE_CHECKING:
-    from .. import dispatcher
+    from bclib import dispatcher
 
 
 class RabbitBusListener(RabbitListener):
@@ -20,16 +21,26 @@ class RabbitBusListener(RabbitListener):
 
     def on_rabbit_message_received(self, body):
         try:
+            # Create RabbitMessage with host, queue, and message body
+            message = RabbitMessage(
+                host=self._host,
+                queue=self._queue_name,
+                body=body,
+                routing_key=self._routing_key if hasattr(
+                    self, '_routing_key') else None
+            )
+
             # Lazy import to avoid circular dependency
             from bclib.context import RabbitContext
 
-            message = {
-                "host": self._host,
-                "queue": self._queue_name,
-                "message":  body.decode("utf-8")
+            # Create legacy DictEx for backward compatibility with RabbitContext
+            legacy_message = {
+                "host": message.host,
+                "queue": message.queue,
+                "message": message.message_text
             }
             new_context = RabbitContext(
-                DictEx(message), self.__dispatcher)
+                DictEx(legacy_message), self.__dispatcher)
             self.__dispatcher.dispatch_in_background(new_context)
         except error as ex:
             print(
