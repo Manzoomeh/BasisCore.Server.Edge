@@ -134,8 +134,7 @@ class Context(ABC):
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER][HttpBaseDataName.HEADER_CODE] = status_code
         ret_val[HttpBaseDataType.CMS][HttpBaseDataName.WEB_SERVER][HttpBaseDataName.MIME] = mime
         if isinstance(content, bytes):
-            ret_val[HttpBaseDataType.CMS][HttpBaseDataName.BLOB_CONTENT] = base64.b64encode(
-                content).decode("utf-8")
+            ret_val[HttpBaseDataType.CMS][HttpBaseDataName.BLOB_CONTENT] = content
         else:
             ret_val[HttpBaseDataType.CMS][HttpBaseDataName.CONTENT] = content
         if headers is not None:

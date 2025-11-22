@@ -189,9 +189,7 @@ class HttpListener(IListener):
             if HttpBaseDataName.CONTENT in cms_cms:
                 ret_val.text = cms_cms[HttpBaseDataName.CONTENT]
             else:
-                raw_blob_content = cms_cms[HttpBaseDataName.BLOB_CONTENT]
-                ret_val.body = base64.b64decode(
-                    raw_blob_content.encode("utf-8"))
+                ret_val.body = cms_cms[HttpBaseDataName.BLOB_CONTENT]
         return ret_val
 
     async def __handle_websocket_async(self, request: 'web.Request') -> 'web.Response':

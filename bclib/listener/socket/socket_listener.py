@@ -88,24 +88,24 @@ class SocketListener(IListener):
         """
         Handle incoming TCP connection
 
-        Reads message from stream, processes it through dispatcher,
-        and sends response back.
+        Reads message from stream, processes it through dispatcher which sets
+        the response on the message object, then writes the response back to stream.
 
         Args:
             reader: asyncio StreamReader for reading incoming data
             writer: asyncio StreamWriter for sending response
+
+        Note:
+            The dispatcher calls message.set_response_async() which automatically
+            writes the response to the TCP stream. No explicit response writing needed.
         """
         try:
             # Read message from stream
             message = await SocketMessage.read_from_stream_async(reader, writer)
 
             if message:
-                # Process message through dispatcher
-                result = await self._on_message_receive(message)
-
-                # Send response back to client
-                if result:
-                    await result.write_to_stream_async(writer)
+                # Process message through dispatcher - response is written automatically
+                await self._on_message_receive(message)
         except Exception as ex:
             print(f"Error handling endpoint connection: {ex}")
         finally:

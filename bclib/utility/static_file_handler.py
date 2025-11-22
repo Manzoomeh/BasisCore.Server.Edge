@@ -195,7 +195,7 @@ class StaticFileHandler:
 
         # Set response to serve the file
         context.response_type = ResponseTypes.RENDERED
-        context.add_header('Content-Type', mime_type)
+        context.mime = mime_type
         return file_path.read_bytes()
 
     def __repr__(self) -> str:

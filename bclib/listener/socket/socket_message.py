@@ -40,11 +40,9 @@ class SocketMessage(Message, ICmsBaseMessage, IResponseBaseMessage):
             if message:
                 print(f"Received: {message.type}, Session: {message.session_id}")
 
-                # Dispatcher processes message and sets response asynchronously
+                # Dispatcher processes message and writes response automatically
                 await dispatcher.on_message_receive_async(message)
-
-                # Response has been set in message.buffer, write it back
-                await message.write_to_stream_async(writer)
+                # No need to write response - set_response_async() does it
 
         # Client side - send message and read response
         reader, writer = await asyncio.open_connection('localhost', 8080)
