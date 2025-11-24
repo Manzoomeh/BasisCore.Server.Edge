@@ -5,9 +5,9 @@ from bclib import edge
 
 options = {
     "server": "localhost:8080",
-    "router": {
-        "web": ["*"]
-    },
+    # "router": {
+    #     "web": ["*"]
+    # },
     "log_request": True,
     "log_error": True
 }

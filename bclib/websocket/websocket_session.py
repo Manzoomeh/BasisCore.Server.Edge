@@ -7,7 +7,6 @@ from aiohttp import WSMsgType
 
 from bclib.listener.message import Message
 from bclib.listener.message_type import MessageType
-from bclib.utility import DictEx
 
 if TYPE_CHECKING:
     from aiohttp import web
@@ -31,8 +30,8 @@ class WebSocketSession:
         self.ws = ws
         self.session_id = session_id
         self.request = request
-        self.cms = DictEx(cms_object) if cms_object else DictEx()
-        self.url = self.cms.request.url if self.cms and 'request' in self.cms else None
+        self.cms_object = cms_object
+        self.url = self.cms_object.get('request', {}).get('url')
         self._on_message_receive = on_message_receive_async
         self._heartbeat_interval = heartbeat_interval
         self.session_manager = session_manager

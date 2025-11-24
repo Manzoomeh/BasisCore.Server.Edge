@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING, Optional, Tuple, Type, TypeVar
 from bclib.db_manager import (MongoDb, RabbitConnection, RESTfulConnection,
                               SqlDb, SQLiteDb)
 from bclib.exception import ShortCircuitErr
-from bclib.listener.http_listener import HttpBaseDataName, HttpBaseDataType
 from bclib.service_provider import ServiceProvider
-from bclib.utility import DictEx, HttpStatusCodes
+from bclib.utility import (DictEx, HttpBaseDataName, HttpBaseDataType,
+                           HttpStatusCodes)
 
 if TYPE_CHECKING:
     from .. import dispatcher

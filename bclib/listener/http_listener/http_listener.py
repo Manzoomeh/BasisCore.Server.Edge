@@ -13,12 +13,11 @@ from cryptography.hazmat.primitives.serialization import (Encoding,
                                                           pkcs12)
 
 from bclib.listener.ilistener import IListener
-from bclib.listener.message_type import MessageType
 from bclib.utility import DictEx, ResponseTypes
+from bclib.utility.http_base_data_name import HttpBaseDataName
+from bclib.utility.http_base_data_type import HttpBaseDataType
 
 from ..endpoint import Endpoint
-from ..http_listener.http_base_data_name import HttpBaseDataName
-from ..http_listener.http_base_data_type import HttpBaseDataType
 from ..http_listener.web_request_helper import WebRequestHelper
 from ..message import Message
 from .http_message import HttpMessage
@@ -202,7 +201,7 @@ class HttpListener(IListener):
         cms_object = await WebRequestHelper.create_cms_async(request)
 
         # Manager creates WebSocket, prepares it, and handles everything
-        return await self.__ws_manager.handle_connection(request, cms_object["cms"])
+        return await self.__ws_manager.handle_connection(request, cms_object)
 
     @staticmethod
     def convert_pfx_to_temp_files(pfxfile: str, password: str):

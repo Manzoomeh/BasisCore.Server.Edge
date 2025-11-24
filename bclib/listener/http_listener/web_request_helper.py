@@ -4,8 +4,8 @@ import datetime
 from typing import TYPE_CHECKING
 from urllib.parse import parse_qs
 
-from bclib.listener.http_listener.http_base_data_name import HttpBaseDataName
-from bclib.listener.http_listener.http_base_data_type import HttpBaseDataType
+from bclib.utility.http_base_data_name import HttpBaseDataName
+from bclib.utility.http_base_data_type import HttpBaseDataType
 
 if TYPE_CHECKING:
     from aiohttp import web

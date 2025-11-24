@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Callable, Optional, Type
 from bclib.context import (ClientSourceContext, Context, RabbitContext,
                            RequestContext, RESTfulContext, ServerSourceContext,
                            WebContext, WebSocketContext)
+from bclib.dispatcher.callback_info import CallbackInfo
 from bclib.listener import HttpBaseDataType, Message, MessageType
 from bclib.listener.http_listener.http_message import HttpMessage
 from bclib.listener.http_listener.websocket_message import WebSocketMessage
@@ -35,7 +36,7 @@ class ContextFactory:
         self,
         dispatcher: 'IDispatcher',
         options: dict,
-        lookup: dict
+        lookup: dict[Type, list[CallbackInfo]]
     ):
         """
         Initialize ContextFactory
@@ -67,10 +68,12 @@ class ContextFactory:
                 self.__context_type_detector: Callable[[
                     str], str] = lambda _: router
             elif isinstance(router, dict):
-                self.__init_router_lookup()
+                self.__init_router_lookup(router)
             else:
                 raise error(
                     "Invalid value for 'router' property in host options! Use string or dict object only.")
+        else:
+            self.__build_router_from_lookup()
 
     def create_context(self, message: Message) -> Context:
         """
@@ -205,26 +208,24 @@ class ContextFactory:
             self.__context_type_lookup = route_lookup
             self.__context_type_detector = self.__context_type_detect_from_lookup
 
-    def __init_router_lookup(self):
+    def __init_router_lookup(self, router_config: dict):
         """Initialize router lookup dictionary from configuration"""
         route_dict = {}
-        router_config = self.__options.get('router', {})
         for key, values in router_config.items():
-            if key != 'rabbit'.strip():
-                if '*' in values:
-                    route_dict['*'] = key
-                    break
-                else:
-                    for value in values:
-                        if len(value.strip()) != 0 and value not in route_dict:
-                            route_dict[value] = key
-        if len(route_dict) == 1 and '*' in route_dict:
-            router = route_dict['*']
-            self.__context_type_detector: Callable[[
-                str], str] = lambda _: router
-        else:
-            self.__context_type_lookup = route_dict.items()
-            self.__context_type_detector = self.__context_type_detect_from_lookup
+            if '*' in values:
+                route_dict['*'] = key
+                break
+            else:
+                for value in values:
+                    if len(value.strip()) != 0 and value not in route_dict:
+                        route_dict[value] = key
+            if len(route_dict) == 1 and '*' in route_dict:
+                router = route_dict['*']
+                self.__context_type_detector: Callable[[
+                    str], str] = lambda _: router
+            else:
+                self.__context_type_lookup = route_dict.items()
+                self.__context_type_detector = self.__context_type_detect_from_lookup
 
     def __context_type_detect_from_lookup(self, url: str) -> str:
         """Detect context type from URL using lookup patterns"""

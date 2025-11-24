@@ -45,7 +45,7 @@ class WebSocketMessage(Message, ICmsBaseMessage):
         """
         # WebSocketMessage needs session_id and type for dispatcher
         self.session_id = session.session_id
-        self.type = message_type
+        self._type = message_type
         self.session = session
         self.ws_type = ws_message_type
         self._text = text
@@ -53,9 +53,14 @@ class WebSocketMessage(Message, ICmsBaseMessage):
         self._extra = extra
 
     @property
+    def type(self) -> MessageType:
+        """Get message type"""
+        return self._type
+
+    @property
     def cms_object(self) -> dict:
         """Get CMS object from session"""
-        return self.session.cms_object if self.session else {}
+        return self.session.cms_object
 
     # ==================== Type Check Properties ====================
 
