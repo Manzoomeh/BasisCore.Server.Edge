@@ -317,7 +317,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         decorator(*predicates)(handler)
 
         # Rebuild router if auto-generated
-        self.__context_factory.rebuild_router_if_needed()
+        self.__context_factory.rebuild_router()
 
         return self
 
@@ -351,16 +351,14 @@ class Dispatcher(DispatcherHelper, IDispatcher):
             # Remove all handlers for this context type
             handlers.clear()
         else:
-            # Remove specific handler by matching the original function
-            # The wrapper contains __wrapped__ attribute pointing to original
+            # Remove specific handler using CallbackInfo's matches_handler method
             handlers[:] = [
                 callback_info for callback_info in handlers
-                if not (hasattr(callback_info._CallbackInfo__async_callback, '__wrapped__') and
-                        callback_info._CallbackInfo__async_callback.__wrapped__ is handler)
+                if not callback_info.matches_handler(handler)
             ]
 
         # Rebuild router if auto-generated
-        self.__context_factory.rebuild_router_if_needed()
+        self.__context_factory.rebuild_router()
 
         return self
 
@@ -702,7 +700,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
     def initialize_task(self):
         """Initialize all listeners and tasks"""
         # Ensure router is ready before server starts
-        self.__context_factory.ensure_router_initialized()
+        self.__context_factory.rebuild_router()
 
         # Initialize all added listeners (HTTP, Socket, Rabbit, etc.)
         for listener in self.__listeners:

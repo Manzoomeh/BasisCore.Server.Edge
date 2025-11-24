@@ -7,11 +7,13 @@ from aiohttp.web_response import ContentCoding
 from ..context.request_context import RequestContext
 
 if TYPE_CHECKING:
+    from bclib.listener.http_listener import HttpMessage
+
     from .. import dispatcher, listener
 
 
 class WebContext(RequestContext):
-    def __init__(self, cms_object: dict,  dispatcher: 'dispatcher.IDispatcher', message_object: 'listener.SocketMessage') -> None:
+    def __init__(self, cms_object: dict,  dispatcher: 'dispatcher.IDispatcher', message_object: 'HttpMessage') -> None:
         super().__init__(cms_object, dispatcher)
         self.process_async = True
         self.__message = message_object
