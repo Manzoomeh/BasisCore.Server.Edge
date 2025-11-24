@@ -3,3 +3,4 @@ requests
 pyodbc
 aiohttp
 legacy-cgi
+cryptography
