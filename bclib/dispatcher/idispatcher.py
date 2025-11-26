@@ -1,13 +1,10 @@
 """Dispatcher base class module"""
 import asyncio
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Optional
+from typing import TYPE_CHECKING, Any, Callable
 
 from bclib.cache import CacheManager
-from bclib.listener import Message
-from bclib.logger import LogObject
-from bclib.service_provider import ServiceProvider
-from bclib.utility import DictEx
+from bclib.service_provider.iservice_provider import IServiceProvider
 
 if TYPE_CHECKING:
     from context import Context
@@ -15,21 +12,6 @@ if TYPE_CHECKING:
 
 class IDispatcher(ABC):
     """Dispatcher base class with core functionality for manage cache and background process"""
-
-    @property
-    @abstractmethod
-    def log_error(self) -> bool:
-        pass
-
-    @property
-    @abstractmethod
-    def log_request(self) -> bool:
-        pass
-
-    @property
-    @abstractmethod
-    def event_loop(self) -> asyncio.AbstractEventLoop:
-        pass
 
     @property
     @abstractmethod
@@ -42,7 +24,7 @@ class IDispatcher(ABC):
         pass
 
     @abstractmethod
-    def create_scope(self) -> ServiceProvider:
+    def create_scope(self) -> IServiceProvider:
         """Create a new scope for scoped services (per-request)"""
         pass
 
@@ -56,12 +38,3 @@ class IDispatcher(ABC):
 
     def run_in_background(self, callback: Callable, *args: Any) -> asyncio.Future:
         """helper for run function in background thread"""
-
-    def new_object_log(self, schema_name: str, routing_key: Optional[str] = None, **kwargs) -> LogObject:
-        """Create new log object"""
-
-    async def log_async(self, log_object: LogObject = None, **kwargs):
-        """log params"""
-
-    def log_in_background(self, log_object: LogObject = None, **kwargs) -> Coroutine:
-        """log params in background precess"""

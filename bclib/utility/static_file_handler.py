@@ -3,11 +3,11 @@ import mimetypes
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Set
 
-from bclib.exception import ForbiddenErr
 from bclib.utility.response_types import ResponseTypes
 
 if TYPE_CHECKING:
     from bclib.context import RequestContext
+    from bclib.exception import ForbiddenErr
 
 
 class StaticFileHandler:
@@ -167,6 +167,7 @@ class StaticFileHandler:
 
         # Security check: prevent path traversal
         if not self._is_safe_path(file_path):
+            from bclib.exception import ForbiddenErr
             raise ForbiddenErr("Access denied: invalid path")
 
         # Handle directory requests

@@ -15,13 +15,14 @@ import inspect
 from typing import Any, Callable, Dict, Optional, Type, TypeVar, get_type_hints
 
 from .injection_plan import InjectionPlan
+from .iservice_provider import IServiceProvider
 from .service_descriptor import ServiceDescriptor
 from .service_lifetime import ServiceLifetime
 
 T = TypeVar('T')
 
 
-class ServiceProvider:
+class ServiceProvider(IServiceProvider):
     """
     Dependency Injection Container
 
@@ -52,16 +53,15 @@ class ServiceProvider:
     def __init__(self) -> None:
         """Initialize service provider with empty registrations"""
         self._descriptors: Dict[Type, ServiceDescriptor] = {}
-        self._singletons: Dict[Type, Any] = {}
         self._scoped_instances: Dict[Type, Any] = {}
 
     def add_singleton(
         self,
         service_type: Type[T],
         implementation: Optional[Type[T]] = None,
-        factory: Optional[Callable[['ServiceProvider'], T]] = None,
+        factory: Optional[Callable[['IServiceProvider'], T]] = None,
         instance: Optional[T] = None
-    ) -> 'ServiceProvider':
+    ) -> 'IServiceProvider':
         """
         Register a singleton service (one instance for entire application)
 
@@ -96,19 +96,14 @@ class ServiceProvider:
             lifetime=ServiceLifetime.SINGLETON
         )
         self._descriptors[service_type] = descriptor
-
-        # If instance provided, cache it immediately
-        if instance is not None:
-            self._singletons[service_type] = instance
-
         return self
 
     def add_scoped(
         self,
         service_type: Type[T],
         implementation: Optional[Type[T]] = None,
-        factory: Optional[Callable[['ServiceProvider'], T]] = None
-    ) -> 'ServiceProvider':
+        factory: Optional[Callable[['IServiceProvider'], T]] = None
+    ) -> 'IServiceProvider':
         """
         Register a scoped service (one instance per request/scope)
 
@@ -143,8 +138,8 @@ class ServiceProvider:
         self,
         service_type: Type[T],
         implementation: Optional[Type[T]] = None,
-        factory: Optional[Callable[['ServiceProvider'], T]] = None
-    ) -> 'ServiceProvider':
+        factory: Optional[Callable[['IServiceProvider'], T]] = None
+    ) -> 'IServiceProvider':
         """
         Register a transient service (new instance every time)
 
@@ -200,11 +195,11 @@ class ServiceProvider:
 
         # Singleton: return cached or create once
         if descriptor.lifetime == ServiceLifetime.SINGLETON:
-            if service_type in self._singletons:
-                return self._singletons[service_type]
+            if descriptor.instance is not None:
+                return descriptor.instance
             instance = self._create_instance(descriptor, **kwargs)
             if instance is not None:
-                self._singletons[service_type] = instance
+                descriptor.instance = instance
             return instance
 
         # Scoped: return scoped or create for this scope
@@ -282,10 +277,7 @@ class ServiceProvider:
             return plan.create_instance(self, **kwargs)
         except Exception:
             # Fallback to parameterless constructor
-            try:
-                return implementation_type()
-            except Exception:
-                return None
+            return implementation_type()
 
     def inject_dependencies(self, handler: Callable, *args: Any, **kwargs: Any) -> Dict[str, Any]:
         """
@@ -329,12 +321,12 @@ class ServiceProvider:
             # If DI fails, continue without injection
             return {}
 
-    def create_scope(self) -> 'ServiceProvider':
+    def create_scope(self) -> 'IServiceProvider':
         """
         Create a new scope for scoped services (per-request)
 
         Returns:
-            New ServiceProvider with same registrations but fresh scoped instances
+            New IServiceProvider with same registrations but fresh scoped instances
 
         Example:
             ```python
@@ -350,7 +342,6 @@ class ServiceProvider:
         """
         scoped_provider = ServiceProvider()
         scoped_provider._descriptors = self._descriptors
-        scoped_provider._singletons = self._singletons
         # New scoped_instances for this scope
         return scoped_provider
 
@@ -560,9 +551,11 @@ class ServiceProvider:
 
     def __repr__(self) -> str:
         """String representation of service provider"""
+        singleton_count = sum(1 for d in self._descriptors.values()
+                              if d.lifetime == ServiceLifetime.SINGLETON and d.instance is not None)
         return (
             f"ServiceProvider("
             f"registered={len(self._descriptors)}, "
-            f"singletons={len(self._singletons)}, "
+            f"singletons={singleton_count}, "
             f"scoped={len(self._scoped_instances)})"
         )

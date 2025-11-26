@@ -1,7 +1,52 @@
-from typing import Any, List, Dict, Tuple
+from typing import Any, Dict, List, Tuple
+
 
 class LogSchema:
+    """
+    Log Schema Definition
+
+    Represents a logging schema with metadata and property definitions.
+    Converts log object properties into structured schema format for
+    submission to logging backends.
+
+    The schema defines:
+        - Schema metadata (name, version, IDs)
+        - Property definitions with types and constraints
+        - Support for multi-part and multi-value properties
+        - Dynamic value calculation via source expressions
+
+    Attributes:
+        schema_name (str): Schema name
+        schema_version: Schema version
+        lid: Log ID
+        schemaId: Schema identifier
+        paramUrl: Parameter URL
+        properties (Dict[str, Tuple]): Property definitions mapping
+            - Key: Property title
+            - Value: (prpId, multi, parts_count, TypeID, source)
+
+    Example:
+        ```python
+        # Schema loaded from API
+        schema = LogSchema(schema_data)
+        # Convert log properties to schema format
+        formatted = schema.get_answer(log_object.properties)
+        ```
+    """
+
     def __init__(self, schema: Dict[str, Any]) -> None:
+        """
+        Initialize log schema from schema definition
+
+        Args:
+            schema: Schema definition dictionary containing:
+                - schemaName: Name of the schema
+                - schemaVersion: Version number
+                - lid: Log ID
+                - schemaId: Schema identifier
+                - paramUrl: Parameter URL
+                - questions: List of property definitions
+        """
         self.schema_name = schema["schemaName"]
         self.schema_version = schema["schemaVersion"]
         self.lid = schema["lid"]
@@ -11,18 +56,43 @@ class LogSchema:
             [
                 (
                     q["title"], (
-                        q["prpId"], 
+                        q["prpId"],
                         bool(q.get("multi", False)),
                         len(q["parts"]),
-                        q["TypeID"] if "TypeID" in q else 0, 
+                        q["TypeID"] if "TypeID" in q else 0,
                         q["source"] if "source" in q else None
                     )
-                ) 
+                )
                 for q in schema["questions"]
             ]
         )
 
     def get_answer(self, params: Dict[str, List[List]]):
+        """
+        Convert log properties to schema-formatted answer
+
+        Processes raw log properties according to schema definitions,
+        handling multi-value properties, multi-part answers, and
+        dynamic source expressions.
+
+        Args:
+            params: Dictionary of property names to nested value lists
+
+        Returns:
+            dict: Formatted schema answer with:
+                - schemaName: Schema name
+                - paramUrl: Parameter URL
+                - schemaVersion: Schema version
+                - lid: Log ID
+                - schemaId: Schema ID
+                - properties: List of formatted property answers
+
+        Note:
+            - Properties with source expressions are evaluated dynamically
+            - Multi-value properties controlled by 'multi' flag
+            - Parts are limited by 'parts_count'
+            - Missing or error properties are silently skipped
+        """
         properties = list()
         for key, (id, multi, parts_count, typeid, source) in self.properties.items():
             try:
@@ -74,7 +144,6 @@ class LogSchema:
                             "TypeID": typeid,
                             "answers": prp_answers
                         })
-                        
 
             except:
                 pass

@@ -214,9 +214,9 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> Dispa
         __print_splash(False)
 
     # Create ServiceProvider and set up event loop
-    from bclib.service_provider import ServiceProvider
+    from bclib.service_provider import IServiceProvider, ServiceProvider
     service_provider = ServiceProvider()
-    service_provider.add_singleton(ServiceProvider, instance=service_provider)
+    service_provider.add_singleton(IServiceProvider, instance=service_provider)
 
     # Create or get event loop
     if loop is None and sys.platform == 'win32':
@@ -233,6 +233,10 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> Dispa
     # Register application options
     from bclib.app_options import AppOptions
     service_provider.add_singleton(AppOptions, instance=options)
+
+    # Register log service in DI container
+    from bclib.log_service import ILogService, LogService
+    service_provider.add_singleton(ILogService, LogService)
 
     # Register database manager in DI container
     from bclib.db_manager import DbManager, IDbManager

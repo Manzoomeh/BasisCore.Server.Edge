@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Coroutine, Iterator, Optional, Union
 
 from aiohttp.web_response import ContentCoding
 
-from ..context.request_context import RequestContext
+from bclib.context.request_context import RequestContext
 
 if TYPE_CHECKING:
     from bclib.listener.http_listener import HttpMessage

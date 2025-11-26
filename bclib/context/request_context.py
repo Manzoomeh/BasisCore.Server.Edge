@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any
 
 from bclib.context.context import Context
 from bclib.exception import ShortCircuitErr
-from bclib.utility import DictEx, HttpMimeTypes, HttpStatusCodes, ResponseTypes
+from bclib.utility import HttpMimeTypes, HttpStatusCodes, ResponseTypes
 
 if TYPE_CHECKING:
     from .. import dispatcher

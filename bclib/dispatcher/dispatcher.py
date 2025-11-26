@@ -2,33 +2,27 @@
 import asyncio
 import inspect
 import signal
-import sys
 import traceback
 from functools import wraps
 from typing import Any, Callable, Coroutine, Optional, Type
 
+from service_provider.iservice_provider import IServiceProvider
+
 from bclib.app_options import AppOptions
 from bclib.cache import CacheFactory, CacheManager
 from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
-                           Context, RabbitContext, RequestContext,
-                           RESTfulContext, ServerSourceContext,
-                           ServerSourceMemberContext, WebContext,
-                           WebSocketContext)
+                           Context, RabbitContext, RESTfulContext,
+                           ServerSourceContext, ServerSourceMemberContext,
+                           WebContext, WebSocketContext)
 from bclib.dispatcher.context_factory import ContextFactory
 from bclib.dispatcher.dispatcher_helper import DispatcherHelper
 from bclib.dispatcher.idispatcher import IDispatcher
 from bclib.exception import HandlerNotFoundErr
-from bclib.listener import (HttpBaseDataType, IListener, Message, MessageType,
-                            SocketMessage)
-from bclib.listener.http_listener.http_message import HttpMessage
-from bclib.listener.http_listener.websocket_message import WebSocketMessage
-from bclib.listener.icms_base_message import ICmsBaseMessage
+from bclib.listener import IListener, Message
 from bclib.listener.iresponse_base_message import IResponseBaseMessage
 from bclib.listener_factory import IListenerFactory
-from bclib.logger import ILogger, LoggerFactory, LogObject
 from bclib.predicate import Predicate
-from bclib.service_provider import InjectionPlan, ServiceProvider
-from bclib.utility import DictEx
+from bclib.service_provider import InjectionPlan, IServiceProvider
 from bclib.utility.static_file_handler import StaticFileHandler
 from bclib.websocket import WebSocketSessionManager
 
@@ -75,7 +69,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         ```
     """
 
-    def __init__(self, service_provider: ServiceProvider, options: AppOptions, loop: asyncio.AbstractEventLoop, listener_factory: IListenerFactory):
+    def __init__(self, service_provider: IServiceProvider, options: AppOptions, loop: asyncio.AbstractEventLoop, listener_factory: IListenerFactory):
         """Initialize dispatcher with injected dependencies
 
         Args:
@@ -91,9 +85,6 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         # Event loop should already be registered in ServiceProvider by edge.from_options
         self.__event_loop = loop
         self.__cache_manager = CacheFactory.create(cache_options)
-        self.__logger: ILogger = LoggerFactory.create(self.__options)
-        self.__log_error: bool = self.__options.get('log_error', False)
-        self.__log_request: bool = self.__options.get('log_request', True)
 
         self.name = self.__options.get('name')
 
@@ -121,24 +112,9 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         return self.__options
 
     @property
-    def event_loop(self) -> asyncio.AbstractEventLoop:
-        """Get event loop"""
-        return self.__event_loop
-
-    @property
     def cache_manager(self) -> 'CacheManager':
         """Get cache manager"""
         return self.__cache_manager
-
-    @property
-    def log_error(self) -> bool:
-        """Get log error setting"""
-        return self.__log_error
-
-    @property
-    def log_request(self) -> bool:
-        """Get log request setting"""
-        return self.__log_request
 
     def add_singleton(
         self,
@@ -224,7 +200,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
             service_type, implementation, factory)
         return self
 
-    def create_scope(self) -> ServiceProvider:
+    def create_scope(self) -> IServiceProvider:
         """
         Create a new scope for scoped services (per-request)
 
@@ -381,7 +357,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
                 # ✨ Execute pre-compiled plan (fast - no reflection)
                 kwargs = context.url_segments if context.url_segments else {}
                 action_result = await injection_plan.execute_async(
-                    self.__service_provider, self.event_loop, **kwargs)
+                    self.__service_provider, self.__event_loop, **kwargs)
                 return None if action_result is None else context.generate_response(action_result)
 
             self._get_context_lookup(RESTfulContext)\
@@ -406,7 +382,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
             @wraps(web_action_handler)
             async def wrapper(context: WebContext):
                 kwargs = context.url_segments if context.url_segments else {}
-                action_result = await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
+                action_result = await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
                 return None if action_result is None else context.generate_response(action_result)
 
             self._get_context_lookup(WebContext)\
@@ -433,7 +409,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
             @wraps(websocket_action_handler)
             async def wrapper(context: WebSocketSession):
                 kwargs = context.url_segments if context.url_segments else {}
-                return await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
+                return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
 
             self._get_context_lookup(WebSocketContext)\
                 .append(CallbackInfo([*predicates], wrapper))
@@ -457,7 +433,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
             @wraps(client_source_action_handler)
             async def wrapper(context: ClientSourceContext):
                 kwargs = context.url_segments if context.url_segments else {}
-                data = await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
+                data = await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -508,7 +484,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
             @wraps(client_source_member_handler)
             async def wrapper(context: ClientSourceMemberContext):
                 kwargs = context.url_segments if context.url_segments else {}
-                return await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
+                return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
 
             self._get_context_lookup(ClientSourceMemberContext)\
                 .append(CallbackInfo([*predicates], wrapper))
@@ -532,7 +508,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
             @wraps(server_source_action_handler)
             async def wrapper(context: ServerSourceContext):
                 kwargs = context.url_segments if context.url_segments else {}
-                data = await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
+                data = await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -583,7 +559,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
             @wraps(server_source_member_action_handler)
             async def wrapper(context: ServerSourceMemberContext):
                 kwargs = context.url_segments if context.url_segments else {}
-                return await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
+                return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
 
             self._get_context_lookup(ServerSourceMemberContext)\
                 .append(CallbackInfo([*predicates], wrapper))
@@ -607,7 +583,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
             @wraps(rabbit_action_handler)
             async def wrapper(context: RabbitContext):
                 kwargs = context.url_segments if context.url_segments else {}
-                return await injection_plan.execute_async(self.__service_provider, self.event_loop, **kwargs)
+                return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
 
             self._get_context_lookup(RabbitContext)\
                 .append(CallbackInfo([*predicates], wrapper))
@@ -651,7 +627,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
     def dispatch_in_background(self, context: 'Context') -> asyncio.Future:
         """Dispatch context in background"""
 
-        return self.event_loop.create_task(self.dispatch_async(context))
+        return self.__event_loop.create_task(self.dispatch_async(context))
 
     async def on_message_receive_async(self, message: Message) -> None:
         """Process received message and dispatch to appropriate handler
@@ -685,9 +661,9 @@ class Dispatcher(DispatcherHelper, IDispatcher):
     def run_in_background(self, callback: 'Callable|Coroutine', *args: Any) -> asyncio.Future:
         """Execute function or coroutine in background"""
         if inspect.iscoroutinefunction(callback):
-            return self.event_loop.create_task(callback(*args))
+            return self.__event_loop.create_task(callback(*args))
         else:
-            return self.event_loop.run_in_executor(None, callback, *args)
+            return self.__event_loop.run_in_executor(None, callback, *args)
 
     def add_listener(self, listener: IListener):
         """Add a listener to the dispatcher
@@ -712,7 +688,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
 
         # Initialize all listeners (HTTP, Socket, Rabbit, etc.)
         for listener in self.__listeners:
-            listener.initialize_task(self.event_loop)
+            listener.initialize_task(self.__event_loop)
 
         # Initialize endpoint listener if configured
         if hasattr(self, '_endpoint_connection_handler') and hasattr(self, '_endpoint'):
@@ -725,45 +701,27 @@ class Dispatcher(DispatcherHelper, IDispatcher):
                 async with server:
                     await server.serve_forever()
 
-            self.event_loop.create_task(start_endpoint_server())
+            self.__event_loop.create_task(start_endpoint_server())
 
     def listening(self, before_start: Coroutine = None, after_end: Coroutine = None, with_block: bool = True):
         """Start listening to request for process"""
         for sig in (signal.SIGTERM, signal.SIGINT):
-            signal.signal(sig, lambda sig, _: self.event_loop.stop())
+            signal.signal(sig, lambda sig, _: self.__event_loop.stop())
         if before_start != None:
-            self.event_loop.run_until_complete(
-                self.event_loop.create_task(before_start()))
+            self.__event_loop.run_until_complete(
+                self.__event_loop.create_task(before_start()))
         self.initialize_task()
         if with_block:
-            self.event_loop.run_forever()
-            tasks = asyncio.all_tasks(loop=self.event_loop)
+            self.__event_loop.run_forever()
+            tasks = asyncio.all_tasks(loop=self.__event_loop)
             for task in tasks:
                 task.cancel()
             group = asyncio.gather(*tasks, return_exceptions=True)
-            self.event_loop.run_until_complete(group)
+            self.__event_loop.run_until_complete(group)
             if after_end != None:
-                self.event_loop.run_until_complete(
-                    self.event_loop.create_task(after_end()))
-            self.event_loop.close()
-
-    def new_object_log(self, schema_name: str, routing_key: Optional[str] = None, **kwargs) -> LogObject:
-        return self.__logger.new_object_log(schema_name, routing_key, **kwargs)
-
-    async def log_async(self, log_object: LogObject = None, **kwargs):
-        """log params"""
-        if log_object is None:
-            if "schema_name" not in kwargs:
-                raise Exception("'schema_name' not set for apply logging!")
-            schema_name = kwargs.pop("schema_name")
-            log_object = self.new_object_log(schema_name, **kwargs)
-        await self.__logger.log_async(log_object)
-
-    def log_in_background(self, log_object: LogObject = None, **kwargs) -> Coroutine:
-        """log params in background precess"""
-        return self.event_loop.create_task(
-            self.log_async(log_object, **kwargs)
-        )
+                self.__event_loop.run_until_complete(
+                    self.__event_loop.create_task(after_end()))
+            self.__event_loop.close()
 
     def add_static_handler(self, handler: StaticFileHandler) -> None:
         """Add static file handler to dispatcher"""
