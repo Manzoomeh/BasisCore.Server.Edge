@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, Optional
 
 from bclib.cache import CacheManager
-from bclib.db_manager import DbManager
 from bclib.listener import Message
 from bclib.logger import LogObject
 from bclib.service_provider import ServiceProvider
@@ -30,11 +29,6 @@ class IDispatcher(ABC):
     @property
     @abstractmethod
     def event_loop(self) -> asyncio.AbstractEventLoop:
-        pass
-
-    @property
-    @abstractmethod
-    def db_manager(self) -> DbManager:
         pass
 
     @property

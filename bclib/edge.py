@@ -234,6 +234,10 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> Dispa
     from bclib.app_options import AppOptions
     service_provider.add_singleton(AppOptions, instance=options)
 
+    # Register database manager in DI container
+    from bclib.db_manager import DbManager, IDbManager
+    service_provider.add_singleton(IDbManager, DbManager)
+
     # Register listener factory in DI container
     from bclib.listener_factory import IListenerFactory, ListenerFactory
     service_provider.add_singleton(

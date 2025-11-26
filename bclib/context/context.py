@@ -3,8 +3,6 @@ import traceback
 from abc import ABC
 from typing import TYPE_CHECKING, Optional, Tuple, Type, TypeVar
 
-from bclib.db_manager import (MongoDb, RabbitConnection, RESTfulConnection,
-                              SqlDb, SQLiteDb)
 from bclib.exception import ShortCircuitErr
 from bclib.service_provider import ServiceProvider
 from bclib.utility import (DictEx, HttpBaseDataName, HttpBaseDataType,
@@ -30,21 +28,6 @@ class Context(ABC):
         self.__service_provider: ServiceProvider = dispatcher.create_scope()
         # Register current context as singleton in the scoped service provider
         self.__service_provider.add_singleton(type(self), instance=self)
-
-    def open_sql_connection(self, key: str) -> SqlDb:
-        return self.dispatcher.db_manager.open_sql_connection(key)
-
-    def open_sqllite_connection(self, key: str) -> SQLiteDb:
-        return self.dispatcher.db_manager.open_sqllite_connection(key)
-
-    def open_mongo_connection(self, key: str) -> MongoDb:
-        return self.dispatcher.db_manager.open_mongo_connection(key)
-
-    def open_restful_connection(self, key: str) -> RESTfulConnection:
-        return self.dispatcher.db_manager.open_restful_connection(key)
-
-    def open_rabbit_connection(self, key: str) -> RabbitConnection:
-        return self.dispatcher.db_manager.open_rabbit_connection(key)
 
     @property
     def services(self) -> ServiceProvider:

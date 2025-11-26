@@ -14,7 +14,6 @@ from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
                            RESTfulContext, ServerSourceContext,
                            ServerSourceMemberContext, WebContext,
                            WebSocketContext)
-from bclib.db_manager import DbManager
 from bclib.dispatcher.context_factory import ContextFactory
 from bclib.dispatcher.dispatcher_helper import DispatcherHelper
 from bclib.dispatcher.idispatcher import IDispatcher
@@ -92,7 +91,6 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         # Event loop should already be registered in ServiceProvider by edge.from_options
         self.__event_loop = loop
         self.__cache_manager = CacheFactory.create(cache_options)
-        self.__db_manager = DbManager(self.__options, self.__event_loop)
         self.__logger: ILogger = LoggerFactory.create(self.__options)
         self.__log_error: bool = self.__options.get('log_error', False)
         self.__log_request: bool = self.__options.get('log_request', True)
@@ -131,11 +129,6 @@ class Dispatcher(DispatcherHelper, IDispatcher):
     def cache_manager(self) -> 'CacheManager':
         """Get cache manager"""
         return self.__cache_manager
-
-    @property
-    def db_manager(self) -> DbManager:
-        """Get database manager"""
-        return self.__db_manager
 
     @property
     def log_error(self) -> bool:
