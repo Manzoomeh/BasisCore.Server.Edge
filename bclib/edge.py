@@ -193,8 +193,6 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> Dispa
     import getopt
     import sys
 
-    from bclib.listener import Endpoint, HttpListener, SocketListener
-
     multi: bool = False
     argumentList = sys.argv[1:]
     # Options
@@ -215,36 +213,39 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> Dispa
     if not multi:
         __print_splash(False)
 
-    # Create single Dispatcher instance
-    dispatcher = Dispatcher(options=options, loop=loop)
+    # Create ServiceProvider and set up event loop
+    from bclib.service_provider import ServiceProvider
+    service_provider = ServiceProvider()
+    service_provider.add_singleton(ServiceProvider, instance=service_provider)
 
-    # Add appropriate listeners based on configuration
-    if "server" in options:
-        # HTTP/HTTPS server listener
-        listener = HttpListener(
-            Endpoint(dispatcher.options.get('server')),
-            dispatcher.on_message_receive_async,
-            dispatcher.options.get('ssl'),
-            dispatcher.options.get('configuration'),
-            dispatcher.ws_manager
-        )
-        dispatcher.add_listener(listener)
+    # Create or get event loop
+    if loop is None and sys.platform == 'win32':
+        # By default Windows can use only 64 sockets in asyncio loop. This is a limitation of underlying select() API call.
+        # Use Windows version of proactor event loop using IOCP
+        loop = asyncio.ProactorEventLoop()
+        asyncio.set_event_loop(loop)
+    event_loop = asyncio.get_event_loop() if loop is None else loop
 
-    if "endpoint" in options:
-        # TCP endpoint listener
-        listener = SocketListener(
-            Endpoint(dispatcher.options.get('endpoint')),
-            dispatcher.on_message_receive_async
-        )
-        dispatcher.add_listener(listener)
+    # Register event loop in DI container
+    service_provider.add_singleton(
+        asyncio.AbstractEventLoop, instance=event_loop)
 
-    # Add Rabbit listeners if configured
-    if "router" in options and "rabbit" in options["router"]:
-        for setting in options["router"]["rabbit"]:
-            listener = RabbitBusListener(DictEx(setting), dispatcher)
-            dispatcher.add_listener(listener)
+    # Register application options
+    from bclib.app_options import AppOptions
+    service_provider.add_singleton(AppOptions, instance=options)
 
-    return dispatcher
+    # Register listener factory in DI container
+    from bclib.listener_factory import IListenerFactory, ListenerFactory
+    service_provider.add_singleton(
+        IListenerFactory, ListenerFactory)
+
+    # Register dispatcher itself in DI container
+    service_provider.add_singleton(Dispatcher, Dispatcher)
+    service_provider.add_singleton(
+        IDispatcher, factory=lambda sp: sp.get_service(Dispatcher))
+
+    # Create Dispatcher instance
+    return service_provider.get_service(IDispatcher)
 
 
 def __print_splash(inMultiMode: bool):

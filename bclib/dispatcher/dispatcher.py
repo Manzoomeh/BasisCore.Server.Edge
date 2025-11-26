@@ -7,6 +7,7 @@ import traceback
 from functools import wraps
 from typing import Any, Callable, Coroutine, Optional, Type
 
+from bclib.app_options import AppOptions
 from bclib.cache import CacheFactory, CacheManager
 from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
                            Context, RabbitContext, RequestContext,
@@ -24,6 +25,7 @@ from bclib.listener.http_listener.http_message import HttpMessage
 from bclib.listener.http_listener.websocket_message import WebSocketMessage
 from bclib.listener.icms_base_message import ICmsBaseMessage
 from bclib.listener.iresponse_base_message import IResponseBaseMessage
+from bclib.listener_factory import IListenerFactory
 from bclib.logger import ILogger, LoggerFactory, LogObject
 from bclib.predicate import Predicate
 from bclib.service_provider import InjectionPlan, ServiceProvider
@@ -62,8 +64,8 @@ class Dispatcher(DispatcherHelper, IDispatcher):
 
         # Register handlers with DI
         @app.restful_action(app.url("api/users"))
-        async def get_users(logger: ILogger, db: IDatabase):
-            logger.log("Fetching users")
+        async def get_users(options: AppOptions, logger: ILogger, db: IDatabase):
+            logger.log(f"Fetching users from {options.get('name')}")
             return db.get_all_users()
 
         # Or register programmatically
@@ -74,17 +76,21 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         ```
     """
 
-    def __init__(self, options: dict = None, loop: asyncio.AbstractEventLoop = None):
-        self.__options = options if options else {}
+    def __init__(self, service_provider: ServiceProvider, options: AppOptions, loop: asyncio.AbstractEventLoop, listener_factory: IListenerFactory):
+        """Initialize dispatcher with injected dependencies
+
+        Args:
+            service_provider: The DI container with all registered services
+            options: Application configuration (AppOptions type alias for dict)
+            loop: The asyncio event loop for async operations
+            listener_factory: Factory for creating listeners based on configuration
+        """
+        self.__options = options
         self.__look_up: 'dict[Type, list[CallbackInfo]]' = dict()
-        self.__service_provider = ServiceProvider()
+        self.__service_provider = service_provider
         cache_options = self.__options.get('cache')
-        if loop is None and sys.platform == 'win32':
-            # By default Windows can use only 64 sockets in asyncio loop. This is a limitation of underlying select() API call.
-            # Use Windows version of proactor event loop using IOCP
-            loop = asyncio.ProactorEventLoop()
-            asyncio.set_event_loop(loop)
-        self.__event_loop = asyncio.get_event_loop() if loop is None else loop
+        # Event loop should already be registered in ServiceProvider by edge.from_options
+        self.__event_loop = loop
         self.__cache_manager = CacheFactory.create(cache_options)
         self.__db_manager = DbManager(self.__options, self.__event_loop)
         self.__logger: ILogger = LoggerFactory.create(self.__options)
@@ -99,7 +105,8 @@ class Dispatcher(DispatcherHelper, IDispatcher):
             heartbeat_interval=30.0
         )
 
-        # Initialize listeners collection
+        # Store listener factory for lazy loading in initialize_task
+        self.__listener_factory = listener_factory
         self.__listeners: list[IListener] = []
 
         # Initialize ContextFactory - it handles all routing logic
@@ -111,8 +118,8 @@ class Dispatcher(DispatcherHelper, IDispatcher):
 
     # Properties for IDispatcher interface
     @property
-    def options(self) -> dict:
-        """Get dispatcher options"""
+    def options(self) -> AppOptions:
+        """Get application configuration options (AppOptions = dict)"""
         return self.__options
 
     @property
@@ -698,11 +705,19 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         self.__listeners.append(listener)
 
     def initialize_task(self):
-        """Initialize all listeners and tasks"""
+        """Initialize all listeners and tasks
+
+        Loads listeners from factory and initializes them. This includes HTTP, WebSocket, 
+        TCP, and RabbitMQ listeners based on application configuration.
+        """
         # Ensure router is ready before server starts
         self.__context_factory.rebuild_router()
 
-        # Initialize all added listeners (HTTP, Socket, Rabbit, etc.)
+        # Load listeners from factory if not already loaded
+        if not self.__listeners:
+            self.__listeners = self.__listener_factory.load_listeners(self)
+
+        # Initialize all listeners (HTTP, Socket, Rabbit, etc.)
         for listener in self.__listeners:
             listener.initialize_task(self.event_loop)
 
