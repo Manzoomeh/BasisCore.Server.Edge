@@ -17,7 +17,7 @@ app = edge.from_options(options)
 
 
 @app.web_action("test00")
-async def test_handler_0(context: edge.HttpContext):
+async def test_handler_0():
     return "<h1>Test endpoint 00</h1>"
 
 
@@ -30,7 +30,7 @@ async def test_handler_0(context: edge.HttpContext):
 
 
 @app.restful_action("test1")
-async def test_handler_1(context: edge.RESTfulContext):
+async def test_handler_1():
     return {
         "message": "Test endpoint 1",
         "status": "success"
@@ -48,10 +48,9 @@ async def test_handler_2(context: edge.RESTfulContext, id: Optional[int] = None)
 
 @app.web_action("test3", method="POST")
 async def test_handler_3(context: edge.RESTfulContext):
-    body = await context.request.json()
     return {
         "message": "Test endpoint 3",
-        "received": body
+        "received": context.response_type
     }
 
 

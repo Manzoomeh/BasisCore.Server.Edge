@@ -650,6 +650,98 @@ class Dispatcher(IDispatcher):
             return rabbit_action_handler
         return _decorator
 
+    def action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+        """
+        Universal action decorator that automatically determines the action type based on handler's context parameter
+
+        This decorator inspects the handler's signature to find the context type parameter and automatically
+        routes to the appropriate specific action decorator (web_action, restful_action, websocket_action, etc.).
+
+        Args:
+            route: Optional URL route pattern
+            method: Optional HTTP method filter - single string or list
+            *predicates: Variable number of Predicate objects for additional matching rules
+
+        Returns:
+            The appropriate decorator based on the handler's context type
+
+        Example:
+            ```python
+            # Automatically uses restful_action because context is RESTfulContext
+            @app.action("users/:id", method="GET")
+            def get_user(context: RESTfulContext):
+                return {"user_id": context.url_segments['id']}
+
+            # Automatically uses web_action because context is HttpContext
+            @app.action("home", method="GET")
+            def home_page(context: HttpContext):
+                return "<h1>Home Page</h1>"
+
+            # Automatically uses websocket_action because context is WebSocketContext
+            @app.action("ws/chat/:room")
+            async def chat_handler(context: WebSocketContext):
+                await context.send_text(f"Welcome to room {context.url_segments['room']}")
+
+            # Works without context parameter too (inspects other type hints)
+            @app.action("api/data")
+            def get_data():
+                return {"data": "value"}
+            ```
+
+        Note:
+            The decorator determines the action type by inspecting the handler's type hints.
+            If no context type is found, it defaults to restful_action.
+        """
+        from typing import get_type_hints
+
+        from bclib.context import (ClientSourceContext,
+                                   ClientSourceMemberContext, HttpContext,
+                                   RabbitContext, RESTfulContext,
+                                   ServerSourceContext,
+                                   ServerSourceMemberContext, WebSocketContext)
+
+        def _universal_decorator(handler: Callable):
+            # Inspect handler to determine context type
+            try:
+                type_hints = get_type_hints(handler)
+                context_type = None
+
+                # Check all parameters for a context type
+                for param_name, param_type in type_hints.items():
+                    if param_type in (HttpContext, RESTfulContext, WebSocketContext,
+                                      ClientSourceContext, ClientSourceMemberContext,
+                                      ServerSourceContext, ServerSourceMemberContext,
+                                      RabbitContext):
+                        context_type = param_type
+                        break
+
+                # Route to appropriate decorator based on context type
+                if context_type == HttpContext:
+                    return self.web_action(route, method, *predicates)(handler)
+                elif context_type == RESTfulContext:
+                    return self.restful_action(route, method, *predicates)(handler)
+                elif context_type == WebSocketContext:
+                    return self.websocket_action(route, method, *predicates)(handler)
+                elif context_type == ClientSourceContext:
+                    return self.client_source_action(route, method, *predicates)(handler)
+                elif context_type == ClientSourceMemberContext:
+                    return self.client_source_member_action(route, method, *predicates)(handler)
+                elif context_type == ServerSourceContext:
+                    return self.server_source_action(route, method, *predicates)(handler)
+                elif context_type == ServerSourceMemberContext:
+                    return self.server_source_member_action(route, method, *predicates)(handler)
+                elif context_type == RabbitContext:
+                    return self.rabbit_action(route, method, *predicates)(handler)
+                else:
+                    # Default to restful_action if no context type found
+                    return self.restful_action(route, method, *predicates)(handler)
+
+            except Exception:
+                # If type hint inspection fails, default to restful_action
+                return self.restful_action(route, method, *predicates)(handler)
+
+        return _universal_decorator
+
     def _get_context_lookup(self, key: Type) -> 'list[CallbackInfo]':
         """Get key related action list object"""
 
