@@ -1,8 +1,8 @@
 import base64
 import json
 import os
-from bclib import edge
 
+from bclib import edge
 
 options = {
     "sender": "127.0.0.1:1025",
@@ -58,7 +58,7 @@ webserver = {
 
 
 @app.web_action()
-def default_handler(context: edge.WebContext):
+def default_handler(context: edge.HttpContext):
     context.response_type = edge.ResponseTypes.RENDERABLE
 
     context.cms["webserver"] = webserver

@@ -1,6 +1,6 @@
 from typing import Any
-import edge
 
+import edge
 
 options = {
     "sender": "127.0.0.1:1025",
@@ -20,8 +20,8 @@ app = edge.from_options(options)
 
 @app.cache()
 def generate_data() -> list:
-    import string
     import random
+    import string
 
     ret_val = list()
     for i in range(10):
@@ -92,7 +92,7 @@ def process_count_server_member(context: edge.ServerSourceMemberContext) -> Any:
 ######################
 
 
-@ app.client_source_action(
+@app.client_source_action(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
 def process_basiscore_client_source(context: edge.ClientSourceContext):
@@ -128,9 +128,9 @@ def process_count_client_member(context: edge.ClientSourceMemberContext):
 # Web
 #####
 
-@ app.web_action(
+@app.web_action(
     app.url("qam-test/sample-client-source"))
-def process_web_sample_source_request(context: edge.WebContext):
+def process_web_sample_source_request(context: edge.HttpContext):
     return f"""
      <basis core="dbsource" run="atclient" source="basiscore" mid="20" name="demo"  lid="1" dmnid="" ownerpermit="" >
         <member name="list" type="list" pageno="3" perpage="20" request="catname" order="id desc"></member>
@@ -162,8 +162,8 @@ def process_web_sample_source_request(context: edge.WebContext):
         """
 
 
-@ app.web_action(app.url("qam-test/sample-server-source"))
-def process_web_sample_dbsource_request(context: edge.WebContext):
+@app.web_action(app.url("qam-test/sample-server-source"))
+def process_web_sample_dbsource_request(context: edge.HttpContext):
     context.response_type = edge.ResponseTypes.RENDERABLE
     return """
      <basis core="dbsource"  source="cmsDbService" mid="20" name="demo"  lid="1" dmnid="" ownerpermit="" >
@@ -181,8 +181,8 @@ def process_web_sample_dbsource_request(context: edge.WebContext):
         """
 
 
-@ app.web_action()
-def process_web_remain_request(context: edge.WebContext):
+@app.web_action()
+def process_web_remain_request(context: edge.HttpContext):
     print("process_web_remain_request")
     context.add_header(edge.HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
     context.add_header("x-ali", "12")

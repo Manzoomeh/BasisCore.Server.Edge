@@ -1,4 +1,4 @@
-"""Socket Message - handles TCP socket communication with custom binary protocol"""
+"""TCP Message - handles TCP socket communication with custom binary protocol"""
 import asyncio
 import json
 from typing import Any, Optional
@@ -9,7 +9,7 @@ from bclib.listener.message import Message
 from bclib.listener.message_type import MessageType
 
 
-class SocketMessage(Message, ICmsBaseMessage, IResponseBaseMessage):
+class TcpMessage(Message, ICmsBaseMessage, IResponseBaseMessage):
     """
     Message class for TCP endpoint communication using custom binary protocol
 
@@ -36,7 +36,7 @@ class SocketMessage(Message, ICmsBaseMessage, IResponseBaseMessage):
         ```python
         # Server side - read incoming message
         async def handle_client(reader, writer):
-            message = await SocketMessage.read_from_stream_async(reader, writer)
+            message = await TcpMessage.read_from_stream_async(reader, writer)
             if message:
                 print(f"Received: {message.type}, Session: {message.session_id}")
 
@@ -46,7 +46,7 @@ class SocketMessage(Message, ICmsBaseMessage, IResponseBaseMessage):
 
         # Client side - send message and read response
         reader, writer = await asyncio.open_connection('localhost', 8080)
-        message = SocketMessage(reader, writer, session_id, MessageType.AD_HOC, payload)
+        message = TcpMessage(reader, writer, session_id, MessageType.AD_HOC, payload)
         await message.write_to_stream_async(writer)
         response = await message.read_next_message_async()
         ```
@@ -61,7 +61,7 @@ class SocketMessage(Message, ICmsBaseMessage, IResponseBaseMessage):
         buffer: Optional[bytes] = None
     ) -> None:
         """
-        Initialize SocketMessage
+        Initialize TcpMessage
 
         Args:
             reader: asyncio StreamReader for reading from stream
@@ -98,7 +98,7 @@ class SocketMessage(Message, ICmsBaseMessage, IResponseBaseMessage):
         This method encodes the response data to JSON and writes it to the TCP stream.
         Called by the dispatcher after processing the request.
 
-        Args:
+                return await TcpMessage.read_from_stream_async(self.reader, self.writer)
             cms_object: The CMS object containing response data
         """
         import json
@@ -106,26 +106,26 @@ class SocketMessage(Message, ICmsBaseMessage, IResponseBaseMessage):
             buffer = json.dumps(cms_object).encode('utf-8')
             await self._write_to_stream_async(self.writer, self.session_id, self.type, buffer)
 
-    async def read_next_message_async(self) -> Optional['SocketMessage']:
+    async def read_next_message_async(self) -> Optional['TcpMessage']:
         """
         Read the next message from this connection's stream
 
         Returns:
-            Next SocketMessage from stream, or None if stream ended
+            Next TcpMessage from stream, or None if stream ended
 
         Example:
             ```python
-            message = await SocketMessage.read_from_stream_async(reader, writer)
+            message = await TcpMessage.read_from_stream_async(reader, writer)
             next_message = await message.read_next_message_async()
             ```
         """
-        return await SocketMessage.read_from_stream_async(self.reader, self.writer)
+        return await TcpMessage.read_from_stream_async(self.reader, self.writer)
 
     @staticmethod
     async def read_from_stream_async(
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter
-    ) -> Optional['SocketMessage']:
+    ) -> Optional['TcpMessage']:
         """
         Read and parse a message from TCP stream using custom binary protocol
 
@@ -142,7 +142,7 @@ class SocketMessage(Message, ICmsBaseMessage, IResponseBaseMessage):
             writer: asyncio StreamWriter for response (stored in message)
 
         Returns:
-            Parsed SocketMessage or None if stream ended
+            Parsed TcpMessage or None if stream ended
 
         Raises:
             asyncio.IncompleteReadError: If stream ends before reading expected bytes
@@ -152,14 +152,14 @@ class SocketMessage(Message, ICmsBaseMessage, IResponseBaseMessage):
             ```python
             async def handle_connection(reader, writer):
                 try:
-                    message = await SocketMessage.read_from_stream_async(reader, writer)
+                    message = await TcpMessage.read_from_stream_async(reader, writer)
                     if message:
                         print(f"Type: {message.type}, Session: {message.session_id}")
                 except asyncio.IncompleteReadError:
                     print("Connection closed unexpectedly")
             ```
         """
-        message: Optional[SocketMessage] = None
+        message: Optional[TcpMessage] = None
 
         # Read message type (1 byte)
         data = await reader.readexactly(1)
@@ -187,8 +187,8 @@ class SocketMessage(Message, ICmsBaseMessage, IResponseBaseMessage):
                 data = await reader.readexactly(payload_len)
                 payload = data
 
-            message = SocketMessage(
-                reader, writer, session_id, message_type, payload)
+                message = TcpMessage(
+                    reader, writer, session_id, message_type, payload)
 
         return message
 
@@ -244,8 +244,8 @@ class SocketMessage(Message, ICmsBaseMessage, IResponseBaseMessage):
 
         Example:
             ```python
-            response = SocketMessage(reader, writer, session_id, MessageType.AD_HOC, data)
+            response = TcpMessage(reader, writer, session_id, MessageType.AD_HOC, data)
             success = await response.write_to_stream_async(writer)
             ```
         """
-        return await SocketMessage._write_to_stream_async(writer, self.session_id, self.type, self.buffer)
+        return await TcpMessage._write_to_stream_async(writer, self.session_id, self.type, self.buffer)

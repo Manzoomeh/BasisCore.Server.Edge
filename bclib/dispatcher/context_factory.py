@@ -4,18 +4,20 @@ import re
 from struct import error
 from typing import TYPE_CHECKING, Callable, Optional, Type
 
-from bclib.context import (ClientSourceContext, Context, RabbitContext,
-                           RequestContext, RESTfulContext, ServerSourceContext,
-                           WebContext, WebSocketContext)
-from bclib.dispatcher.callback_info import CallbackInfo
-from bclib.listener import HttpBaseDataType, Message, MessageType
-from bclib.listener.http_listener.http_message import HttpMessage
-from bclib.listener.http_listener.websocket_message import WebSocketMessage
-from bclib.listener.icms_base_message import ICmsBaseMessage
-from bclib.listener.socket.socket_message import SocketMessage
+from app_options import AppOptions
 
 if TYPE_CHECKING:
+    from bclib.context import (ClientSourceContext, Context, HttpContext,
+                               RabbitContext, RESTfulContext, ServerSourceContext,
+                               WebSocketContext)
     from bclib.dispatcher import IDispatcher
+
+from bclib.dispatcher.callback_info import CallbackInfo
+from bclib.listener import HttpBaseDataType, Message, MessageType
+from bclib.listener.http.http_message import HttpMessage
+from bclib.listener.http.websocket_message import WebSocketMessage
+from bclib.listener.icms_base_message import ICmsBaseMessage
+from bclib.listener.tcp.tcp_message import TcpMessage
 
 
 class ContextFactory:
@@ -35,7 +37,7 @@ class ContextFactory:
     def __init__(
         self,
         dispatcher: 'IDispatcher',
-        options: dict,
+        options: AppOptions,
         lookup: dict[Type, list[CallbackInfo]]
     ):
         """
@@ -57,9 +59,9 @@ class ContextFactory:
 
         # Routing configuration
         # pattern -> context_type
-        self.__route_lookup: dict[str, Type[Context]] = {}
+        self.__route_lookup: dict[str, Type['Context']] = {}
 
-    def create_context(self, message: Message) -> Context:
+    def create_context(self, message: Message) -> 'Context':
         """
         Create appropriate context type from message
 
@@ -76,7 +78,7 @@ class ContextFactory:
             KeyError: If required fields are missing from CMS object
             NameError: If context type cannot be determined or is invalid
         """
-        ret_val: RequestContext = None
+        ret_val: Context = None
         context_type = None
         cms_object: Optional[dict] = None
         url: Optional[str] = None
@@ -113,8 +115,11 @@ class ContextFactory:
 
         # 2. Fallback to message type if no match found
         if context_type is None:
-            if isinstance(message, HttpMessage) or isinstance(message, SocketMessage):
-                context_type = WebContext
+            # Import context types at runtime to avoid circular dependency
+            from bclib.context import HttpContext, WebSocketContext
+            
+            if isinstance(message, HttpMessage) or isinstance(message, TcpMessage):
+                context_type = HttpContext
             elif isinstance(message, WebSocketMessage):
                 context_type = WebSocketContext
 
@@ -137,10 +142,15 @@ class ContextFactory:
 
     def rebuild_router(self):
         """Auto-generate router from registered handlers in lookup"""
+        # Import context types at runtime to avoid circular dependency
+        from bclib.context import (ClientSourceContext, HttpContext, 
+                                   RESTfulContext, ServerSourceContext, 
+                                   WebSocketContext)
+        
         # Supported context types
         supported_contexts = {
             RESTfulContext,
-            WebContext,
+            HttpContext,
             WebSocketContext,
             ClientSourceContext,
             ServerSourceContext

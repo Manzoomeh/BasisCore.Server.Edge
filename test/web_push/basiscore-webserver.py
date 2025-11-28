@@ -56,19 +56,19 @@ def test_push_handler(_: edge.RESTfulContext):
 
 
 @app.web_action(app.url("basiscore-serviceWorker.js"))
-def sw_js_handler(context: edge.WebContext):
+def sw_js_handler(context: edge.HttpContext):
     context.mime = edge.HttpMimeTypes.JS
     return readAsset("basiscore-serviceWorker.js")
 
 
 @app.web_action(app.url("basiscore.js"))
-def bc_js_handler(context: edge.WebContext):
+def bc_js_handler(context: edge.HttpContext):
     context.mime = edge.HttpMimeTypes.JS
     return readAsset("basiscore.js")
 
 
 @app.web_action()
-def default_handler(context: edge.WebContext):
+def default_handler(context: edge.HttpContext):
     public_key = context.dispatcher.options.get(
         'push', {}).get('vapid', {}).get('public_key', '')
     return readAsset("index.html").replace("___PUBLIK_KEY___", public_key)

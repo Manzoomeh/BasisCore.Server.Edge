@@ -16,8 +16,8 @@ app = edge.from_options(options)
 
 @app.cache()
 def generate_data() -> list:
-    import string
     import random  # define the random module
+    import string
 
     ret_val = list()
     for i in range(10):
@@ -102,10 +102,10 @@ def process_count_member(context: edge.ClientSourceMemberContext):
 #####
 
 
-@ app.web_action(
+@app.web_action(
     app.url("sample-source/:source"),
     app.in_list("context.url_segments.source", "demo", "basiscore"))
-def process_web_sample_source_request(context: edge.WebContext):
+def process_web_sample_source_request(context: edge.HttpContext):
     return f"""
      <basis core="dbsource" run="atclient" source="{context.url_segments.source}" mid="20" name="demo"  lid="1" dmnid="" ownerpermit="" >
         <member name="list" type="list" pageno="3" perpage="20" request="catname" order="id desc"></member>
@@ -141,7 +141,7 @@ def process_web_sample_source_request(context: edge.WebContext):
 
 
 @app.web_action()
-def process_web_remain_request(context: edge.WebContext):
+def process_web_remain_request(context: edge.HttpContext):
     print("process_web_remain_request")
     context.add_header("Access-Control-Allow-Origin", "*")
     context.add_header("x-ali", "12")

@@ -1,9 +1,9 @@
-import json
 import datetime
-import xml.etree.ElementTree
-from bclib import edge
+import json
 import os
+import xml.etree.ElementTree
 
+from bclib import edge
 
 options = {
     "sender": "127.0.0.1:1025",
@@ -71,7 +71,7 @@ class ChatRoom:
 
     @staticmethod
     async def process_message_async(message: edge.Message, cms: edge.DictEx, body: edge.DictEx):
-        if(message.type == edge.MessageType.CONNECT):
+        if (message.type == edge.MessageType.CONNECT):
             ChatRoom.__sessions[message.session_id] = Client(
                 message.session_id, cms)
         elif message.type == edge.MessageType.DISCONNECT:
@@ -99,7 +99,7 @@ async def process_not_exist_message_async(context: edge.SocketContext):
     await ChatRoom.process_message_async(context.message, None, None)
 
 
-@ app.socket_action()
+@app.socket_action()
 async def process_all_other_message_async(context: edge.SocketContext):
     print("process_all_other_message")
     await ChatRoom.process_message_async(context.message,
@@ -110,7 +110,7 @@ async def process_all_other_message_async(context: edge.SocketContext):
 # Web
 #####
 @app.web_action()
-def process_web_message(_: edge.WebContext):
+def process_web_message(_: edge.HttpContext):
     path = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), "chat.html")
     with open(path, "r", encoding="utf-8") as file:

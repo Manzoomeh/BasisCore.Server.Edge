@@ -1,21 +1,32 @@
 """Dispatcher base class module"""
 import asyncio
 from abc import ABC, abstractmethod
+from collections.abc import Coroutine
 from typing import TYPE_CHECKING, Any, Callable
 
-from bclib.cache import CacheManager
-from bclib.service_provider.iservice_provider import IServiceProvider
+from app_options import AppOptions
+from log_service.ilog_service import ILogService
+
+from bclib.cache.manager import CacheManager
+from bclib.predicate.predicate_helper import PredicateHelper
 
 if TYPE_CHECKING:
-    from context import Context
+    from bclib.context.context import Context
+    from bclib.service_provider.iservice_provider import IServiceProvider
 
 
-class IDispatcher(ABC):
+class IDispatcher(PredicateHelper, ABC):
     """Dispatcher base class with core functionality for manage cache and background process"""
 
     @property
     @abstractmethod
-    def options(self) -> dict:
+    def Logger(self) -> ILogService:
+        """Get logger service"""
+        pass
+
+    @property
+    @abstractmethod
+    def options(self) -> AppOptions:
         pass
 
     @property
@@ -23,9 +34,10 @@ class IDispatcher(ABC):
     def cache_manager(self) -> CacheManager:
         pass
 
+    @property
     @abstractmethod
-    def create_scope(self) -> IServiceProvider:
-        """Create a new scope for scoped services (per-request)"""
+    def service_provider(self) -> 'IServiceProvider':
+        """Get the root service provider (DI container)"""
         pass
 
     @abstractmethod
@@ -35,6 +47,14 @@ class IDispatcher(ABC):
     @abstractmethod
     def dispatch_in_background(self, context: 'Context') -> asyncio.Future:
         """Dispatch context in background"""
+        pass
 
+    @abstractmethod
     def run_in_background(self, callback: Callable, *args: Any) -> asyncio.Future:
         """helper for run function in background thread"""
+        pass
+
+    @abstractmethod
+    def listening(self, before_start: Coroutine = None, after_end: Coroutine = None, with_block: bool = True):
+        """Start listening to request for process"""
+        pass

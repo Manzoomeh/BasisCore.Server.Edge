@@ -4,32 +4,27 @@ import inspect
 import signal
 import traceback
 from functools import wraps
-from typing import Any, Callable, Coroutine, Optional, Type
-
-from service_provider.iservice_provider import IServiceProvider
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Optional, Type
 
 from bclib.app_options import AppOptions
 from bclib.cache import CacheFactory, CacheManager
-from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
-                           Context, RabbitContext, RESTfulContext,
-                           ServerSourceContext, ServerSourceMemberContext,
-                           WebContext, WebSocketContext)
+from bclib.context.context import Context
+from bclib.dispatcher.callback_info import CallbackInfo
 from bclib.dispatcher.context_factory import ContextFactory
-from bclib.dispatcher.dispatcher_helper import DispatcherHelper
 from bclib.dispatcher.idispatcher import IDispatcher
 from bclib.exception import HandlerNotFoundErr
 from bclib.listener import IListener, Message
 from bclib.listener.iresponse_base_message import IResponseBaseMessage
 from bclib.listener_factory import IListenerFactory
+from bclib.log_service.ilog_service import ILogService
 from bclib.predicate import Predicate
 from bclib.service_provider import InjectionPlan, IServiceProvider
+from bclib.service_provider.iservice_provider import IServiceProvider
 from bclib.utility.static_file_handler import StaticFileHandler
 from bclib.websocket import WebSocketSessionManager
 
-from ..dispatcher.callback_info import CallbackInfo
 
-
-class Dispatcher(DispatcherHelper, IDispatcher):
+class Dispatcher(IDispatcher):
     """
     Base class for dispatching requests with integrated dependency injection
 
@@ -69,7 +64,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         ```
     """
 
-    def __init__(self, service_provider: IServiceProvider, options: AppOptions, loop: asyncio.AbstractEventLoop, listener_factory: IListenerFactory):
+    def __init__(self, service_provider: IServiceProvider, options: AppOptions, logger: ILogService, loop: asyncio.AbstractEventLoop, listener_factory: IListenerFactory):
         """Initialize dispatcher with injected dependencies
 
         Args:
@@ -85,6 +80,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         # Event loop should already be registered in ServiceProvider by edge.from_options
         self.__event_loop = loop
         self.__cache_manager = CacheFactory.create(cache_options)
+        self.__logger = logger
 
         self.name = self.__options.get('name')
 
@@ -105,6 +101,16 @@ class Dispatcher(DispatcherHelper, IDispatcher):
             lookup=self.__look_up
         )
 
+    @property
+    def Logger(self) -> ILogService:
+        """Get logger service"""
+        return self.__logger
+
+    @property
+    def service_provider(self) -> IServiceProvider:
+        """Get the root service provider (DI container)"""
+        return self.__service_provider
+
     # Properties for IDispatcher interface
     @property
     def options(self) -> AppOptions:
@@ -116,133 +122,9 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         """Get cache manager"""
         return self.__cache_manager
 
-    def add_singleton(
-        self,
-        service_type: Type,
-        implementation: Optional[Type] = None,
-        factory: Optional[Callable[['ServiceProvider'], Any]] = None,
-        instance: Optional[Any] = None
-    ) -> 'Dispatcher':
-        """
-        Register a singleton service (one instance for entire application lifetime)
-
-        Args:
-            service_type: The service interface/type
-            implementation: Concrete implementation class
-            factory: Factory function that receives ServiceProvider
-            instance: Pre-created instance
-
-        Returns:
-            Self for chaining
-
-        Example:
-            ```python
-            dispatcher.add_singleton(ILogger, ConsoleLogger)
-            dispatcher.add_singleton(IConfig, instance=config)
-            dispatcher.add_singleton(IDatabase, factory=lambda sp: PostgresDB(sp.get_service(ILogger)))
-            ```
-        """
-        self.__service_provider.add_singleton(
-            service_type, implementation, factory, instance)
-        return self
-
-    def add_scoped(
-        self,
-        service_type: Type,
-        implementation: Optional[Type] = None,
-        factory: Optional[Callable[['ServiceProvider'], Any]] = None
-    ) -> 'Dispatcher':
-        """
-        Register a scoped service (one instance per request/scope)
-
-        Args:
-            service_type: The service interface/type
-            implementation: Concrete implementation class
-            factory: Factory function that receives ServiceProvider
-
-        Returns:
-            Self for chaining
-
-        Example:
-            ```python
-            dispatcher.add_scoped(IDatabase, PostgresDatabase)
-            dispatcher.add_scoped(ICache, factory=lambda sp: RedisCache(sp.get_service(ILogger)))
-            ```
-        """
-        self.__service_provider.add_scoped(
-            service_type, implementation, factory)
-        return self
-
-    def add_transient(
-        self,
-        service_type: Type,
-        implementation: Optional[Type] = None,
-        factory: Optional[Callable[['ServiceProvider'], Any]] = None
-    ) -> 'Dispatcher':
-        """
-        Register a transient service (new instance every time)
-
-        Args:
-            service_type: The service interface/type
-            implementation: Concrete implementation class
-            factory: Factory function that receives ServiceProvider
-
-        Returns:
-            Self for chaining
-
-        Example:
-            ```python
-            dispatcher.add_transient(IEmailService, SmtpEmailService)
-            dispatcher.add_transient(INotifier, factory=lambda sp: Notifier(sp.get_service(ILogger)))
-            ```
-        """
-        self.__service_provider.add_transient(
-            service_type, implementation, factory)
-        return self
-
-    def create_scope(self) -> IServiceProvider:
-        """
-        Create a new scope for scoped services (per-request)
-
-        Returns:
-            New ServiceProvider with same registrations but fresh scoped instances
-
-        Example:
-            ```python
-            # Create scope for each request
-            request_services = dispatcher.create_scope()
-
-            # Use scoped services
-            db = request_services.get_service(IDatabase)
-
-            # Clean up after request
-            request_services.clear_scope()
-            ```
-        """
-        return self.__service_provider.create_scope()
-
-    def get_service(self, service_type: Type, **kwargs) -> Any:
-        """
-        Get a service instance from the DI container
-
-        Args:
-            service_type: The service interface/type to resolve
-            **kwargs: Additional parameters to pass to the service constructor
-
-        Returns:
-            Instance of the requested service
-
-        Example:
-            ```python
-            logger = dispatcher.get_service(ILogger)
-            db = dispatcher.get_service(IDatabase, connection_string="...")
-            ```
-        """
-        return self.__service_provider.get_service(service_type, **kwargs)
-
     def register_handler(
         self,
-        context_type: Type[Context],
+        context_type: Type['Context'],
         handler: Callable,
         predicates: list[Predicate] = None
     ) -> 'Dispatcher':
@@ -272,10 +154,17 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         if predicates is None:
             predicates = []
 
+        # Import context types at runtime to avoid circular imports
+        from bclib.context import (ClientSourceContext,
+                                   ClientSourceMemberContext, HttpContext,
+                                   RabbitContext, RESTfulContext,
+                                   ServerSourceContext,
+                                   ServerSourceMemberContext, WebSocketContext)
+
         # Map context types to their decorator methods
         decorator_map = {
             RESTfulContext: self.restful_action,
-            WebContext: self.web_action,
+            HttpContext: self.web_action,
             WebSocketContext: self.websocket_action,
             ClientSourceContext: self.client_source_action,
             ClientSourceMemberContext: self.client_source_member_action,
@@ -299,8 +188,8 @@ class Dispatcher(DispatcherHelper, IDispatcher):
 
     def unregister_handler(
         self,
-        context_type: Type[Context],
-        handler: Callable = None
+        context_type: Type['Context'],
+        handler: Callable
     ) -> 'Dispatcher':
         """
         Unregister handler(s) for a specific context type
@@ -338,7 +227,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
 
         return self
 
-    def restful_action(self, * predicates: (Predicate)):
+    def restful_action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
         """
         Decorator for RESTful action with automatic DI
 
@@ -346,7 +235,50 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         - Accept context: def handler(context: RESTfulContext)
         - Skip context and use only services: def handler(logger: ILogger)
         - Mix both: def handler(context: RESTfulContext, logger: ILogger)
+
+        Args:
+            route: Optional URL route pattern as first argument (e.g., "users/:id", "api/posts")
+            method: Optional HTTP method filter - single string ("get", "post") or list (["GET", "POST"])
+            *predicates: Variable number of Predicate objects for additional request matching rules
+
+        Example:
+            ```python
+            # Using route as first argument
+            @app.restful_action("users/:id")
+            def get_user(context: RESTfulContext):
+                user_id = context.url_segments['id']
+                return {"user_id": user_id}
+
+            # Using route and single method
+            @app.restful_action("users", method="post")
+            def create_user(context: RESTfulContext):
+                return {"status": "created"}
+
+            # Using multiple methods as array
+            @app.restful_action("users/:id", method=["GET", "PUT"])
+            def user_handler(context: RESTfulContext):
+                return {"user_id": context.url_segments['id']}
+
+            # Using route with additional predicates
+            @app.restful_action("posts/:id", method="GET", app.has_value("context.query.filter"))
+            def get_filtered_post(context: RESTfulContext):
+                return {"post_id": context.url_segments['id']}
+
+            # No route, just predicates
+            @app.restful_action(predicates=[app.equal("context.query.type", "admin")])
+            def admin_handler(context: RESTfulContext):
+                return {"admin": True}
+            ```
         """
+        from bclib.context import RESTfulContext
+        from bclib.predicate import PredicateHelper
+
+        # Build predicates using helper method
+        combined_predicates = PredicateHelper.build_predicates(
+            route,
+            method=method,
+            *predicates
+        )
 
         def _decorator(restful_action_handler: Callable):
             # ✨ Pre-compile injection plan at decoration time (once)
@@ -354,43 +286,86 @@ class Dispatcher(DispatcherHelper, IDispatcher):
 
             @wraps(restful_action_handler)
             async def wrapper(context: RESTfulContext):
-                # ✨ Execute pre-compiled plan (fast - no reflection)
-                kwargs = context.url_segments if context.url_segments else {}
+                # Execute pre-compiled plan (fast - no reflection)
+                kwargs = {**(context.url_segments or {}),
+                          **(context.query or {})}
                 action_result = await injection_plan.execute_async(
                     self.__service_provider, self.__event_loop, **kwargs)
                 return None if action_result is None else context.generate_response(action_result)
 
             self._get_context_lookup(RESTfulContext)\
-                .append(CallbackInfo([*predicates], wrapper))
+                .append(CallbackInfo([*combined_predicates], wrapper))
             return restful_action_handler
         return _decorator
 
-    def web_action(self, * predicates: (Predicate)):
+    def web_action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
         """
         Decorator for legacy web request action with automatic DI
 
         Context parameter is optional - handler can choose to:
-        - Accept context: def handler(context: WebContext)
+        - Accept context: def handler(context: HttpContext)
         - Skip context and use only services: def handler(logger: ILogger)
-        - Mix both: def handler(context: WebContext, logger: ILogger)
+        - Mix both: def handler(context: HttpContext, logger: ILogger)
+
+        Args:
+            route: Optional URL route pattern as first argument (e.g., "page/:id", "static/assets")
+            method: Optional HTTP method filter - single string ("get", "post") or list (["GET", "POST"])
+            *predicates: Variable number of Predicate objects for additional request matching rules
+
+        Example:
+            ```python
+            # Using route as first argument
+            @app.web_action("about")
+            def about_page(context: HttpContext):
+                return "<h1>About Us</h1>"
+
+            # Using route and single method
+            @app.web_action("contact", method="post")
+            def submit_contact(context: HttpContext):
+                return "<h1>Thank you!</h1>"
+
+            # Using multiple methods as array
+            @app.web_action("form", method=["GET", "POST"])
+            def form_handler(context: HttpContext):
+                return "<h1>Form Page</h1>"
+
+            # Using route with additional predicates
+            @app.web_action("admin/:section", method="GET", app.has_value("context.query.token"))
+            def admin_panel(context: HttpContext):
+                return f"<h1>Admin: {context.url_segments['section']}</h1>"
+
+            # No route, just predicates
+            @app.web_action(predicates=[app.callback(check_auth)])
+            def protected_page(context: HttpContext):
+                return "<h1>Protected</h1>"
+            ```
         """
+        from bclib.context import HttpContext
+        from bclib.predicate import PredicateHelper
+
+        # Build predicates using helper method
+        combined_predicates = PredicateHelper.build_predicates(
+            route,
+            method=method,
+            *predicates
+        )
 
         def _decorator(web_action_handler: Callable):
-            # ✨ Pre-compile injection plan at decoration time (once)
+            # Pre-compile injection plan at decoration time (once)
             injection_plan = InjectionPlan(web_action_handler)
 
             @wraps(web_action_handler)
-            async def wrapper(context: WebContext):
+            async def wrapper(context: HttpContext):
                 kwargs = context.url_segments if context.url_segments else {}
                 action_result = await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
                 return None if action_result is None else context.generate_response(action_result)
 
-            self._get_context_lookup(WebContext)\
-                .append(CallbackInfo([*predicates], wrapper))
+            self._get_context_lookup(HttpContext)\
+                .append(CallbackInfo([*combined_predicates], wrapper))
             return web_action_handler
         return _decorator
 
-    def websocket_action(self, * predicates: (Predicate)):
+    def websocket_action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
         """
         Decorator for WebSocket action with automatic DI
 
@@ -398,25 +373,37 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         - Accept context: def handler(context: WebSocketSession)
         - Skip context and use only services: def handler(logger: ILogger)
         - Mix both: def handler(context: WebSocketSession, logger: ILogger)
+
+        Args:
+            route: Optional URL route pattern (e.g., "ws/chat/:room")
+            method: Optional HTTP method filter for WebSocket upgrade request
+            *predicates: Variable number of Predicate objects for additional matching rules
         """
+        from bclib.context import WebSocketContext
+        from bclib.predicate import PredicateHelper
+
+        # Build predicates using helper method
+        combined_predicates = PredicateHelper.build_predicates(
+            route,
+            method=method,
+            *predicates
+        )
 
         def _decorator(websocket_action_handler: Callable):
-            from bclib.websocket import WebSocketSession
-
-            # ✨ Pre-compile injection plan at decoration time (once)
+            # Pre-compile injection plan at decoration time (once)
             injection_plan = InjectionPlan(websocket_action_handler)
 
             @wraps(websocket_action_handler)
-            async def wrapper(context: WebSocketSession):
+            async def wrapper(context: WebSocketContext):
                 kwargs = context.url_segments if context.url_segments else {}
                 return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
 
             self._get_context_lookup(WebSocketContext)\
-                .append(CallbackInfo([*predicates], wrapper))
+                .append(CallbackInfo([*combined_predicates], wrapper))
             return websocket_action_handler
         return _decorator
 
-    def client_source_action(self, *predicates: (Predicate)):
+    def client_source_action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
         """
         Decorator for client source action with automatic DI
 
@@ -424,14 +411,29 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         - Accept context: def handler(context: ClientSourceContext)
         - Skip context and use only services: def handler(logger: ILogger)
         - Mix both: def handler(context: ClientSourceContext, logger: ILogger)
+
+        Args:
+            route: Optional URL route pattern (e.g., "data/users/:id")
+            method: Optional HTTP method filter
+            *predicates: Variable number of Predicate objects for additional matching rules
         """
+        from bclib.context import (ClientSourceContext,
+                                   ClientSourceMemberContext)
+        from bclib.predicate import PredicateHelper
+
+        # Build predicates using helper method
+        combined_predicates = PredicateHelper.build_predicates(
+            route,
+            method=method,
+            *predicates
+        )
 
         def _decorator(client_source_action_handler: Callable):
-            # ✨ Pre-compile injection plan at decoration time (once)
+            # Pre-compile injection plan at decoration time (once)
             injection_plan = InjectionPlan(client_source_action_handler)
 
             @wraps(client_source_action_handler)
-            async def wrapper(context: ClientSourceContext):
+            async def wrapper(context):
                 kwargs = context.url_segments if context.url_segments else {}
                 data = await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
                 result_set = list()
@@ -462,12 +464,12 @@ class Dispatcher(DispatcherHelper, IDispatcher):
                     return None
 
             self._get_context_lookup(ClientSourceContext)\
-                .append(CallbackInfo([*predicates], wrapper))
+                .append(CallbackInfo([*combined_predicates], wrapper))
 
             return client_source_action_handler
         return _decorator
 
-    def client_source_member_action(self, *predicates: (Predicate)):
+    def client_source_member_action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
         """
         Decorator for client source member action with automatic DI
 
@@ -475,10 +477,24 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         - Accept context: def handler(context: ClientSourceMemberContext)
         - Skip context and use only services: def handler(logger: ILogger)
         - Mix both: def handler(context: ClientSourceMemberContext, logger: ILogger)
+
+        Args:
+            route: Optional URL route pattern
+            method: Optional HTTP method filter
+            *predicates: Variable number of Predicate objects for additional matching rules
         """
+        from bclib.context import ClientSourceMemberContext
+        from bclib.predicate import PredicateHelper
+
+        # Build predicates using helper method
+        combined_predicates = PredicateHelper.build_predicates(
+            route,
+            method=method,
+            *predicates
+        )
 
         def _decorator(client_source_member_handler: Callable):
-            # ✨ Pre-compile injection plan at decoration time (once)
+            # Pre-compile injection plan at decoration time (once)
             injection_plan = InjectionPlan(client_source_member_handler)
 
             @wraps(client_source_member_handler)
@@ -487,11 +503,11 @@ class Dispatcher(DispatcherHelper, IDispatcher):
                 return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
 
             self._get_context_lookup(ClientSourceMemberContext)\
-                .append(CallbackInfo([*predicates], wrapper))
+                .append(CallbackInfo([*combined_predicates], wrapper))
             return client_source_member_handler
         return _decorator
 
-    def server_source_action(self, *predicates: (Predicate)):
+    def server_source_action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
         """
         Decorator for server source action with automatic DI
 
@@ -499,10 +515,25 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         - Accept context: def handler(context: ServerSourceContext)
         - Skip context and use only services: def handler(logger: ILogger)
         - Mix both: def handler(context: ServerSourceContext, logger: ILogger)
+
+        Args:
+            route: Optional URL route pattern
+            method: Optional HTTP method filter
+            *predicates: Variable number of Predicate objects for additional matching rules
         """
+        from bclib.context import (ServerSourceContext,
+                                   ServerSourceMemberContext)
+        from bclib.predicate import PredicateHelper
+
+        # Build predicates using helper method
+        combined_predicates = PredicateHelper.build_predicates(
+            route,
+            method=method,
+            *predicates
+        )
 
         def _decorator(server_source_action_handler: Callable):
-            # ✨ Pre-compile injection plan at decoration time (once)
+            # Pre-compile injection plan at decoration time (once)
             injection_plan = InjectionPlan(server_source_action_handler)
 
             @wraps(server_source_action_handler)
@@ -537,12 +568,12 @@ class Dispatcher(DispatcherHelper, IDispatcher):
                     return None
 
             self._get_context_lookup(ServerSourceContext)\
-                .append(CallbackInfo([*predicates], wrapper))
+                .append(CallbackInfo([*combined_predicates], wrapper))
 
             return server_source_action_handler
         return _decorator
 
-    def server_source_member_action(self, *predicates: (Predicate)):
+    def server_source_member_action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
         """
         Decorator for server source member action with automatic DI
 
@@ -550,23 +581,37 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         - Accept context: def handler(context: ServerSourceMemberContext)
         - Skip context and use only services: def handler(logger: ILogger)
         - Mix both: def handler(context: ServerSourceMemberContext, logger: ILogger)
+
+        Args:
+            route: Optional URL route pattern
+            method: Optional HTTP method filter
+            *predicates: Variable number of Predicate objects for additional matching rules
         """
+        from bclib.context import ServerSourceMemberContext
+        from bclib.predicate import PredicateHelper
+
+        # Build predicates using helper method
+        combined_predicates = PredicateHelper.build_predicates(
+            route,
+            method=method,
+            *predicates
+        )
 
         def _decorator(server_source_member_action_handler: Callable):
             # ✨ Pre-compile injection plan at decoration time (once)
             injection_plan = InjectionPlan(server_source_member_action_handler)
 
             @wraps(server_source_member_action_handler)
-            async def wrapper(context: ServerSourceMemberContext):
+            async def wrapper(context):
                 kwargs = context.url_segments if context.url_segments else {}
                 return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
 
             self._get_context_lookup(ServerSourceMemberContext)\
-                .append(CallbackInfo([*predicates], wrapper))
+                .append(CallbackInfo([*combined_predicates], wrapper))
             return server_source_member_action_handler
         return _decorator
 
-    def rabbit_action(self, * predicates: (Predicate)):
+    def rabbit_action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
         """
         Decorator for RabbitMQ message action with automatic DI
 
@@ -574,19 +619,33 @@ class Dispatcher(DispatcherHelper, IDispatcher):
         - Accept context: def handler(context: RabbitContext)
         - Skip context and use only services: def handler(logger: ILogger)
         - Mix both: def handler(context: RabbitContext, logger: ILogger)
+
+        Args:
+            route: Optional URL route pattern
+            method: Optional HTTP method filter
+            *predicates: Variable number of Predicate objects for additional matching rules
         """
+        from bclib.context import RabbitContext
+        from bclib.predicate import PredicateHelper
+
+        # Build predicates using helper method
+        combined_predicates = PredicateHelper.build_predicates(
+            route,
+            method=method,
+            *predicates
+        )
 
         def _decorator(rabbit_action_handler: Callable):
             # ✨ Pre-compile injection plan at decoration time (once)
             injection_plan = InjectionPlan(rabbit_action_handler)
 
             @wraps(rabbit_action_handler)
-            async def wrapper(context: RabbitContext):
+            async def wrapper(context):
                 kwargs = context.url_segments if context.url_segments else {}
                 return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
 
             self._get_context_lookup(RabbitContext)\
-                .append(CallbackInfo([*predicates], wrapper))
+                .append(CallbackInfo([*combined_predicates], wrapper))
 
             return rabbit_action_handler
         return _decorator
@@ -602,7 +661,7 @@ class Dispatcher(DispatcherHelper, IDispatcher):
             self.__look_up[key] = ret_val
         return ret_val
 
-    async def dispatch_async(self, context: Context) -> Any:
+    async def dispatch_async(self, context: 'Context') -> dict:
         """Dispatch context and get result from related action method"""
 
         result: Any = None
@@ -614,12 +673,9 @@ class Dispatcher(DispatcherHelper, IDispatcher):
                 if result is not None:
                     break
             else:
-                ex = HandlerNotFoundErr(context_type.__name__)
-                if self.log_error:
-                    print(str(ex))
-                result = context.generate_error_response(ex)
+                raise HandlerNotFoundErr(context_type.__name__)
         except Exception as ex:
-            if self.log_error:
+            if self.__logger.log_error:
                 traceback.print_exc()
             result = context.generate_error_response(ex)
         return result
@@ -725,11 +781,13 @@ class Dispatcher(DispatcherHelper, IDispatcher):
 
     def add_static_handler(self, handler: StaticFileHandler) -> None:
         """Add static file handler to dispatcher"""
-        async def async_wrapper(context: WebContext):
+        from bclib.context import HttpContext
+
+        async def async_wrapper(context):
             action_result = await handler.handle(context)
             return None if action_result is None else context.generate_response(action_result)
 
-        self._get_context_lookup(WebContext)\
+        self._get_context_lookup(HttpContext)\
             .append(CallbackInfo([], async_wrapper))
 
     def cache(self, life_time: "int" = 0, key: "str" = None):

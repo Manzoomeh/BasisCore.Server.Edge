@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, List, Optional, Set
 from bclib.utility.response_types import ResponseTypes
 
 if TYPE_CHECKING:
-    from bclib.context import RequestContext
+    from context.cms_base_context import CmsBaseContext
+
     from bclib.exception import ForbiddenErr
 
 
@@ -141,7 +142,7 @@ class StaticFileHandler:
                 return index_path
         return None
 
-    async def handle(self, context: 'RequestContext') -> None:
+    async def handle(self, context: 'CmsBaseContext') -> None:
         """
         Handle static file request
 

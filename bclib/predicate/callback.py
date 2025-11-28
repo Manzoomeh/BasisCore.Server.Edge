@@ -1,7 +1,10 @@
+from typing import TYPE_CHECKING, Callable, Coroutine
+
+if TYPE_CHECKING:
+    from bclib.context import Context
+    
 from bclib.exception import ShortCircuitErr
 from ..predicate.predicate import Predicate
-from typing import Callable, Coroutine
-from bclib.context import Context
 
 
 class Callback (Predicate):
@@ -11,7 +14,7 @@ class Callback (Predicate):
         super().__init__(None)
         self.__callback = callback
 
-    async def check_async(self, context: Context) -> bool:
+    async def check_async(self, context: 'Context') -> bool:
         try:
             return await self.__callback(context)
         except ShortCircuitErr:

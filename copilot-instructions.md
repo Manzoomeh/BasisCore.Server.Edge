@@ -13,7 +13,7 @@ Edge Layer (edge.py)
        ├─ WebSocket Manager (session management)
        └─ Listeners Collection (composition-based)
             ├─ HttpListener (HTTP/HTTPS server)
-            ├─ SocketListener (bidirectional TCP)
+            ├─ TcpListener (bidirectional TCP)
             ├─ EndpointListener (TCP connections)
             └─ RabbitListener (RabbitMQ)
 ```
@@ -63,7 +63,7 @@ The framework now uses a **single `Dispatcher` class** with **composition-based 
 
 - `RoutingDispatcher` → `Dispatcher` (alias)
 - `DevServerDispatcher` → `Dispatcher` + `HttpListener` (alias)
-- `SocketDispatcher` → `Dispatcher` + `SocketListener` (alias)
+- `SocketDispatcher` → `Dispatcher` + `TcpListener` (alias)
 - `EndpointDispatcher` → `Dispatcher` + `EndpointListener` (alias)
 
 **Dispatcher Features:**
@@ -80,7 +80,7 @@ The framework now uses a **single `Dispatcher` class** with **composition-based 
 ```python
 # Listeners are added via edge.from_options() automatically
 # Or manually:
-from bclib.listener.http_listener import HttpListener
+from bclib.listener.http import HttpListener
 
 listener = HttpListener(...)
 app.add_listener(listener)
@@ -155,8 +155,8 @@ Protocol-specific listeners using composition pattern:
 
 **Listeners:**
 
-- `HttpListener` (in `http_listener/`) - aiohttp-based HTTP/HTTPS server
-- `SocketListener` - Bidirectional raw socket server
+- `HttpListener` (in `http/`) - aiohttp-based HTTP/HTTPS server
+- `TcpListener` - Bidirectional raw socket server
 - `RabbitListener` / `RabbitBusListener` - RabbitMQ integration
 - Endpoint - TCP connection handler (not a separate listener class)
 
@@ -164,7 +164,7 @@ Protocol-specific listeners using composition pattern:
 
 - `Message` - Base message with session_id, type, buffer
 - `WebMessage` - HTTP request/response wrapper
-- `SocketMessage` - Socket data wrapper
+- `TcpMessage` - Socket data wrapper
 - `WebSocketMessage` - WebSocket frame wrapper
 
 ### 5. Predicate Layer (`bclib/predicate/`)
@@ -705,7 +705,7 @@ The framework now uses **composition over inheritance**:
 app = edge.from_options({
     "server": "localhost:8080",      # Adds HttpListener
     "receiver": "localhost:8081",
-    "sender": "localhost:8082"        # Adds SocketListener
+    "sender": "localhost:8082"        # Adds TcpListener
 })
 
 # Both HTTP and Socket listeners active simultaneously!
@@ -809,3 +809,470 @@ app = edge.from_options({
 ```
 
 **No code changes required** - Old imports still work via aliases.
+
+---
+
+## Code Review Guidelines
+
+When reviewing or refactoring files in this project, follow these steps:
+
+### 1. Import Optimization
+
+**Move type-hint-only imports to TYPE_CHECKING block:**
+
+```python
+# ❌ Bad - Runtime import for type hints only
+from bclib.dispatcher.idispatcher import IDispatcher
+from bclib.listener.http.http_message import HttpMessage
+
+def __init__(self, dispatcher: IDispatcher, message: HttpMessage):
+    pass
+
+# ✅ Good - TYPE_CHECKING block for type hints
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from bclib.dispatcher.idispatcher import IDispatcher
+    from bclib.listener.http.http_message import HttpMessage
+
+def __init__(self, dispatcher: 'IDispatcher', message: 'HttpMessage'):
+    pass
+```
+
+**Benefits:**
+
+- Prevents circular imports
+- Improves module load performance
+- Separates runtime dependencies from type-checking dependencies
+- Standard Python typing best practice
+
+**Rule:** If an import is ONLY used in:
+
+- Type hints (function parameters, return types)
+- Class attributes with type annotations
+- Variable type annotations
+
+**Rule:** If an import is ONLY used in:
+
+- Type hints (function parameters, return types)
+- Class attributes with type annotations
+- Variable type annotations
+
+Then move it to `TYPE_CHECKING` block and quote the type in annotations.
+
+**Prefer Interfaces over Concrete Classes:**
+
+When a type has both a concrete class and an interface, prefer using the interface in type hints:
+
+```python
+# ❌ Bad - Using concrete class in type hint
+from bclib.dispatcher.dispatcher import Dispatcher
+
+def __init__(self, dispatcher: Dispatcher):
+    pass
+
+# ✅ Good - Using interface for loose coupling
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from bclib.dispatcher.idispatcher import IDispatcher
+
+def __init__(self, dispatcher: 'IDispatcher'):
+    pass
+```
+
+**Common Interface Patterns in BasisCore:**
+
+- `Dispatcher` → `IDispatcher`
+- `ServiceProvider` → `IServiceProvider`
+- `CacheManager` → `ICacheManager`
+- `Logger` → `ILogger`
+- `DatabaseConnection` → `IDatabase`
+
+**Benefits:**
+
+- Loose coupling - code depends on abstractions, not implementations
+- Better testability - easier to mock interfaces
+- More flexible - can swap implementations without changing type hints
+- Follows SOLID principles (Dependency Inversion)
+
+### 2. Remove Unused Imports
+
+- Check all imports at the top of the file
+- Remove any imports that are not used anywhere in the code
+- Verify with IDE/linter that removal doesn't break anything
+
+### 3. Performance & Technical Review
+
+Check for:
+
+**Performance Issues:**
+
+- ❌ Synchronous I/O in async functions (use `await` for DB, file, network operations)
+- ❌ Large loops without chunking/pagination
+- ❌ Repeated expensive operations inside loops (move outside if possible)
+- ❌ Missing `await` on async calls
+- ❌ Unnecessary deepcopy operations
+
+**Technical Issues:**
+
+- ❌ Circular imports (beyond type hints)
+- ❌ Mutable default arguments (`def func(items=[])` → use `None` and create inside)
+- ❌ Missing error handling for I/O operations
+- ❌ SQL injection vulnerabilities (use parameterized queries)
+- ❌ Hardcoded credentials or secrets
+- ❌ Missing type hints on public functions/methods
+
+### 4. Documentation Review
+
+Add comprehensive docstrings to:
+
+**Module Level (top of file):**
+
+````python
+"""
+Module Name - Brief description
+
+Detailed description of the module's purpose and functionality.
+
+Key Features:
+    - Feature 1
+    - Feature 2
+    - Feature 3
+
+Example:
+    ```python
+    from bclib.context import HttpContext
+
+    @app.http_action(app.url("api/example"))
+    async def handler(context: HttpContext):
+        return {"status": "ok"}
+    ```
+"""
+````
+
+**Class Level:**
+
+````python
+class ClassName:
+    """
+    Brief description of the class
+
+    Detailed explanation of class purpose, behavior, and usage patterns.
+
+    Attributes:
+        attr1 (type): Description of attribute
+        attr2 (type): Description of attribute
+
+    Args:
+        param1: Description
+        param2: Description
+
+    Example:
+        ```python
+        obj = ClassName(param1, param2)
+        result = obj.method()
+        ```
+
+    Note:
+        Any important notes or warnings
+    """
+````
+
+**Method/Function Level:**
+
+````python
+def method_name(self, param1: str, param2: int) -> dict:
+    """
+    Brief description of what the method does
+
+    Detailed explanation of the method's behavior, side effects,
+    and important details.
+
+    Args:
+        param1: Description of parameter 1
+        param2: Description of parameter 2
+
+    Returns:
+        dict: Description of return value
+
+    Raises:
+        ValueError: When this happens
+        TypeError: When that happens
+
+    Example:
+        ```python
+        result = obj.method_name("value", 42)
+        print(result["key"])
+        ```
+
+    Note:
+        Important notes about usage, performance, or behavior
+    """
+````
+
+**Documentation Standards:**
+
+- Every public class, method, and function must have a docstring
+- Include type hints in signatures (not just in docstrings)
+- Provide at least one practical example for complex methods
+- Document side effects (modifies state, I/O operations, etc.)
+- Note any performance considerations
+- Explain parameter constraints and valid ranges
+
+### 5. Class Member Organization
+
+Organize class members in a consistent, logical order for better readability and maintainability:
+
+**Standard Order:**
+
+1. **Class-level constants** (ALL_CAPS naming)
+2. **Class variables** (shared across instances)
+3. **`__init__` constructor** (always first method)
+4. **Special/Magic methods** (`__str__`, `__repr__`, `__len__`, etc.)
+5. **Properties** (`@property` decorated methods)
+6. **Public methods** (main API methods)
+7. **Private methods** (methods starting with `_` or `__`)
+8. **Static methods** (`@staticmethod`)
+9. **Class methods** (`@classmethod`)
+
+**Example:**
+
+```python
+class MyClass:
+    """Class docstring"""
+
+    # 1. Class constants
+    MAX_SIZE = 1000
+    DEFAULT_TIMEOUT = 30
+
+    # 2. Class variables
+    instance_count = 0
+
+    # 3. Constructor
+    def __init__(self, name: str):
+        self.name = name
+        MyClass.instance_count += 1
+
+    # 4. Special methods
+    def __str__(self) -> str:
+        return f"MyClass({self.name})"
+
+    def __repr__(self) -> str:
+        return f"MyClass(name={self.name!r})"
+
+    # 5. Properties
+    @property
+    def display_name(self) -> str:
+        return self.name.upper()
+
+    # 6. Public methods
+    def process(self, data: dict) -> dict:
+        """Process data"""
+        return self._internal_process(data)
+
+    def validate(self) -> bool:
+        """Validate instance"""
+        return len(self.name) > 0
+
+    # 7. Private methods
+    def _internal_process(self, data: dict) -> dict:
+        """Internal processing logic"""
+        return data
+
+    def __cleanup(self) -> None:
+        """Private cleanup logic"""
+        pass
+
+    # 8. Static methods
+    @staticmethod
+    def parse_config(config: str) -> dict:
+        """Parse configuration string"""
+        return json.loads(config)
+
+    # 9. Class methods
+    @classmethod
+    def from_config(cls, config: dict) -> 'MyClass':
+        """Create instance from config"""
+        return cls(config['name'])
+```
+
+**Benefits:**
+
+- Predictable structure - easier to navigate large classes
+- Constructor always at the top - first thing developers look for
+- Logical grouping - related methods stay together
+- Public API separated from internal implementation
+- Follows Python conventions and PEP 8 spirit
+
+**Additional Guidelines:**
+
+- Group related methods together (e.g., all CRUD operations)
+- Add blank line between method groups
+- Consider splitting very large classes into smaller ones
+- Use comments to mark sections (e.g., `# Public API methods`)
+
+### 6. Naming Conventions & Standards
+
+Follow Python naming conventions (PEP 8) and ensure names are clear, consistent, and meaningful:
+
+**Variable and Function Names:**
+
+```python
+# ✅ Good - snake_case for variables and functions
+user_count = 10
+def get_user_name(user_id: int) -> str:
+    pass
+
+# ❌ Bad - camelCase or inconsistent naming
+userCount = 10
+def getUserName(userId: int) -> str:
+    pass
+```
+
+**Class Names:**
+
+```python
+# ✅ Good - PascalCase for classes
+class UserManager:
+    pass
+
+class HttpContext:
+    pass
+
+# ❌ Bad - snake_case or other styles
+class user_manager:
+    pass
+
+class httpContext:
+    pass
+```
+
+**Constants:**
+
+```python
+# ✅ Good - ALL_CAPS for constants
+MAX_CONNECTIONS = 100
+DEFAULT_TIMEOUT = 30
+
+# ❌ Bad - lowercase or camelCase
+max_connections = 100
+defaultTimeout = 30
+```
+
+**Private Members:**
+
+```python
+# ✅ Good - single underscore for internal/protected
+def _internal_method(self):
+    pass
+
+self._cache = {}
+
+# ✅ Good - double underscore for name mangling (truly private)
+def __private_method(self):
+    pass
+
+self.__internal_state = None
+
+# ❌ Bad - no underscore for private members
+def privateMethod(self):
+    pass
+```
+
+**Common Naming Issues to Fix:**
+
+1. **Typos in names:**
+
+   - `exprossion` → `expression` (fix if possible without breaking API)
+   - `usre` → `user`
+   - `mesage` → `message`
+
+2. **Ambiguous names:**
+
+   - `data` → `user_data`, `request_data`, `response_data` (be specific)
+   - `temp` → `temporary_result`, `temp_user` (explain what it is)
+   - `obj` → `user_object`, `context_object` (be descriptive)
+
+3. **Inconsistent naming:**
+
+   - Mix of `get_user` and `fetch_user` → choose one pattern
+   - Mix of `user_id` and `userId` → use snake_case consistently
+
+4. **Boolean naming:**
+
+   ```python
+   # ✅ Good - use is_, has_, can_, should_ prefixes
+   is_active: bool
+   has_permission: bool
+   can_edit: bool
+   should_retry: bool
+
+   # ❌ Bad - ambiguous names
+   active: bool
+   permission: bool
+   edit: bool
+   ```
+
+5. **Method names should be verbs:**
+
+   ```python
+   # ✅ Good - action verbs
+   def calculate_total(self) -> float:
+       pass
+
+   def validate_input(self, data: dict) -> bool:
+       pass
+
+   # ❌ Bad - nouns or unclear
+   def total(self) -> float:
+       pass
+
+   def input(self, data: dict) -> bool:
+       pass
+   ```
+
+**Naming Checklist:**
+
+- [ ] Variables and functions use `snake_case`
+- [ ] Classes use `PascalCase`
+- [ ] Constants use `ALL_CAPS`
+- [ ] Private members start with `_` or `__`
+- [ ] Boolean variables use `is_`, `has_`, `can_`, `should_` prefixes
+- [ ] Method names are verbs (action-oriented)
+- [ ] Names are descriptive and unambiguous
+- [ ] No typos in identifiers
+- [ ] Consistent naming patterns throughout the file
+- [ ] Abbreviations avoided unless widely recognized (e.g., `url`, `id`, `http`)
+
+### Complete Review Checklist
+
+When asked to "review/check a file", perform ALL these steps:
+
+- [ ] Move type-hint-only imports to `TYPE_CHECKING` block
+- [ ] Quote type hints that are moved to `TYPE_CHECKING`
+- [ ] **Replace concrete classes with interfaces in type hints** (Dispatcher→IDispatcher, etc.)
+- [ ] Remove unused imports
+- [ ] **Organize class members in standard order** (constants, **init**, properties, public, private, static, classmethod)
+- [ ] **Check naming conventions** (snake_case, PascalCase, ALL_CAPS, fix typos)
+- [ ] **Verify method/variable names are descriptive and follow verb/noun patterns**
+- [ ] Check for performance issues (sync I/O, inefficient loops, etc.)
+- [ ] Check for technical issues (circular imports, mutable defaults, etc.)
+- [ ] Verify error handling for I/O operations
+- [ ] **Add/complete module-level docstring with description, features, and examples**
+- [ ] **Add/complete class-level docstrings with attributes, args, and examples**
+- [ ] **Add/complete method/function docstrings with Args, Returns, Raises, Examples, Notes**
+- [ ] Verify all public APIs have type hints
+- [ ] Check for security issues (SQL injection, hardcoded secrets, etc.)
+
+### Command Translation
+
+When user says (in Persian or English):
+
+- "فایل X رو بررسی کن" / "Review file X"
+- "این فایل رو چک کن" / "Check this file"
+- "کد رو بهینه کن" / "Optimize the code"
+
+Perform the **Complete Review Checklist** above.
+
+---

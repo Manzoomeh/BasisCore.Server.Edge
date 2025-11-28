@@ -1,8 +1,8 @@
-import json
 import datetime
+import json
 import xml.etree.ElementTree
-import edge
 
+import edge
 
 options = {
     "sender": "127.0.0.1:1025",
@@ -18,8 +18,8 @@ app = edge.from_options(options)
 
 @app.cache()
 def generate_data() -> list:
-    import string
     import random  # define the random module
+    import string
 
     ret_val = list()
     for i in range(10):
@@ -33,13 +33,13 @@ def generate_data() -> list:
 ######################
 
 
-@ app.server_source_action(app.equal("context.command.name", "demo"))
+@app.server_source_action(app.equal("context.command.name", "demo"))
 def process_basiscore_server_source(context: edge.ServerSourceContext):
     print("process_basiscore_source", context.params.p1)
     return generate_data()
 
 
-@ app.server_source_action(
+@app.server_source_action(
     app.equal("context.command.name", "basiscode"),
     app.in_list("context.command.mid", "10", "20"))
 def process_demo_source(context: edge.ServerSourceContext):
@@ -83,7 +83,7 @@ def process_count_server_member(context: edge.ServerSourceMemberContext):
 #####
 
 @app.web_action()
-def process_web_sample_dbsource_request(context: edge.WebContext):
+def process_web_sample_dbsource_request(context: edge.HttpContext):
     context.response_type = edge.ResponseTypes.RENDERABLE
     return """
      <basis core="dbsource"  source="cmsDbService" mid="20" name="demo"  lid="1" dmnid="" ownerpermit="" >

@@ -1,19 +1,18 @@
+from mailbox import Message
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from .. import dispatcher, listener
+    from bclib.dispatcher.idispatcher import IDispatcher
 
+from bclib.context.context import Context
 from bclib.parser import HtmlParserEx
-from bclib.utility import DictEx
-
-from ..context.context import Context
 
 
 class ServerSourceContext(Context):
     """Base class for dispatching server base dbsource request context"""
 
-    def __init__(self, cms_object: dict, dispatcher: 'dispatcher.IDispatcher', message_object: 'listener.Message' = None) -> None:
-        super().__init__(dispatcher)
+    def __init__(self, cms_object: dict, dispatcher: 'IDispatcher', message_object: Message = None) -> None:
+        super().__init__(dispatcher, True)
         parser = HtmlParserEx()
         self.raw_command = cms_object["command"]
         self.dmn_id = cms_object.get("dmnid")

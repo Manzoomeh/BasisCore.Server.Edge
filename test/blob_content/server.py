@@ -1,5 +1,6 @@
-from bclib import edge
 import os
+
+from bclib import edge
 
 options = {
     "server": "127.0.0.1:2057",
@@ -8,16 +9,19 @@ options = {
 
 app = edge.from_options(options)
 
+
 @app.web_action(app.get("xlsx"))
-async def process_web_remain_request(context: edge.WebContext):
+async def process_web_remain_request(context: edge.HttpContext):
     print("xlsx")
     context.mime = edge.HttpMimeTypes.XLSX
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sample.xlsx")
+    path = os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), "sample.xlsx")
     with open(path, "rb") as f:
         return f.read()
 
+
 @app.web_action()
-async def process_web_remain_request(context: edge.WebContext):
+async def process_web_remain_request(context: edge.HttpContext):
     print("all")
     return """
         <form method="post" enctype="multipart/form-data">

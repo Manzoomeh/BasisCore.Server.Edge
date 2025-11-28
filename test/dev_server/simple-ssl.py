@@ -4,9 +4,9 @@ if "options" not in dir():
     options = {
         "server": "localhost:8081",
         "router": "web",
-        "ssl":{
-            "certfile":"D:/Programming/Falsafi/BasisCore/Server/BasisCore.Server.Edge/test/test-cert/server.cert",
-            "keyfile":"D:/Programming/Falsafi/BasisCore/Server/BasisCore.Server.Edge/test/test-cert/server.key"
+        "ssl": {
+            "certfile": "D:/Programming/Falsafi/BasisCore/Server/BasisCore.Server.Edge/test/test-cert/server.cert",
+            "keyfile": "D:/Programming/Falsafi/BasisCore/Server/BasisCore.Server.Edge/test/test-cert/server.key"
         }
     }
 
@@ -19,12 +19,12 @@ async def check_async(context: edge.RequestContext):
 
 
 @app.web_action(app.callback(check_async))
-def process_web_action(context: edge.WebContext):
+def process_web_action(context: edge.HttpContext):
     return "result from process_web_action"
 
 
 @app.web_action()
-def process_default_web_action(context: edge.WebContext):
+def process_default_web_action(context: edge.HttpContext):
     return "result from process_default_web_action"
 
 

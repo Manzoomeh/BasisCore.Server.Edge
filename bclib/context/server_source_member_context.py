@@ -1,14 +1,17 @@
-from typing import Any
-from ..context.merge_type import MergeType
-from ..context.context import Context
-from ..context.server_source_context import ServerSourceContext
+from typing import TYPE_CHECKING, Any
+
+from bclib.context.context import Context
+from bclib.context.merge_type import MergeType
+
+if TYPE_CHECKING:
+    from bclib.context.server_source_context import ServerSourceContext
 
 
 class ServerSourceMemberContext(Context):
     """Context for Server dbSource member request"""
 
-    def __init__(self, sourceContext: ServerSourceContext, data: Any, member: dict) -> None:
-        super().__init__(sourceContext.dispatcher)
+    def __init__(self, sourceContext: 'ServerSourceContext', data: Any, member: dict) -> None:
+        super().__init__(sourceContext.dispatcher, False)
         self.__source_context = sourceContext
         self.member = member
         self.data = data

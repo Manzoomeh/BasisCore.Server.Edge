@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bclib.context import RequestContext
+    from bclib.context.cms_base_context import CmsBaseContext
 
 
 class HttpHeaders:
@@ -69,7 +69,8 @@ class HttpHeaders:
     X_XSS_PROTECTION = "X-XSS-Protection"
 
     @staticmethod
-    def add_cors_headers(context: 'RequestContext'):
+    def add_cors_headers(context: 'CmsBaseContext') -> 'CmsBaseContext':
         context.add_header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
         context.add_header(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
                            "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With")
+        return context

@@ -7,7 +7,7 @@ Supports service registration, resolution, and lifecycle management.
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Optional, Type, TypeVar
 
-from .service_lifetime import ServiceLifetime
+from bclib.service_provider.service_lifetime import ServiceLifetime
 
 T = TypeVar('T')
 

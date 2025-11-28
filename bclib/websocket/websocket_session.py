@@ -11,7 +11,7 @@ from bclib.listener.message_type import MessageType
 if TYPE_CHECKING:
     from aiohttp import web
 
-    from bclib.listener.http_listener.websocket_message import WebSocketMessage
+    from bclib.listener.http.websocket_message import WebSocketMessage
     from bclib.websocket.websocket_session_manager import \
         WebSocketSessionManager
 
@@ -80,8 +80,7 @@ class WebSocketSession:
 
     async def _start_async(self) -> None:
         """Start the connection loop and heartbeat (internal method)"""
-        from bclib.listener.http_listener.websocket_message import \
-            WebSocketMessage
+        from bclib.listener.http.websocket_message import WebSocketMessage
 
         # Heartbeat task as local variable
         heartbeat_task: Optional[asyncio.Task] = None
@@ -215,8 +214,7 @@ class WebSocketSession:
 
     async def _send_disconnect(self, exit_code: int) -> None:
         """Send DISCONNECT message"""
-        from bclib.listener.http_listener.websocket_message import \
-            WebSocketMessage
+        from bclib.listener.http.websocket_message import WebSocketMessage
         disconnect_msg = WebSocketMessage.disconnect(
             self, MessageType.DISCONNECT, code=exit_code)
         try:

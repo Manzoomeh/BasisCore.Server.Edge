@@ -18,9 +18,9 @@ from bclib.utility.http_base_data_name import HttpBaseDataName
 from bclib.utility.http_base_data_type import HttpBaseDataType
 
 from ..endpoint import Endpoint
-from ..http_listener.web_request_helper import WebRequestHelper
 from ..message import Message
 from .http_message import HttpMessage
+from .web_request_helper import WebRequestHelper
 
 if TYPE_CHECKING:
     from aiohttp import web

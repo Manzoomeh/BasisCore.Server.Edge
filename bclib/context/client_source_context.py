@@ -1,17 +1,17 @@
 from typing import TYPE_CHECKING
 
-from bclib.context.json_base_request_context import JsonBaseRequestContext
+from bclib.context.restful_context import RESTfulContext
 from bclib.parser import HtmlParserEx
-from bclib.utility import DictEx
 
 if TYPE_CHECKING:
-    from .. import dispatcher, listener
+    from bclib.dispatcher.idispatcher import IDispatcher
+    from bclib.listener.http.http_message import HttpMessage
 
 
-class ClientSourceContext(JsonBaseRequestContext):
+class ClientSourceContext(RESTfulContext):
     """Context for client dbSource request"""
 
-    def __init__(self, cms_object: dict, dispatcher: 'dispatcher.IDispatcher', message_object: 'listener.SocketMessage') -> None:
+    def __init__(self, cms_object: dict, dispatcher: 'IDispatcher', message_object: 'HttpMessage') -> None:
         super().__init__(cms_object, dispatcher, message_object)
         parser = HtmlParserEx()
         self.raw_command = self.form.get('command')

@@ -1,6 +1,9 @@
 from types import FunctionType
+from typing import TYPE_CHECKING
 
-from bclib.context import Context
+if TYPE_CHECKING:
+    from bclib.context import Context
+    
 from bclib.utility import DictEx
 
 from ..predicate.predicate import Predicate
@@ -13,7 +16,7 @@ class Url (Predicate):
         super().__init__(expression)
         self.__validator: FunctionType = Url.__generate_validator(expression)
 
-    async def check_async(self, context: Context) -> bool:
+    async def check_async(self, context: 'Context') -> bool:
         try:
             is_ok, url_parts = self.__validator(context.url)
             if is_ok and url_parts:

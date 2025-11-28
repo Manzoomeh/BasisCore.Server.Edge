@@ -42,22 +42,22 @@ import asyncio
 
 from bclib import __version__
 from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
-                           Context, MergeType, RabbitContext, RequestContext,
+                           Context, HttpContext, MergeType, RabbitContext,
                            RESTfulContext, ServerSourceContext,
                            ServerSourceMemberContext, SourceContext,
-                           SourceMemberContext, WebContext, WebSocketContext)
+                           SourceMemberContext, WebSocketContext)
 from bclib.db_manager import *
 from bclib.dispatcher import Dispatcher, IDispatcher
 from bclib.exception import *
 from bclib.listener import (HttpBaseDataName, HttpBaseDataType, Message,
                             MessageType, RabbitBusListener)
-from bclib.predicate import Predicate
+from bclib.predicate import Predicate, PredicateHelper
 from bclib.utility import (DictEx, HttpHeaders, HttpMimeTypes, HttpStatusCodes,
                            ResponseTypes, StaticFileHandler)
 from bclib.websocket import WebSocketSession
 
 
-def from_config(option_file_path: str, file_name: str = "host.json"):
+def from_config(option_file_path: str, file_name: str = "host.json") -> IDispatcher:
     """
     Create Dispatcher from JSON configuration file
 
@@ -87,10 +87,10 @@ def from_config(option_file_path: str, file_name: str = "host.json"):
 
     with open(Path(option_file_path).with_name(file_name), encoding="utf-8") as options_file:
         options = json.load(options_file)
-    from_options(options)
+    return from_options(options)
 
 
-def from_list(hosts: 'dict[str,list[str]]'):
+def from_list(hosts: 'dict[str,list[str]]') -> None:
     """
     Run multiple server instances with different configurations
 
@@ -127,7 +127,7 @@ def from_list(hosts: 'dict[str,list[str]]'):
         loop.run_until_complete(asyncio.gather(*tasks))
 
 
-def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> Dispatcher:
+def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDispatcher:
     """
     Create Dispatcher with listeners based on configuration dictionary
 

@@ -1,4 +1,8 @@
-from bclib.context import Context
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from bclib.context import Context
+    
 from ..predicate.predicate import Predicate
 from typing import Any
 
@@ -9,7 +13,7 @@ class HasValue (Predicate):
     def __init__(self, expression: str) -> None:
         super().__init__(expression)
 
-    async def check_async(self, context: Context) -> bool:
+    async def check_async(self, context: 'Context') -> bool:
         try:
             value = eval(self.exprossion, {}, {"context": context})
             return False if not value or value.isspace() else True

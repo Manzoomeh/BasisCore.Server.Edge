@@ -7,7 +7,7 @@ Useful for dynamic handler registration at runtime.
 import unittest
 from unittest.mock import AsyncMock, Mock
 
-from bclib.context import RESTfulContext, SocketContext, WebContext
+from bclib.context import HttpContext, RESTfulContext, SocketContext
 from bclib.dispatcher import Dispatcher
 from bclib.service_provider import ServiceProvider
 
@@ -80,7 +80,7 @@ class TestRegisterHandler(unittest.TestCase):
         # Chain multiple registrations
         result = self.dispatcher\
             .register_handler(RESTfulContext, handler1)\
-            .register_handler(WebContext, handler2)
+            .register_handler(HttpContext, handler2)
 
         # Should return self for chaining
         self.assertIs(result, self.dispatcher)
@@ -89,7 +89,7 @@ class TestRegisterHandler(unittest.TestCase):
         self.assertEqual(
             len(self.dispatcher._get_context_lookup(RESTfulContext)), 1)
         self.assertEqual(
-            len(self.dispatcher._get_context_lookup(WebContext)), 1)
+            len(self.dispatcher._get_context_lookup(HttpContext)), 1)
 
     def test_register_socket_handler(self):
         """Test registering socket handler"""
@@ -117,7 +117,7 @@ class TestRegisterHandler(unittest.TestCase):
 
         self.dispatcher.register_handler(RESTfulContext, restful_handler)
         self.dispatcher.register_handler(SocketContext, socket_handler)
-        self.dispatcher.register_handler(WebContext, web_handler)
+        self.dispatcher.register_handler(HttpContext, web_handler)
 
         # Each context type should have one handler
         self.assertEqual(
@@ -125,7 +125,7 @@ class TestRegisterHandler(unittest.TestCase):
         self.assertEqual(
             len(self.dispatcher._get_context_lookup(SocketContext)), 1)
         self.assertEqual(
-            len(self.dispatcher._get_context_lookup(WebContext)), 1)
+            len(self.dispatcher._get_context_lookup(HttpContext)), 1)
 
     def test_mix_decorator_and_register_handler(self):
         """Test mixing decorator-based and programmatic registration"""
@@ -208,12 +208,12 @@ class TestRegisterHandler(unittest.TestCase):
 
         # Register handlers
         self.dispatcher.register_handler(RESTfulContext, handler1)
-        self.dispatcher.register_handler(WebContext, handler2)
+        self.dispatcher.register_handler(HttpContext, handler2)
 
         # Chain unregister operations
         result = self.dispatcher\
             .unregister_handler(RESTfulContext, handler1)\
-            .unregister_handler(WebContext)
+            .unregister_handler(HttpContext)
 
         # Should return self for chaining
         self.assertIs(result, self.dispatcher)
@@ -222,7 +222,7 @@ class TestRegisterHandler(unittest.TestCase):
         self.assertEqual(
             len(self.dispatcher._get_context_lookup(RESTfulContext)), 0)
         self.assertEqual(
-            len(self.dispatcher._get_context_lookup(WebContext)), 0)
+            len(self.dispatcher._get_context_lookup(HttpContext)), 0)
 
     def test_unregister_nonexistent_handler(self):
         """Test unregistering a handler that was never registered"""

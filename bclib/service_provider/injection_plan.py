@@ -14,7 +14,7 @@ Can be used for:
 import asyncio
 import inspect
 from typing import (TYPE_CHECKING, Any, Callable, Coroutine, Dict, Type, Union,
-                    get_type_hints)
+                    get_args, get_origin, get_type_hints)
 
 from .injection_strategy import (InjectionStrategy, ServiceStrategy,
                                  ValueStrategy)
@@ -73,10 +73,24 @@ class InjectionPlan:
                 if param_type is None:
                     continue
 
+                # Check if it's a primitive type or Optional[primitive]
+                actual_type = param_type
+                is_optional = False
+
+                # Handle Optional types (Union[X, None])
+                if get_origin(param_type) is Union:
+                    args = get_args(param_type)
+                    # Check if it's Optional (Union with None)
+                    if type(None) in args:
+                        is_optional = True
+                        # Get the non-None type
+                        actual_type = next(
+                            (arg for arg in args if arg is not type(None)), None)
+
                 # Check if it's a primitive type that could be URL segment
-                if param_type in (str, int, float):
+                if actual_type in (str, int, float):
                     self.param_strategies[param_name] = ValueStrategy(
-                        param_name, param_type)
+                        param_name, actual_type)
                 else:
                     # Assume it's a service type
                     self.param_strategies[param_name] = ServiceStrategy(

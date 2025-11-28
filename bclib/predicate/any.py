@@ -1,5 +1,9 @@
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from bclib.context import Context
+    
 from ..predicate.predicate import Predicate
-from bclib.context import Context
 
 
 class Any (Predicate):
@@ -9,7 +13,7 @@ class Any (Predicate):
         super().__init__(None)
         self.__predicate_list = predicate
 
-    async def check_async(self, context: Context) -> bool:
+    async def check_async(self, context: 'Context') -> bool:
         is_ok = False
         try:
             for predicate in self.__predicate_list:

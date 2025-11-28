@@ -1,8 +1,8 @@
-import json
 import datetime
+import json
 import xml.etree.ElementTree
-from bclib import edge
 
+from bclib import edge
 
 options = {
     "sender": "127.0.0.1:1025",
@@ -21,8 +21,8 @@ app.cache()
 
 
 def generate_data() -> list:
-    import string
     import random  # define the random module
+    import string
 
     ret_val = list()
     for i in range(10):
@@ -55,13 +55,13 @@ def process_restful_request(context: edge.RESTfulContext):
 ######################
 
 
-@ app.server_source_action()
+@app.server_source_action()
 def process_basiscore_server_source(context: edge.ServerSourceContext):
     print("process_basiscore_source", context.params.p1)
     return generate_data()
 
 
-@ app.server_source_action(
+@app.server_source_action(
     app.equal("context.command.source", "demo"),
     app.in_list("context.command.mid", "10", "20"))
 def process_demo_source(context: edge.ServerSourceContext):
@@ -105,7 +105,7 @@ def process_count_server_member(context: edge.ServerSourceMemberContext):
 ######################
 
 
-@ app.client_source_action(
+@app.client_source_action(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
 def process_basiscore_client_source(context: edge.ClientSourceContext):
@@ -167,7 +167,7 @@ class Client:
         command = xml.etree.ElementTree.fromstring(message.command)
         if self.UserName == None:
             self.UserName = command.get('user-name')
-            if(self.UserName == "."):
+            if (self.UserName == "."):
                 self.close_async(True)
             else:
                 await ChatRoom.send_to_all_message_async(
@@ -212,7 +212,7 @@ class ChatRoom:
 
     @staticmethod
     async def process_message_async(message: edge.Message, cms: edge.DictEx, body: edge.DictEx):
-        if(message.type == edge.MessageType.CONNECT):
+        if (message.type == edge.MessageType.CONNECT):
             ChatRoom.__sessions[message.session_id] = Client(
                 message.session_id, cms)
         elif message.type == edge.MessageType.DISCONNECT:
@@ -236,7 +236,7 @@ async def process_not_exist_message_async(context: edge.SocketContext):
     await ChatRoom.process_message_async(context.message, None, None)
 
 
-@ app.socket_action()
+@app.socket_action()
 async def process_all_other_message(context: edge.SocketContext):
     print("process_all_other_message")
     await ChatRoom.process_message_async(context.message,
@@ -246,8 +246,8 @@ async def process_all_other_message(context: edge.SocketContext):
 #####
 # Web
 #####
-@ app.web_action(app.url("qam-test/chat"))
-def process_web_message(context: edge.WebContext):
+@app.web_action(app.url("qam-test/chat"))
+def process_web_message(context: edge.HttpContext):
     return """
             <style>
             td {
@@ -398,10 +398,10 @@ def process_web_message(context: edge.WebContext):
         """
 
 
-@ app.web_action(
+@app.web_action(
     app.url("qam-test/sample-source/:source"),
     app.in_list("context.url_segments.source", "demo", "basiscore"))
-def process_web_sample_source_request(context: edge.WebContext):
+def process_web_sample_source_request(context: edge.HttpContext):
     return f"""
      <basis core="dbsource" run="atclient" source="{context.url_segments.source}" mid="20" name="demo"  lid="1" dmnid="" ownerpermit="" >
         <member name="list" type="list" pageno="3" perpage="20" request="catname" order="id desc"></member>
@@ -433,8 +433,8 @@ def process_web_sample_source_request(context: edge.WebContext):
         """
 
 
-@ app.web_action(app.url("qam-test/dbsource"))
-def process_web_sample_dbsource_request(context: edge.WebContext):
+@app.web_action(app.url("qam-test/dbsource"))
+def process_web_sample_dbsource_request(context: edge.HttpContext):
     context.response_type = edge.ResponseTypes.RENDERABLE
     return """
      <basis core="dbsource"  source="cmsDbService" mid="20" name="demo"  lid="1" dmnid="" ownerpermit="" >
@@ -452,8 +452,8 @@ def process_web_sample_dbsource_request(context: edge.WebContext):
         """
 
 
-@ app.web_action()
-def process_web_remain_request(context: edge.WebContext):
+@app.web_action()
+def process_web_remain_request(context: edge.HttpContext):
     print("process_web_remain_request")
     context.add_header(edge.HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
     context.add_header("x-ali", "12")

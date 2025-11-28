@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from bclib.app_options import AppOptions
 from bclib.listener import (Endpoint, HttpListener, RabbitBusListener,
-                            SocketListener)
+                            TcpListener)
 from bclib.listener_factory.ilistener_factory import IListenerFactory
 from bclib.utility import DictEx
 
@@ -18,7 +18,7 @@ class ListenerFactory(IListenerFactory):
 
     Analyzes AppOptions and creates appropriate listeners:
     - HTTP/HTTPS listener (if 'server' option exists)
-    - TCP Socket listener (if 'endpoint' option exists)
+    - TCP listener (if 'endpoint' option exists)
     - RabbitMQ listeners (if 'router.rabbit' option exists)
 
     Example:
@@ -35,7 +35,7 @@ class ListenerFactory(IListenerFactory):
 
         factory = ListenerFactory(options)
         listeners = factory.load_listeners(dispatcher)
-        # Returns: [HttpListener, SocketListener, RabbitBusListener]
+        # Returns: [HttpListener, TcpListener, RabbitBusListener]
         ```
     """
 
@@ -56,7 +56,7 @@ class ListenerFactory(IListenerFactory):
         appropriate listener instances:
 
         - 'server' key → HttpListener (HTTP/HTTPS with optional SSL)
-        - 'endpoint' key → SocketListener (TCP socket)
+        - 'endpoint' key → TcpListener (TCP socket)
         - 'router.rabbit' key → RabbitBusListener (one per queue config)
 
         Args:
@@ -89,7 +89,7 @@ class ListenerFactory(IListenerFactory):
 
         # Add TCP endpoint listener if endpoint configured
         if "endpoint" in self.__options:
-            listener = SocketListener(
+            listener = TcpListener(
                 Endpoint(self.__options.get('endpoint')),
                 dispatcher.on_message_receive_async
             )

@@ -1,10 +1,12 @@
 """CallbackInfo - Encapsulates handler callback with predicates and routing logic"""
 import re
-from typing import Any, Awaitable, Callable
+from typing import TYPE_CHECKING, Any, Awaitable, Callable
 
 from bclib.exception import ShortCircuitErr
 
-from ..context import Context
+if TYPE_CHECKING:
+    from ..context import Context
+
 from ..predicate import Predicate
 
 
@@ -20,7 +22,7 @@ class CallbackInfo:
         __predicates: List of predicates that must pass for handler execution
     """
 
-    def __init__(self, predicates: list[Predicate], async_callback: Callable[[Context], Awaitable[Any]]) -> None:
+    def __init__(self, predicates: list[Predicate], async_callback: Callable[['Context'], Awaitable[dict]]) -> None:
         """
         Initialize CallbackInfo with predicates and handler
 
@@ -31,7 +33,7 @@ class CallbackInfo:
         self.__async_callback = async_callback
         self.__predicates = predicates
 
-    async def try_execute_async(self, context: Context) -> Any:
+    async def try_execute_async(self, context: 'Context') -> dict:
         """
         Try to execute the handler if all predicates pass
 
@@ -41,7 +43,7 @@ class CallbackInfo:
         Returns:
             Result from handler execution, or error response if predicates fail
         """
-        result: Any = None
+        result: dict = None
         for predicate in self.__predicates:
             try:
                 if not await predicate.check_async(context):

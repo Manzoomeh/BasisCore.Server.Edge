@@ -1,8 +1,9 @@
 """Test dynamic router rebuild on handler registration/unregistration"""
-from bclib.context import RESTfulContext, WebContext, WebSocketContext
-from bclib import edge
 import os
 import sys
+
+from bclib import edge
+from bclib.context import HttpContext, RESTfulContext, WebSocketContext
 
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '../..')))
@@ -71,7 +72,7 @@ app2.unregister_handler(WebSocketContext, ws_handler)
 async def web_handler():
     return "<html>Home</html>"
 
-app2.register_handler(WebContext, web_handler, [app2.url("index.html")])
+app2.register_handler(HttpContext, web_handler, [app2.url("index.html")])
 router_after_web = app2._RoutingDispatcher__default_router
 
 print(f"After switching to Web handler: {router_after_web}")

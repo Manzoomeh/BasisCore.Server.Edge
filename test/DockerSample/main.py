@@ -1,4 +1,5 @@
 import os
+
 from bclib import edge
 
 options = {
@@ -13,12 +14,12 @@ app = edge.from_options(options)
 
 
 @app.web_action(app.url(":file"))
-def handler(context: edge.WebContext):
+def handler(context: edge.HttpContext):
     return readAsset(context.url_segments.file)
 
 
 @app.web_action()
-def handler(context: edge.WebContext):
+def handler(context: edge.HttpContext):
     return readAsset("index.html")
 
 

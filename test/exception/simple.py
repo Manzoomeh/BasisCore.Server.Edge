@@ -12,8 +12,8 @@ if "options" not in dir():
 app = edge.from_options(options)
 
 
-@ app.web_action()
-def process_default_web_action(context: edge.WebContext):
+@app.web_action()
+def process_default_web_action(context: edge.HttpContext):
     some_value = 1/0
     return "result from process_default_web_action"
 
