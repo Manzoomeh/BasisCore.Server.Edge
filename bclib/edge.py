@@ -41,11 +41,7 @@ Example:
 import asyncio
 
 from bclib import __version__
-from bclib.context import (ClientSourceContext, ClientSourceMemberContext,
-                           Context, HttpContext, MergeType, RabbitContext,
-                           RESTfulContext, ServerSourceContext,
-                           ServerSourceMemberContext, SourceContext,
-                           SourceMemberContext, WebSocketContext)
+from bclib.context import *
 from bclib.db_manager import *
 from bclib.dispatcher import Dispatcher, IDispatcher
 from bclib.exception import *

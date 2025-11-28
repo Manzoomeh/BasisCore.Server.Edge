@@ -70,7 +70,7 @@ class CallbackInfo:
         patterns = []
         for predicate in self.__predicates:
             if isinstance(predicate, Url):
-                pattern = predicate.exprossion
+                pattern = predicate.expression
                 # Convert :param to (?P<param>[^/]+) for named regex groups
                 regex_pattern = re.sub(r':(\w+)', r'(?P<\1>[^/]+)', pattern)
                 patterns.append(regex_pattern)

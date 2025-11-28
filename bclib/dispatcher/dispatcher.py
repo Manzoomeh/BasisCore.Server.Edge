@@ -281,7 +281,7 @@ class Dispatcher(IDispatcher):
         )
 
         def _decorator(restful_action_handler: Callable):
-            # ✨ Pre-compile injection plan at decoration time (once)
+            # Pre-compile injection plan at decoration time (once)
             injection_plan = InjectionPlan(restful_action_handler)
 
             @wraps(restful_action_handler)
@@ -294,7 +294,7 @@ class Dispatcher(IDispatcher):
                 return None if action_result is None else context.generate_response(action_result)
 
             self._get_context_lookup(RESTfulContext)\
-                .append(CallbackInfo([*combined_predicates], wrapper))
+                .append(CallbackInfo(combined_predicates, wrapper))
             return restful_action_handler
         return _decorator
 
@@ -361,7 +361,7 @@ class Dispatcher(IDispatcher):
                 return None if action_result is None else context.generate_response(action_result)
 
             self._get_context_lookup(HttpContext)\
-                .append(CallbackInfo([*combined_predicates], wrapper))
+                .append(CallbackInfo(combined_predicates, wrapper))
             return web_action_handler
         return _decorator
 
@@ -399,7 +399,7 @@ class Dispatcher(IDispatcher):
                 return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
 
             self._get_context_lookup(WebSocketContext)\
-                .append(CallbackInfo([*combined_predicates], wrapper))
+                .append(CallbackInfo(combined_predicates, wrapper))
             return websocket_action_handler
         return _decorator
 
@@ -464,7 +464,7 @@ class Dispatcher(IDispatcher):
                     return None
 
             self._get_context_lookup(ClientSourceContext)\
-                .append(CallbackInfo([*combined_predicates], wrapper))
+                .append(CallbackInfo(combined_predicates, wrapper))
 
             return client_source_action_handler
         return _decorator
@@ -503,7 +503,7 @@ class Dispatcher(IDispatcher):
                 return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
 
             self._get_context_lookup(ClientSourceMemberContext)\
-                .append(CallbackInfo([*combined_predicates], wrapper))
+                .append(CallbackInfo(combined_predicates, wrapper))
             return client_source_member_handler
         return _decorator
 
@@ -568,7 +568,7 @@ class Dispatcher(IDispatcher):
                     return None
 
             self._get_context_lookup(ServerSourceContext)\
-                .append(CallbackInfo([*combined_predicates], wrapper))
+                .append(CallbackInfo(combined_predicates, wrapper))
 
             return server_source_action_handler
         return _decorator
@@ -607,7 +607,7 @@ class Dispatcher(IDispatcher):
                 return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
 
             self._get_context_lookup(ServerSourceMemberContext)\
-                .append(CallbackInfo([*combined_predicates], wrapper))
+                .append(CallbackInfo(combined_predicates, wrapper))
             return server_source_member_action_handler
         return _decorator
 
@@ -645,7 +645,7 @@ class Dispatcher(IDispatcher):
                 return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
 
             self._get_context_lookup(RabbitContext)\
-                .append(CallbackInfo([*combined_predicates], wrapper))
+                .append(CallbackInfo(combined_predicates, wrapper))
 
             return rabbit_action_handler
         return _decorator
@@ -714,6 +714,28 @@ class Dispatcher(IDispatcher):
                                       RabbitContext):
                         context_type = param_type
                         break
+
+                # If no context type found in parameters, check handler name
+                if context_type is None:
+                    handler_name = handler.__name__.lower()
+
+                    # Map context keywords to context types
+                    if 'http' in handler_name or 'web' in handler_name:
+                        context_type = HttpContext
+                    elif 'restful' in handler_name or 'rest' in handler_name or 'api' in handler_name:
+                        context_type = RESTfulContext
+                    elif 'websocket' in handler_name or 'ws' in handler_name:
+                        context_type = WebSocketContext
+                    elif 'clientsourcemember' in handler_name:
+                        context_type = ClientSourceMemberContext
+                    elif 'clientsource' in handler_name:
+                        context_type = ClientSourceContext
+                    elif 'serversourcemember' in handler_name:
+                        context_type = ServerSourceMemberContext
+                    elif 'serversource' in handler_name:
+                        context_type = ServerSourceContext
+                    elif 'rabbit' in handler_name or 'mq' in handler_name:
+                        context_type = RabbitContext
 
                 # Route to appropriate decorator based on context type
                 if context_type == HttpContext:

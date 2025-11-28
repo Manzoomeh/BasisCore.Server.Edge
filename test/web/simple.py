@@ -22,7 +22,7 @@ async def test_handler_0():
 
 
 @app.action("test0")
-async def test_handler_0(context: edge.HttpContext):
+async def test_web_handler_0():
     return {
         "message": "Test endpoint 1",
         "status": "success"
@@ -37,20 +37,20 @@ async def test_handler_1():
     }
 
 
+@app.restful_action("test2", method=["POST", "PUT"])
+async def test_handler_3(context: edge.RESTfulContext):
+    return {
+        "message": "Test endpoint 3",
+        "received": context.response_type
+    }
+
+
 @app.restful_action("test2")
 async def test_handler_2(context: edge.RESTfulContext, id: Optional[int] = None):
     return {
         "message": "Test endpoint 2",
         "id": id,
         "params": context.query
-    }
-
-
-@app.web_action("test3", method="POST")
-async def test_handler_3(context: edge.RESTfulContext):
-    return {
-        "message": "Test endpoint 3",
-        "received": context.response_type
     }
 
 
