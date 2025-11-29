@@ -49,7 +49,7 @@ def assign_rooms_service(rules_file_path: str = str(rules_path), passenger_file_
 app = edge.from_options(options)
 
 
-@app.restful_action(app.post("assign-rooms"))
+@app.restful_handler(app.post("assign-rooms"))
 def assign_rooms_default(context: edge.RESTfulContext):
     edge.HttpHeaders.add_cors_headers(context)
     if not context.cms.files or len(context.cms.files) < 2:
@@ -80,7 +80,7 @@ def assign_rooms_default(context: edge.RESTfulContext):
     return results
 
 
-@app.restful_action(app.post("assign-rooms-with-rules"))
+@app.restful_handler(app.post("assign-rooms-with-rules"))
 def assign_rooms_with_rules(context: edge.RESTfulContext):
     edge.HttpHeaders.add_cors_headers(context)
     # Save uploaded rules file temporarily
@@ -98,7 +98,7 @@ def assign_rooms_with_rules(context: edge.RESTfulContext):
     return results
 
 
-@app.restful_action(app.get("assign-rooms-default"))
+@app.restful_handler(app.get("assign-rooms-default"))
 def assign_rooms_default(context: edge.RESTfulContext):
     edge.HttpHeaders.add_cors_headers(context)
     return assign_rooms_service()

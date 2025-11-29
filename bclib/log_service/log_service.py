@@ -27,7 +27,7 @@ class LogService(ILogService):
 
     Example:
         ```python
-        @app.restful_action(app.url("api/process"))
+        @app.restful_handler(app.url("api/process"))
         async def handler(log_service: ILogService):
             # Create and log
             log_obj = log_service.new_object_log("user_action", user_id=123)

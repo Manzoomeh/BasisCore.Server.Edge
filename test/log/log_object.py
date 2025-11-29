@@ -16,7 +16,7 @@ options = {
 
 app = edge.from_options(options)
 
-@app.restful_action(app.url("log-schema/hashid"))
+@app.restful_handler(app.url("log-schema/hashid"))
 def process_questions(context: edge.RESTfulContext):
     return {
         "setting": {
@@ -101,7 +101,7 @@ def process_questions(context: edge.RESTfulContext):
     ]
 }
 
-@app.restful_action(app.url("old-version"))
+@app.restful_handler(app.url("old-version"))
 async def process_create_log(context: edge.RESTfulContext):
     await context.dispatcher.log_async(
         **{
@@ -110,7 +110,7 @@ async def process_create_log(context: edge.RESTfulContext):
         }
     )
 
-@app.restful_action(app.url("new-version"))
+@app.restful_handler(app.url("new-version"))
 async def process_create_log(context: edge.RESTfulContext):
     log_obj = context.dispatcher.new_object_log(
         **{

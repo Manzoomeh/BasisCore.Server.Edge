@@ -102,7 +102,7 @@ setup_services(app.services)
 
 # ==================== Handlers ====================
 
-@app.restful_action()
+@app.restful_handler()
 async def hello(context: RESTfulContext):
     """
     Simple hello endpoint
@@ -122,7 +122,7 @@ async def hello(context: RESTfulContext):
     }
 
 
-@app.restful_action("/greet/:name")
+@app.restful_handler("/greet/:name")
 async def greet(context: RESTfulContext):
     """
     Greeting with DI
@@ -144,7 +144,7 @@ async def greet(context: RESTfulContext):
     }
 
 
-@app.restful_action("/info")
+@app.restful_handler("/info")
 async def info(context: RESTfulContext):
     """
     Show information about no-inheritance DI
@@ -198,7 +198,7 @@ async def info(context: RESTfulContext):
     }
 
 
-@app.restful_action("/test/chaining")
+@app.restful_handler("/test/chaining")
 async def test_chaining(context: RESTfulContext):
     """
     Test method chaining

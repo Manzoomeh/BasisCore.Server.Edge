@@ -43,7 +43,7 @@ class GreaterThan(Predicate):
         # Check if price exceeds limit
         price_check = GreaterThan("context.form.price", 1000)
 
-        @app.action(predicates=[GreaterThan("context.query.score", 80)])
+        @app.handler(predicates=[GreaterThan("context.query.score", 80)])
         async def high_score_handler(context):
             pass
         ```

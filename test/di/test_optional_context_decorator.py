@@ -35,20 +35,20 @@ disp._TestDispatcher__service_provider.add_singleton(ILogger, ConsoleLogger)
 
 
 # Test handlers
-@disp.restful_action()
+@disp.restful_handler()
 def with_context(context: RESTfulContext):
     """Has context parameter"""
     return {"result": "with_context", "has_context": True}
 
 
-@disp.restful_action()
+@disp.restful_handler()
 def no_context(logger: ILogger):
     """No context parameter - only logger"""
     logger.log("Handler called without context!")
     return {"result": "no_context", "injected": "logger"}
 
 
-@disp.restful_action()
+@disp.restful_handler()
 def with_both(context: RESTfulContext, logger: ILogger):
     """Both context and logger"""
     logger.log("Handler with both!")

@@ -98,7 +98,7 @@ async def process_message_async(context: edge.SocketContext):
 #####
 # Web
 #####
-@app.web_action()
+@app.web_handler()
 def process_web_message(_: edge.HttpContext):
     path = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), "list-data.html")

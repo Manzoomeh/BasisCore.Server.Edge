@@ -43,7 +43,7 @@ class HasValue(Predicate):
         # Require session token
         has_token = HasValue("context.session.token")
 
-        @app.action(predicates=[HasValue("context.query.api_key")])
+        @app.handler(predicates=[HasValue("context.query.api_key")])
         async def protected_handler(context):
             pass
         ```

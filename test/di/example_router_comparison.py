@@ -21,7 +21,7 @@ options1 = {
 app1 = edge.from_options(options1)
 
 
-@app1.restful_action(app1.url("api/data"))
+@app1.restful_handler(app1.url("api/data"))
 async def get_data():
     return {"data": "test"}
 
@@ -42,7 +42,7 @@ options2 = {
 app2 = edge.from_options(options2)
 
 
-@app2.restful_action(app2.url("api/endpoint"))
+@app2.restful_handler(app2.url("api/endpoint"))
 async def handler():
     return {"status": "ok"}
 
@@ -66,12 +66,12 @@ options3 = {
 app3 = edge.from_options(options3)
 
 
-@app3.restful_action(app3.url("api/users"))
+@app3.restful_handler(app3.url("api/users"))
 async def api_handler():
     return {"users": []}
 
 
-@app3.web_action(app3.url("static/index.html"))
+@app3.web_handler(app3.url("static/index.html"))
 async def web_handler():
     return "<html>Home</html>"
 
@@ -94,12 +94,12 @@ options4 = {
 app4 = edge.from_options(options4)
 
 
-@app4.restful_action(app4.url("api/test"))
+@app4.restful_handler(app4.url("api/test"))
 async def test_handler():
     return {"test": "ok"}
 
 
-@app4.websocket_action()
+@app4.websocket_handler()
 async def ws_handler(context):
     return {"ws": "connected"}
 

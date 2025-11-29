@@ -89,7 +89,7 @@ register_api_handlers()
 
 
 # Admin endpoint to switch versions
-@app.restful_action(app.url("admin/switch/:version"))
+@app.restful_handler(app.url("admin/switch/:version"))
 async def switch_version(context: RESTfulContext):
     """Admin endpoint to switch API versions dynamically"""
     version = context.url_segments.get("version", "v1")

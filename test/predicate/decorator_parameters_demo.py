@@ -1,7 +1,7 @@
 """
-Demonstration of the new web_action and restful_action decorator parameters
+Demonstration of the new web_handler and restful_handler decorator parameters
 
-This file showcases the convenience parameters added to web_action and restful_action:
+This file showcases the convenience parameters added to web_handler and restful_handler:
 - route: URL pattern with parameters
 - method: Single HTTP method filter
 - methods: Multiple HTTP methods filter
@@ -26,27 +26,27 @@ app = edge.from_options(options)
 # ============================================================================
 
 # Example 1: Simple route parameter
-@app.web_action("about")
+@app.web_handler("about")
 def about_page(context: edge.HttpContext):
     """Simple route with no method restriction"""
     return "<h1>About Us</h1>"
 
 
 # Example 2: Route with single method
-@app.web_action("contact", method="GET")
+@app.web_handler("contact", method="GET")
 def contact_page(context: edge.HttpContext):
     """GET request only"""
     return "<h1>Contact Form</h1>"
 
 
-@app.web_action("contact", method="POST")
+@app.web_handler("contact", method="POST")
 def submit_contact(context: edge.HttpContext):
     """POST request only"""
     return "<h1>Thank you for contacting us!</h1>"
 
 
 # Example 3: Route with multiple methods
-@app.web_action("products/:id", method=["GET", "PUT", "DELETE"])
+@app.web_handler("products/:id", method=["GET", "PUT", "DELETE"])
 def product_handler(context: edge.HttpContext):
     """Handles GET, PUT, and DELETE for products"""
     product_id = context.url_segments.get('id')
@@ -55,7 +55,7 @@ def product_handler(context: edge.HttpContext):
 
 
 # Example 4: Route with URL parameters
-@app.web_action("users/:user_id/posts/:post_id")
+@app.web_handler("users/:user_id/posts/:post_id")
 def user_post(context: edge.HttpContext):
     """Multiple URL parameters"""
     user_id = context.url_segments['user_id']
@@ -64,7 +64,7 @@ def user_post(context: edge.HttpContext):
 
 
 # Example 5: Using additional predicates with route
-@app.web_action(
+@app.web_handler(
     "admin/:section",
     app.has_value("context.query.token"),
     method="GET"
@@ -77,7 +77,7 @@ def admin_panel(context: edge.HttpContext):
 
 
 # Example 6: Combining route with additional predicates
-@app.web_action(
+@app.web_handler(
     "search",
     app.has_value("context.query.q"),
     app.in_list("context.query.type", "user", "post", "product")
@@ -94,7 +94,7 @@ def search_handler(context: edge.HttpContext):
 # ============================================================================
 
 # Example 7: Simple RESTful route
-@app.restful_action("api/users")
+@app.restful_handler("api/users")
 def list_users(context: edge.RESTfulContext):
     """List all users"""
     return {
@@ -106,7 +106,7 @@ def list_users(context: edge.RESTfulContext):
 
 
 # Example 8: RESTful route with parameter and method
-@app.restful_action("api/users/:id", method="GET")
+@app.restful_handler("api/users/:id", method="GET")
 def get_user(context: edge.RESTfulContext):
     """Get single user"""
     user_id = context.url_segments['id']
@@ -116,7 +116,7 @@ def get_user(context: edge.RESTfulContext):
     }
 
 
-@app.restful_action("api/users", method="POST")
+@app.restful_handler("api/users", method="POST")
 def create_user(context: edge.RESTfulContext):
     """Create new user"""
     return {
@@ -126,7 +126,7 @@ def create_user(context: edge.RESTfulContext):
 
 
 # Example 9: RESTful with multiple methods
-@app.restful_action("api/posts/:id", method=["PUT", "PATCH"])
+@app.restful_handler("api/posts/:id", method=["PUT", "PATCH"])
 def update_post(context: edge.RESTfulContext):
     """Update post - accepts both PUT and PATCH"""
     post_id = context.url_segments['id']
@@ -137,7 +137,7 @@ def update_post(context: edge.RESTfulContext):
 
 
 # Example 10: RESTful with additional predicates
-@app.restful_action(
+@app.restful_handler(
     "api/products/:id",
     app.has_value("context.query.confirm"),
     method="DELETE"
@@ -152,7 +152,7 @@ def delete_product(context: edge.RESTfulContext):
 
 
 # Example 11: Using traditional predicates (still supported)
-@app.restful_action(
+@app.restful_handler(
     app.url("api/legacy/:id"),
     app.equal("context.cms.request.methode", "get")
 )
@@ -162,7 +162,7 @@ def legacy_style(context: edge.RESTfulContext):
 
 
 # Example 12: Mixing new parameters with traditional predicates
-@app.restful_action(
+@app.restful_handler(
     "api/orders",
     app.in_list("context.query.status", "active", "pending"),
     method="GET"
@@ -177,7 +177,7 @@ def filtered_orders(context: edge.RESTfulContext):
 
 
 # Default handlers
-@app.web_action()
+@app.web_handler()
 def default_web_handler(context: edge.HttpContext):
     """Default handler for unmatched web requests"""
     return """
@@ -209,7 +209,7 @@ def default_web_handler(context: edge.HttpContext):
     """
 
 
-@app.restful_action()
+@app.restful_handler()
 def default_restful_handler(context: edge.RESTfulContext):
     """Default handler for unmatched RESTful requests"""
     return {

@@ -20,7 +20,7 @@ options = {
 app = edge.from_options(options)
 
 
-@app.restful_action(
+@app.restful_handler(
     app.get("log-schema/:schemaid")
 )
 def get_schema_by_id(context: edge.RESTfulContext):
@@ -83,7 +83,7 @@ def get_schema_by_id(context: edge.RESTfulContext):
         ]
     }
 
-@app.restful_action(
+@app.restful_handler(
     app.get("send")
 )
 async def process_restful_request_with_log_and_wait(context: edge.RESTfulContext):

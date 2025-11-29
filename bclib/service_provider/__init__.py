@@ -27,7 +27,7 @@ Example:
     services.add_transient(IEmailService, SmtpEmailService)
     
     # Use in handlers with automatic injection
-    @app.restful_action()
+    @app.restful_handler()
     def handler(logger: ILogger, db: IDatabase, id: int):
         # logger, db auto-injected from DI
         # id auto-injected from URL segment with type conversion

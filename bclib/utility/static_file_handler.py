@@ -28,7 +28,7 @@ class StaticFileHandler:
             enable_index=True
         )
 
-        @app.restful_action()
+        @app.restful_handler()
         async def serve_static(context: RESTfulContext):
             await static_handler.handle(context)
         ```

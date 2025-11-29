@@ -222,7 +222,7 @@ app.add_transient(IRequestHandler, RequestHandler)
 **Automatic Injection in Handlers:**
 
 ```python
-@app.restful_action(app.url("api/users/:user_id"))
+@app.restful_handler(app.url("api/users/:user_id"))
 async def get_user(context: RESTfulContext, logger: ILogger, db: IDatabase):
     # Services injected automatically by type hints
     logger.log(f"Getting user {context.url_segments['user_id']}")
@@ -245,12 +245,12 @@ All decorators are defined in `Dispatcher` class:
 
 ```python
 # RESTful API handlers (return dict/list → JSON)
-@app.restful_action(predicate1, predicate2, ...)
+@app.restful_handler(predicate1, predicate2, ...)
 async def handler(context: RESTfulContext, service1: IService1, ...):
     return {"data": "response"}
 
 # Web page handlers (return str → HTML)
-@app.web_action(predicate1, predicate2, ...)
+@app.web_handler(predicate1, predicate2, ...)
 async def handler(context: WebContext, service1: IService1, ...):
     return "<html>...</html>"
 
@@ -261,13 +261,13 @@ async def handler(context: SocketContext, service1: IService1, ...):
     pass
 
 # WebSocket handlers
-@app.websocket_action(predicate1, predicate2, ...)
+@app.websocket_handler(predicate1, predicate2, ...)
 async def handler(context: WebSocketContext, service1: IService1, ...):
     # Handle WebSocket messages
     pass
 
 # RabbitMQ handlers
-@app.rabbit_action(predicate1, predicate2, ...)
+@app.rabbit_handler(predicate1, predicate2, ...)
 async def handler(context: RabbitContext, service1: IService1, ...):
     # Handle RabbitMQ messages
     pass
@@ -365,12 +365,12 @@ When handlers for different contexts (RESTful, Web) are registered:
 
 ```python
 # RESTful handlers
-@app.restful_action(app.url("api/users"))
+@app.restful_handler(app.url("api/users"))
 async def api_handler(context: RESTfulContext):
     return {"users": []}
 
 # Web handlers
-@app.web_action(app.url("index.html"))
+@app.web_handler(app.url("index.html"))
 async def web_handler(context: WebContext):
     return "<html><body>Home</body></html>"
 
@@ -393,27 +393,27 @@ async def web_handler(context: WebContext):
 
 ```python
 # ✅ GOOD - Type hints for auto-injection
-@app.restful_action(app.url("api/data"))
+@app.restful_handler(app.url("api/data"))
 async def get_data(context: RESTfulContext, logger: ILogger, db: IDatabase):
     logger.log("Request received")
     data = await db.fetch_async()
     return {"data": data}
 
 # ❌ BAD - No type hints, manual service resolution
-@app.restful_action(app.url("api/data"))
+@app.restful_handler(app.url("api/data"))
 async def get_data(context):
     logger = context.services.get_service("logger")  # Don't do this!
     return {"data": "value"}
 
 # ✅ GOOD - Multiple predicates
-@app.restful_action(app.is_post(), app.url("api/users"))
+@app.restful_handler(app.is_post(), app.url("api/users"))
 async def create_user(context: RESTfulContext, db: IDatabase):
     user_data = context.to_json()
     user = await db.create_user_async(user_data)
     return {"user": user}
 
 # ✅ GOOD - Using predicate helpers
-@app.restful_action(app.post("api/users"))  # Combines is_post() + url()
+@app.restful_handler(app.post("api/users"))  # Combines is_post() + url()
 async def create_user(context: RESTfulContext, db: IDatabase):
     user_data = context.to_json()
     user = await db.create_user_async(user_data)
@@ -444,7 +444,7 @@ class UserService(IUserService):
 
 ```python
 # ✅ GOOD - Use context properties
-@app.restful_action(app.get("api/users/:user_id"))
+@app.restful_handler(app.get("api/users/:user_id"))
 async def get_user(context: RESTfulContext):
     user_id = context.url_segments["user_id"]
     db = context.open_sql_connection("main")
@@ -452,7 +452,7 @@ async def get_user(context: RESTfulContext):
     return {"user": user}
 
 # ✅ BETTER - Inject services via type hints (preferred)
-@app.restful_action(app.get("api/users/:user_id"))
+@app.restful_handler(app.get("api/users/:user_id"))
 async def get_user(context: RESTfulContext, db: IDatabase):
     user_id = context.url_segments["user_id"]
     user = await db.get_user_async(user_id)
@@ -514,7 +514,7 @@ class PostgresDatabase(IDatabase):
 app.add_scoped(IDatabase, PostgresDatabase)
 
 # 4. Inject in handlers
-@app.restful_action(app.get("api/users/:user_id"))
+@app.restful_handler(app.get("api/users/:user_id"))
 async def get_user(context: RESTfulContext, db: IDatabase):
     user_id = int(context.url_segments["user_id"])
     user = await db.get_user_async(user_id)
@@ -534,7 +534,7 @@ app = edge.from_options({
 })
 
 # Register handlers...
-@app.restful_action(app.get("api/hello"))
+@app.restful_handler(app.get("api/hello"))
 async def hello(context: RESTfulContext):
     return {"message": "Hello World"}
 
@@ -612,13 +612,13 @@ class UserService(IUserService):
 app.add_scoped(IUserService, UserService)
 
 # 4. Use in handlers
-@app.restful_action(app.get("api/users/:user_id"))
+@app.restful_handler(app.get("api/users/:user_id"))
 async def get_user(context: RESTfulContext, user_service: IUserService):
     user_id = int(context.url_segments["user_id"])
     user = await user_service.get_user(user_id)
     return {"user": user}
 
-@app.restful_action(app.post("api/users"))
+@app.restful_handler(app.post("api/users"))
 async def create_user(context: RESTfulContext, user_service: IUserService):
     user_data = context.to_json()
     user = await user_service.create_user(user_data)
@@ -630,7 +630,7 @@ async def create_user(context: RESTfulContext, user_service: IUserService):
 ```python
 from bclib.exception import HandlerNotFoundErr, ShortCircuitErr
 
-@app.restful_action(app.get("api/data"))
+@app.restful_handler(app.get("api/data"))
 async def get_data(context: RESTfulContext, logger: ILogger):
     try:
         # Business logic
@@ -664,7 +664,7 @@ app.static_file_handler = StaticFileHandler("./public")
 ### WebSocket Communication
 
 ```python
-@app.websocket_action(app.url("ws/chat"))
+@app.websocket_handler(app.url("ws/chat"))
 async def chat_handler(context: WebSocketContext):
     # Get session
     session = context.session

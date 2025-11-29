@@ -19,7 +19,7 @@ app = edge.from_options(options)
 # Register handlers - router is built automatically
 
 
-@app.restful_action(app.url("api/users"))
+@app.restful_handler(app.url("api/users"))
 async def get_users():
     """Get all users"""
     return {
@@ -30,7 +30,7 @@ async def get_users():
     }
 
 
-@app.restful_action(app.url("api/users/:user_id"))
+@app.restful_handler(app.url("api/users/:user_id"))
 async def get_user(user_id: str):
     """Get user by ID"""
     return {
@@ -38,7 +38,7 @@ async def get_user(user_id: str):
     }
 
 
-@app.restful_action(app.url("api/posts"))
+@app.restful_handler(app.url("api/posts"))
 async def get_posts():
     """Get all posts"""
     return {
@@ -49,16 +49,16 @@ async def get_posts():
     }
 
 
-@app.web_action(app.url("index.html"))
+@app.web_handler(app.url("index.html"))
 async def get_index():
     """Serve home page"""
     return "<html><body><h1>Welcome to BasisCore</h1><p>Auto-generated router example</p></body></html>"
 
 
-@app.web_action(app.url("about.html"))
+@app.web_handler(app.url("about.html"))
 async def get_about():
     """Serve about page"""
-    return "<html><body><h1>About</h1><p>This is a demonstration of web_action with auto-generated router</p></body></html>"
+    return "<html><body><h1>About</h1><p>This is a demonstration of web_handler with auto-generated router</p></body></html>"
 
 print("✨ Router Auto-Generation Example")
 print("=" * 50)

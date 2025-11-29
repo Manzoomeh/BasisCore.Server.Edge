@@ -16,7 +16,7 @@ Key Features:
 Example:
     ```python
     # Using context in a handler
-    @app.restful_action(app.url("api/users"))
+    @app.restful_handler(app.url("api/users"))
     async def get_users(context: RESTfulContext):
         # Access dependency injection services
         db = context.services.get_service(IDatabase)
@@ -112,7 +112,7 @@ class Context(ABC):
 
         Example:
             ```python
-            @app.restful_action(app.url("api/users"))
+            @app.restful_handler(app.url("api/users"))
             async def get_users(context: RESTfulContext):
                 # Get services by interface type
                 logger = context.services.get_service(ILogger)

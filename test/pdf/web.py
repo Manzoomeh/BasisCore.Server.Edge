@@ -57,7 +57,7 @@ webserver = {
 }
 
 
-@app.web_action()
+@app.web_handler()
 def default_handler(context: edge.HttpContext):
     context.response_type = edge.ResponseTypes.RENDERABLE
 

@@ -47,7 +47,7 @@ class All(Predicate):
         )
 
         # Use in decorator
-        @app.action(predicates=[All(is_admin, has_permission)])
+        @app.handler(predicates=[All(is_admin, has_permission)])
         async def restricted_handler(context):
             pass
         ```

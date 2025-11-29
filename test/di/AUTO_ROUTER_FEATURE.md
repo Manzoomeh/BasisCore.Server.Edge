@@ -63,7 +63,7 @@ options = {
 Router automatically adapts to registered handlers:
 
 ```python
-@app.restful_action(app.url("api/users"))
+@app.restful_handler(app.url("api/users"))
 async def get_users():
     return {"users": []}
 
@@ -99,7 +99,7 @@ from bclib import edge
 
 app = edge.from_options({"server": "localhost:8080"})
 
-@app.restful_action(app.url("api/data"))
+@app.restful_handler(app.url("api/data"))
 async def get_data():
     return {"data": "test"}
 
@@ -112,11 +112,11 @@ app.listening()
 ```python
 app = edge.from_options({"server": "localhost:8080"})
 
-@app.restful_action(app.url("api/users"))
+@app.restful_handler(app.url("api/users"))
 async def api_handler():
     return {"users": []}
 
-@app.websocket_action()
+@app.websocket_handler()
 async def ws_handler(context):
     return {"status": "connected"}
 

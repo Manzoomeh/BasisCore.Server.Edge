@@ -1,4 +1,4 @@
-"""
+r"""
 Match Predicate Module
 
 Provides regex pattern matching predicate for string validation.
@@ -27,7 +27,7 @@ from bclib.predicate.predicate import Predicate
 
 
 class Match(Predicate):
-    """
+    r"""
     Regular expression matching predicate
 
     Checks if a string value from context matches a regular expression pattern.
@@ -48,7 +48,7 @@ class Match(Predicate):
         # Check if username is alphanumeric
         username = Match("context.query.user", r"^[a-zA-Z0-9_]+$")
 
-        @app.action(predicates=[Match("context.query.code", r"^[A-Z]{3}\d{3}$")])
+        @app.handler(predicates=[Match("context.query.code", r"^[A-Z]{3}\d{3}$")])
         async def code_handler(context):
             pass
         ```

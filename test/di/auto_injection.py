@@ -108,7 +108,7 @@ print("=" * 70 + "\n")
 
 # ==================== Handlers with Automatic DI ====================
 
-@app.restful_action(app.url("with-logger"))
+@app.restful_handler(app.url("with-logger"))
 async def with_logger(context: RESTfulContext, logger: ILogger):
     """
     Handler with automatic logger injection
@@ -128,7 +128,7 @@ async def with_logger(context: RESTfulContext, logger: ILogger):
     }
 
 
-@app.restful_action(app.url("with-time"))
+@app.restful_handler(app.url("with-time"))
 async def with_time(context: RESTfulContext, time_service: ITimeService):
     """
     Handler with automatic time service injection
@@ -145,7 +145,7 @@ async def with_time(context: RESTfulContext, time_service: ITimeService):
     }
 
 
-@app.restful_action(app.url("user/:id"))
+@app.restful_handler(app.url("user/:id"))
 async def get_user(
     context: RESTfulContext,
     id: int,
@@ -173,7 +173,7 @@ async def get_user(
     }
 
 
-@app.restful_action(app.url("complex"))
+@app.restful_handler(app.url("complex"))
 async def complex_handler(
     context: RESTfulContext,
     logger: ILogger,
@@ -199,7 +199,7 @@ async def complex_handler(
     }
 
 
-@app.restful_action(app.url("mixed/:name"))
+@app.restful_handler(app.url("mixed/:name"))
 async def mixed_parameters(
     context: RESTfulContext,
     name: str,
@@ -224,7 +224,7 @@ async def mixed_parameters(
     }
 
 
-@app.restful_action(app.url("comparison"))
+@app.restful_handler(app.url("comparison"))
 async def comparison(context: RESTfulContext):
     """
     Show comparison between old and new way
@@ -235,7 +235,7 @@ async def comparison(context: RESTfulContext):
         "title": "Automatic DI Injection vs Manual",
         "old_way": {
             "code": """
-@app.restful_action()
+@app.restful_handler()
 async def handler(context: RESTfulContext):
     logger = context.get_service(ILogger)
     db = context.get_service(IDatabase)
@@ -256,7 +256,7 @@ async def handler(context: RESTfulContext):
         },
         "new_way": {
             "code": """
-@app.restful_action()
+@app.restful_handler()
 async def handler(
     context: RESTfulContext,
     logger: ILogger,
@@ -285,7 +285,7 @@ async def handler(
     }
 
 
-@app.restful_action(app.url("info"))
+@app.restful_handler(app.url("info"))
 async def info(context: RESTfulContext, logger: ILogger):
     """
     Information about automatic DI injection
@@ -301,7 +301,7 @@ async def info(context: RESTfulContext, logger: ILogger):
         "example": "async def handler(context: RESTfulContext, logger: ILogger):",
         "features": [
             "Automatic injection based on parameter type hints",
-            "Works with all handler decorators (@restful_action, @web_action, etc.)",
+            "Works with all handler decorators (@restful_handler, @web_handler, etc.)",
             "Context always provided as first parameter",
             "Additional services injected from DI container",
             "No manual service resolution needed"
@@ -321,7 +321,7 @@ async def info(context: RESTfulContext, logger: ILogger):
     }
 
 
-@app.restful_action()
+@app.restful_handler()
 async def hello(context: RESTfulContext):
     """
     Simple handler - no DI needed

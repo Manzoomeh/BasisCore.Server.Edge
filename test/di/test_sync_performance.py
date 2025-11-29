@@ -34,7 +34,7 @@ class TestSyncPerformance(unittest.TestCase):
         """Verify sync handler runs in a different thread (thread pool)"""
         handler_thread_id = None
 
-        @self.dispatcher.restful_action()
+        @self.dispatcher.restful_handler()
         def sync_handler(logger: ILogger):
             nonlocal handler_thread_id
             handler_thread_id = threading.current_thread().ident
@@ -77,7 +77,7 @@ class TestSyncPerformance(unittest.TestCase):
         """Verify async handler runs in the main thread (event loop)"""
         handler_thread_id = None
 
-        @self.dispatcher.restful_action()
+        @self.dispatcher.restful_handler()
         async def async_handler(logger: ILogger):
             nonlocal handler_thread_id
             handler_thread_id = threading.current_thread().ident
@@ -120,7 +120,7 @@ class TestSyncPerformance(unittest.TestCase):
         """Verify that a blocking sync handler doesn't block other async tasks"""
         execution_order = []
 
-        @self.dispatcher.restful_action()
+        @self.dispatcher.restful_handler()
         def blocking_sync_handler(logger: ILogger):
             execution_order.append("sync_start")
             time.sleep(0.1)  # Simulate blocking I/O

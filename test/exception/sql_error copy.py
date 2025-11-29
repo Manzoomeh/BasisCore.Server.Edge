@@ -26,8 +26,8 @@ if "options" not in dir():
 app = edge.from_options(options)
 
 
-@app.web_action()
-def process_default_web_action(context: edge.HttpContext):
+@app.web_handler()
+def process_default_web_handler(context: edge.HttpContext):
     sql_connection = context.open_sql_connection("sql_demo")
     sqlite_connection = context.open_sqllite_connection("sqlite_demo")
     with sqlite_connection, sqlite_connection:

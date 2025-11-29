@@ -35,7 +35,7 @@ def generate_data() -> list:
 ###########################################
 
 
-@app.restful_action(
+@app.restful_handler(
     app.url("qam-test/rest/:id"))
 def process_restful_with_filter_request(context: edge.RESTfulContext):
     print("process_restful_with_filter_request")
@@ -43,7 +43,7 @@ def process_restful_with_filter_request(context: edge.RESTfulContext):
     return [row for row in generate_data() if row["id"] == id]
 
 
-@app.restful_action(
+@app.restful_handler(
     app.url("qam-test/rest"))
 def process_restful_request(context: edge.RESTfulContext):
     print("process_restful_request")
@@ -55,7 +55,7 @@ def process_restful_request(context: edge.RESTfulContext):
 ######################
 
 
-@app.client_source_action(
+@app.client_source_handler(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
 def process_basiscore_source(context: edge.ClientSourceContext):
@@ -63,14 +63,14 @@ def process_basiscore_source(context: edge.ClientSourceContext):
     return generate_data()
 
 
-@app.client_source_action(
+@app.client_source_handler(
     app.equal("context.command.source", "demo"),
     app.in_list("context.command.mid", "10", "20"))
 def process_demo_source(context: edge.ClientSourceContext):
     return [row for row in generate_data() if row["id"] < 5]
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "list")
 )
 def process_list_member(context: edge.ClientSourceMemberContext):
@@ -78,7 +78,7 @@ def process_list_member(context: edge.ClientSourceMemberContext):
     return context.data
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "paging")
 )
 def process_page_member(context: edge.ClientSourceMemberContext):
@@ -91,7 +91,7 @@ def process_page_member(context: edge.ClientSourceMemberContext):
     return data
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "count")
 )
 def process_count_member(context: edge.ClientSourceMemberContext):
@@ -195,7 +195,7 @@ def process_all_other_message(context: edge.SocketContext):
 #####
 # Web
 #####
-@app.web_action(app.url("qam-test/chat"))
+@app.web_handler(app.url("qam-test/chat"))
 def process_web_message(context: edge.HttpContext):
     return """
             <style>
@@ -347,7 +347,7 @@ def process_web_message(context: edge.HttpContext):
         """
 
 
-@app.web_action(
+@app.web_handler(
     app.url("qam-test/sample-source/:source"),
     app.in_list("context.url_segments.source", "demo", "basiscore"))
 def process_web_sample_source_request(context: edge.HttpContext):
@@ -382,7 +382,7 @@ def process_web_sample_source_request(context: edge.HttpContext):
         """
 
 
-@app.web_action()
+@app.web_handler()
 def process_web_remain_request(context: edge.HttpContext):
     print("process_web_remain_request")
     context.add_header(edge.HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")

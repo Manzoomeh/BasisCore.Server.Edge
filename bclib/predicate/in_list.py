@@ -46,7 +46,7 @@ class InList(Predicate):
             "active", "pending", "approved", "rejected"
         )
 
-        @app.action(predicates=[InList("context.query.type", "A", "B", "C")])
+        @app.handler(predicates=[InList("context.query.type", "A", "B", "C")])
         async def type_handler(context):
             pass
         ```

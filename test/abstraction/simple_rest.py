@@ -17,7 +17,7 @@ db_manager = idb_manager.EdgeDbManager(app.db_manager)
 manager = business.UserPermissionManager(db_manager)
 
 
-@app.restful_action(
+@app.restful_handler(
     app.url(":id"))
 def process_user_permissions_request(context: edge.RESTfulContext):
     print("process_user_permissions_request")

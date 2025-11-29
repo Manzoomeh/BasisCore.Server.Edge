@@ -49,7 +49,7 @@ class Any(Predicate):
             Equal("context.query.role", "moderator")
         )
 
-        @app.action(predicates=[Any(is_admin, is_moderator)])
+        @app.handler(predicates=[Any(is_admin, is_moderator)])
         async def privileged_handler(context):
             pass
         ```

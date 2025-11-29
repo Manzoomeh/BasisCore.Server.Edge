@@ -19,7 +19,7 @@ options = {"server": "localhost:8080", "router": "restful"}
 app = MyDispatcher(options)
 
 # ثبت handlerها
-@app.restful_action()
+@app.restful_handler()
 async def handler(context):
     return {"status": "ok"}
 
@@ -48,7 +48,7 @@ app.configure_services(lambda services: (
 ))
 
 # ثبت handlerها
-@app.restful_action()
+@app.restful_handler()
 async def handler(context):
     return {"status": "ok"}
 

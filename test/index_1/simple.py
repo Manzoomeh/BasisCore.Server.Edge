@@ -10,12 +10,12 @@ app = edge.from_options(options)
 # index 5
 
 
-@app.web_action()
+@app.web_handler()
 async def process_web_remain_request(context: edge.HttpContext):
     return "<h1>hi from edge</h1>"
 
 # index 1
-# @app.web_action()
+# @app.web_handler()
 # async def process_web_remain_request(context: edge.HttpContext):
 #     context.response_type = edge.ResponseTypes.RENDERABLE
 #     context.add_header("x-qam","12121")

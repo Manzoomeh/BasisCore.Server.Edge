@@ -29,7 +29,7 @@ Example:
     app = edge.from_options(options)
     
     # Register handlers
-    @app.restful_action(app.url("api/hello"))
+    @app.restful_handler(app.url("api/hello"))
     def hello_handler(context: edge.RESTfulContext):
         return {"message": "Hello World"}
     
@@ -179,7 +179,7 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDisp
         }
         app = edge.from_options(options)
 
-        @app.restful_action(app.url("api/users"))
+        @app.restful_handler(app.url("api/users"))
         def get_users():
             return {"users": []}
 

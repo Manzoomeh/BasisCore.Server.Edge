@@ -21,7 +21,7 @@ app = edge.from_options(options)
 app.add_static_handler(static_handler)
 
 
-@app.websocket_action()
+@app.websocket_handler()
 async def handle_websocket(context: edge.WebSocketContext):
     """Handle WebSocket messages"""
     print(

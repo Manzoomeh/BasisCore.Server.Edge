@@ -10,7 +10,7 @@ options = {
 app = edge.from_options(options)
 
 
-@app.restful_action()
+@app.restful_handler()
 def process_restful_request(context: edge.RESTfulContext):
     print("process_restful_request")
     return generate_data()

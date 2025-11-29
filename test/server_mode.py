@@ -15,7 +15,7 @@ options = {
 app = edge.from_options(options)
 
 
-@app.restful_action()
+@app.restful_handler()
 def process_post(context: edge.RESTfulContext):
     body = context.body
     if body is None:

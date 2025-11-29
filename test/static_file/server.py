@@ -40,7 +40,7 @@ static_handler = StaticFileHandler(
 
 app.add_static_handler(static_handler)
 
-# @app.web_action()
+# @app.web_handler()
 # async def serve_static_files(context: RESTfulContext):
 #     """
 #     Serve static files from public directory
@@ -62,7 +62,7 @@ app.add_static_handler(static_handler)
 # )
 
 # Uncomment this handler if you have an assets folder
-# @app.restful_action("/assets/*")
+# @app.restful_handler("/assets/*")
 # async def serve_assets(context: RESTfulContext):
 #     """
 #     Serve assets with /assets prefix

@@ -133,7 +133,7 @@ app = DIDispatcher(options)
 
 # ==================== Handlers ====================
 
-@app.restful_action()
+@app.restful_handler()
 async def hello(context: RESTfulContext):
     """
     Simple hello endpoint
@@ -156,7 +156,7 @@ async def hello(context: RESTfulContext):
     }
 
 
-@app.restful_action("/greet/:name")
+@app.restful_handler("/greet/:name")
 async def greet(context: RESTfulContext):
     """
     Greeting endpoint with parameter
@@ -184,7 +184,7 @@ async def greet(context: RESTfulContext):
     }
 
 
-@app.restful_action("/services/info")
+@app.restful_handler("/services/info")
 async def services_info(context: RESTfulContext):
     """
     Show information about registered services
@@ -222,7 +222,7 @@ async def services_info(context: RESTfulContext):
     }
 
 
-@app.restful_action("/test/singleton")
+@app.restful_handler("/test/singleton")
 async def test_singleton(context: RESTfulContext):
     """
     Test singleton lifetime - same instance across requests
@@ -243,7 +243,7 @@ async def test_singleton(context: RESTfulContext):
     return {"error": "Logger not available"}
 
 
-@app.restful_action("/test/transient")
+@app.restful_handler("/test/transient")
 async def test_transient(context: RESTfulContext):
     """
     Test transient lifetime - new instance every time

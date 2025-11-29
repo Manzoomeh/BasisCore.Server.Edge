@@ -102,7 +102,7 @@ def process_all_other_message(context: edge.SocketContext):
     ChatRoom.process_message(context.message, context.cms)
 
 
-@app.web_action()
+@app.web_handler()
 def process_web_message(context: edge.HttpContext):
     print("process_web_message")
     return "<h1>hi</h1>"

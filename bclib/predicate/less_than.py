@@ -43,7 +43,7 @@ class LessThan(Predicate):
         # Check if price is below limit
         price_check = LessThan("context.form.price", 10000)
 
-        @app.action(predicates=[LessThan("context.query.count", 100)])
+        @app.handler(predicates=[LessThan("context.query.count", 100)])
         async def limited_handler(context):
             pass
         ```

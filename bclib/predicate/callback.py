@@ -48,7 +48,7 @@ class Callback(Predicate):
 
         predicate = Callback(is_premium_user)
 
-        @app.action(predicates=[predicate])
+        @app.handler(predicates=[predicate])
         async def premium_feature(context):
             pass
         ```

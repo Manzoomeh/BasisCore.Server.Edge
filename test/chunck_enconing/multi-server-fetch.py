@@ -49,50 +49,50 @@ service5_app = edge.from_options(service5_options, mani_app.event_loop)
 service6_app = edge.from_options(service6_options, mani_app.event_loop)
 
 
-@service1_app.restful_action()
-async def process_web_action_async(context: edge.RequestContext):
+@service1_app.restful_handler()
+async def process_web_handler_async(context: edge.RequestContext):
     delay = random.randint(1, 5)
     await asyncio.sleep(delay)
     return f"Hi from service1 restful after {delay} sec..."
 
 
-@service2_app.restful_action()
-async def process_web_action_async(context: edge.RequestContext):
+@service2_app.restful_handler()
+async def process_web_handler_async(context: edge.RequestContext):
     delay = random.randint(1, 5)
     await asyncio.sleep(delay)
     return f"Hi from service2 restful after {delay} sec..."
 
 
-@service3_app.restful_action()
-async def process_web_action_async(context: edge.RequestContext):
+@service3_app.restful_handler()
+async def process_web_handler_async(context: edge.RequestContext):
     delay = random.randint(1, 5)
     await asyncio.sleep(delay)
     return f"Hi from service3 restful after {delay} sec..."
 
 
-@service4_app.restful_action()
-async def process_web_action_async(context: edge.RequestContext):
+@service4_app.restful_handler()
+async def process_web_handler_async(context: edge.RequestContext):
     delay = random.randint(1, 5)
     await asyncio.sleep(delay)
     return f"Hi from service4 restful after {delay} sec..."
 
 
-@service5_app.restful_action()
-async def process_web_action_async(context: edge.RequestContext):
+@service5_app.restful_handler()
+async def process_web_handler_async(context: edge.RequestContext):
     delay = random.randint(1, 5)
     await asyncio.sleep(delay)
     return f"Hi from service5 restful after {delay} sec..."
 
 
-@service6_app.restful_action()
-async def process_web_action_async(context: edge.RequestContext):
+@service6_app.restful_handler()
+async def process_web_handler_async(context: edge.RequestContext):
     delay = random.randint(1, 5)
     await asyncio.sleep(delay)
     return f"Hi from service6 restful after {delay} sec..."
 
 
-@mani_app.web_action(mani_app.get("stream"))
-async def process_web_action_async(context: edge.HttpContext):
+@mani_app.web_handler(mani_app.get("stream"))
+async def process_web_handler_async(context: edge.HttpContext):
     print("start")
     await context.start_stream_response_async(headers={'Content-Type': 'text/html; charset=utf-8'})
     await context.write_and_drain_async(b"start of data<br/>")
@@ -107,8 +107,8 @@ async def process_web_action_async(context: edge.HttpContext):
     return True
 
 
-@mani_app.web_action(mani_app.get("stream-2"))
-async def process_web_action_async(context: edge.HttpContext):
+@mani_app.web_handler(mani_app.get("stream-2"))
+async def process_web_handler_async(context: edge.HttpContext):
     print("start")
     await context.start_stream_response_async(headers={'Content-Type': 'text/html; charset=utf-8'})
     await context.write_and_drain_async(b"start of data<br/>")
@@ -135,8 +135,8 @@ async def process_web_action_async(context: edge.HttpContext):
         return ex
 
 
-@mani_app.web_action()
-async def process_web_action_async(context: edge.HttpContext):
+@mani_app.web_handler()
+async def process_web_handler_async(context: edge.HttpContext):
     return "Hi from simple web server"
 
 service1_app.listening(with_block=False)

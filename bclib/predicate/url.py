@@ -61,7 +61,7 @@ class Url(Predicate):
         # Matches: /files/documents/report.pdf
         # Extracts: path="documents/report.pdf"
 
-        @app.action(route=Url("/api/users/:id"))
+        @app.handler(route=Url("/api/users/:id"))
         async def get_user(context):
             user_id = context.url_segments['id']
         ```

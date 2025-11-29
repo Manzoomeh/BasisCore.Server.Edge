@@ -39,7 +39,7 @@ static_handler = StaticFileHandler(
     enable_index=True
 )
 
-@app.restful_action()
+@app.restful_handler()
 async def serve_static(context: RESTfulContext):
     await static_handler.handle(context)
 
@@ -55,7 +55,7 @@ static_handler = StaticFileHandler(
     url_prefix='/static'
 )
 
-@app.restful_action("/static/*")
+@app.restful_handler("/static/*")
 async def serve_static(context: RESTfulContext):
     await static_handler.handle(context)
 ```
@@ -113,7 +113,7 @@ image_handler = StaticFileHandler(
     url_prefix='/images'
 )
 
-@app.restful_action("/images/*")
+@app.restful_handler("/images/*")
 async def serve_images(context: RESTfulContext):
     await image_handler.handle(context)
 ```
@@ -138,11 +138,11 @@ media_handler = StaticFileHandler(
     url_prefix='/media'
 )
 
-@app.restful_action()
+@app.restful_handler()
 async def serve_web(context: RESTfulContext):
     await web_handler.handle(context)
 
-@app.restful_action("/media/*")
+@app.restful_handler("/media/*")
 async def serve_media(context: RESTfulContext):
     await media_handler.handle(context)
 ```
@@ -261,11 +261,11 @@ static_handler = StaticFileHandler(
 Organize your routes with prefixes:
 
 ```python
-@app.restful_action("/assets/*")
+@app.restful_handler("/assets/*")
 async def assets(context):
     await asset_handler.handle(context)
 
-@app.restful_action("/media/*")
+@app.restful_handler("/media/*")
 async def media(context):
     await media_handler.handle(context)
 ```

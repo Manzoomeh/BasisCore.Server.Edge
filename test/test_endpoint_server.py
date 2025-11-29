@@ -17,7 +17,7 @@ server_options = {
 app = edge.from_options(server_options)
 
 
-@app.restful_action(app.get("api/hello"))
+@app.restful_handler(app.get("api/hello"))
 async def hello_handler(context: RESTfulContext):
     """Handle hello requests"""
     return {
@@ -26,7 +26,7 @@ async def hello_handler(context: RESTfulContext):
     }
 
 
-@app.restful_action(app.get("api/users/:id"))
+@app.restful_handler(app.get("api/users/:id"))
 async def user_handler(context: RESTfulContext):
     """Handle user requests with URL parameter"""
     user_id = context.url_segments.get("id", "unknown")

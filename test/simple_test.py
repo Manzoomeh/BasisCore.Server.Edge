@@ -14,7 +14,7 @@ print(f"App created: {app}")
 print(f"App type: {type(app)}")
 
 
-@app.restful_action(app.get("api/test"))
+@app.restful_handler(app.get("api/test"))
 async def test_handler(context: RESTfulContext):
     return {"message": "Test handler works!"}
 

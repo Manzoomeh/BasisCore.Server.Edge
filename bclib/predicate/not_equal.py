@@ -44,7 +44,7 @@ class NotEqual(Predicate):
         # Require non-guest user
         not_guest = NotEqual("context.session.role", "guest")
 
-        @app.action(predicates=[NotEqual("context.query.type", "admin")])
+        @app.handler(predicates=[NotEqual("context.query.type", "admin")])
         async def non_admin_handler(context):
             pass
         ```

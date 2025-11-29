@@ -13,12 +13,12 @@ options = {
 app = edge.from_options(options)
 
 
-@app.web_action(app.url(":file"))
+@app.web_handler(app.url(":file"))
 def handler(context: edge.HttpContext):
     return readAsset(context.url_segments.file)
 
 
-@app.web_action()
+@app.web_handler()
 def handler(context: edge.HttpContext):
     return readAsset("index.html")
 

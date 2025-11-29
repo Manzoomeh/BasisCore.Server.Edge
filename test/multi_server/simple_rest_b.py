@@ -21,7 +21,7 @@ def generate_data() -> list:
     return ret_val
 
 
-@app.restful_action()
+@app.restful_handler()
 def process_restful_request(context: edge.RESTfulContext):
     print("process_restful_request")
     return generate_data()

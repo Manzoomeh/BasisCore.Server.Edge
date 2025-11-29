@@ -131,7 +131,7 @@ class TestRegisterHandler(unittest.TestCase):
         """Test mixing decorator-based and programmatic registration"""
 
         # Register with decorator
-        @self.dispatcher.restful_action()
+        @self.dispatcher.restful_handler()
         def decorator_handler():
             return {"method": "decorator"}
 

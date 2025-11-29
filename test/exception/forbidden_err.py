@@ -13,7 +13,7 @@ if "options" not in dir():
 app = edge.from_options(options)
 
 
-@app.restful_action()
+@app.restful_handler()
 def process_default_rest_action(_: edge.RESTfulContext):
     raise edge.ForbiddenErr(data={
         "status_code": edge.HttpStatusCodes.FORBIDDEN,

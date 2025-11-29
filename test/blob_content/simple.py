@@ -10,7 +10,7 @@ options = {
 app = edge.from_options(options)
 
 
-@app.web_action(app.get("xlsx"))
+@app.web_handler(app.get("xlsx"))
 async def process_web_remain_request(context: edge.HttpContext):
     print("xlsx")
     context.mime = edge.HttpMimeTypes.XLSX
@@ -20,7 +20,7 @@ async def process_web_remain_request(context: edge.HttpContext):
         return f.read()
 
 
-@app.web_action()
+@app.web_handler()
 async def process_web_remain_request(context: edge.HttpContext):
     print("all")
     return """

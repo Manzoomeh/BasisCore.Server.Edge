@@ -8,7 +8,7 @@ options = {
 
 app = edge.from_options(options)
 
-@app.restful_action(
+@app.restful_handler(
     app.url("test")
 )
 def process_send_file(context: edge.RESTfulContext):

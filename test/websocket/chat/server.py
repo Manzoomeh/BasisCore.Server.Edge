@@ -30,7 +30,7 @@ app.add_static_handler(static_handler)
 
 
 # Register WebSocket handler
-@app.websocket_action()
+@app.websocket_handler()
 async def websocket_handler(context: WebSocketContext):
     """Handle WebSocket chat messages"""
     # Get session and manager from context

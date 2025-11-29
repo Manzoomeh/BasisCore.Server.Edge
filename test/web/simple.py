@@ -16,12 +16,12 @@ options = {
 app = edge.from_options(options)
 
 
-@app.web_action("test00")
+@app.web_handler("test00")
 async def test_handler_0():
     return "<h1>Test endpoint 00</h1>"
 
 
-@app.action("test0")
+@app.handler("test0")
 async def test_web_handler_0():
     return {
         "message": "Test endpoint 1",
@@ -29,7 +29,7 @@ async def test_web_handler_0():
     }
 
 
-@app.restful_action("test1")
+@app.restful_handler("test1")
 async def test_handler_1():
     return {
         "message": "Test endpoint 1",
@@ -37,7 +37,7 @@ async def test_handler_1():
     }
 
 
-@app.restful_action("test2", method=["POST", "PUT"])
+@app.restful_handler("test2", method=["POST", "PUT"])
 async def test_handler_3(context: edge.RESTfulContext):
     return {
         "message": "Test endpoint 3",
@@ -45,7 +45,7 @@ async def test_handler_3(context: edge.RESTfulContext):
     }
 
 
-@app.restful_action("test2")
+@app.restful_handler("test2")
 async def test_handler_2(context: edge.RESTfulContext, id: Optional[int] = None):
     return {
         "message": "Test endpoint 2",
@@ -54,7 +54,7 @@ async def test_handler_2(context: edge.RESTfulContext, id: Optional[int] = None)
     }
 
 
-@app.web_action()
+@app.web_handler()
 async def process_web_remain_request():
     # await asyncio.sleep(1)
     # def f(n):

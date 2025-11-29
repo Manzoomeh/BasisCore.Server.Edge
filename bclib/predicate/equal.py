@@ -55,7 +55,7 @@ class Equal(Predicate):
         id_predicate = Equal("context.url_segments.id", "123")
 
         # Use in decorator
-        @app.action(predicates=[Equal("context.query.role", "admin")])
+        @app.handler(predicates=[Equal("context.query.role", "admin")])
         async def admin_handler(context):
             pass
         ```

@@ -495,7 +495,7 @@ class PredicateHelper:
         Build combined list of predicates from decorator parameters
 
         Consolidates logic for building predicates from route, method(s), and
-        additional predicates. Used internally by action decorators.
+        additional predicates. Used internally by handler decorators.
 
         Args:
             route: Optional URL route pattern (e.g., "users/:id", "api/posts")

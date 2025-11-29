@@ -49,7 +49,7 @@ app.add_transient(ITimeService, TimeService)
 
 # Handlers with different signatures
 
-@app.restful_action()
+@app.restful_handler()
 def handler_with_context(context: RESTfulContext):
     """Traditional handler - still works!"""
     return {
@@ -58,7 +58,7 @@ def handler_with_context(context: RESTfulContext):
     }
 
 
-@app.restful_action()
+@app.restful_handler()
 def handler_no_context(logger: ILogger):
     """New style - no context needed!"""
     logger.log("INFO", "Handler called without context parameter!")
@@ -68,7 +68,7 @@ def handler_no_context(logger: ILogger):
     }
 
 
-@app.restful_action()
+@app.restful_handler()
 def handler_with_services(logger: ILogger, time: ITimeService):
     """Multiple services, no context"""
     current_time = time.get_current_time()
@@ -79,7 +79,7 @@ def handler_with_services(logger: ILogger, time: ITimeService):
     }
 
 
-@app.restful_action()
+@app.restful_handler()
 def handler_mixed(context: RESTfulContext, logger: ILogger, time: ITimeService):
     """Mix of context and services"""
     logger.log(
@@ -91,7 +91,7 @@ def handler_mixed(context: RESTfulContext, logger: ILogger, time: ITimeService):
     }
 
 
-@app.restful_action()
+@app.restful_handler()
 async def async_handler_no_context(logger: ILogger):
     """Async handler without context"""
     logger.log("INFO", "Async handler without context!")

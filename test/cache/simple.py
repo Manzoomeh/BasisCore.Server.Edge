@@ -20,7 +20,7 @@ data = {
 
 app.cache_manager.add_or_update("demo", data, life_time=300)
 
-@app.restful_action(
+@app.restful_handler(
     app.get("api/data/:key")
 )
 def rest_get(context: edge.RESTfulContext):
@@ -30,7 +30,7 @@ def rest_get(context: edge.RESTfulContext):
         "From Cache": context.dispatcher.cache_manager.get_cache(key)
     }
 
-@app.restful_action(
+@app.restful_handler(
     app.post("api/:action")
 )
 def action_api(context: edge.RESTfulContext):
@@ -86,7 +86,7 @@ def action_api(context: edge.RESTfulContext):
         }
     return ret_val
 
-@app.restful_action(
+@app.restful_handler(
     app.post("api/clean")
 )
 def clean_cache(context: edge.RESTfulContext):

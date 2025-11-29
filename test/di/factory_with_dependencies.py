@@ -90,7 +90,7 @@ print()
 
 
 # Test endpoint
-@app.restful_action(app.url("api/test"))
+@app.restful_handler(app.url("api/test"))
 async def test_handler(db: IDatabase):
     """Handler with auto-injected database (which has its own dependencies)"""
     connection = db.connect()

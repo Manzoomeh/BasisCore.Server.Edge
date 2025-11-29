@@ -16,7 +16,7 @@ options = {
 app = edge.from_options(options)
 
 
-@app.restful_action(app.get("log-schema/1161"))
+@app.restful_handler(app.get("log-schema/1161"))
 def get_schema_by_id(context: edge.RESTfulContext):
     return {
         "sources": [{
@@ -75,13 +75,13 @@ def get_schema_by_id(context: edge.RESTfulContext):
     }
 
 
-@app.restful_action(app.post("log-schema"))
+@app.restful_handler(app.post("log-schema"))
 def save_schema(context: edge.RESTfulContext):
     print("must be save", context.body.schema)
     return True
 
 
-@app.restful_action(app.url("async"))
+@app.restful_handler(app.url("async"))
 def process_restful_request_with_log_in_background(context: edge.RESTfulContext):
     print("process_restful_request_with_log_in_background")
     data_1 = 12
@@ -93,7 +93,7 @@ def process_restful_request_with_log_in_background(context: edge.RESTfulContext)
     return {"result": "ok from async"}
 
 
-@app.restful_action()
+@app.restful_handler()
 async def process_restful_request_with_log_and_wait(context: edge.RESTfulContext):
     print("process_restful_request_with_log_and_wait")
     data_1 = 12

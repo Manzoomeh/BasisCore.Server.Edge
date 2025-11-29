@@ -51,7 +51,7 @@ class Dispatcher(IDispatcher):
         app.add_scoped(IDatabase, PostgresDatabase)
 
         # Register handlers with DI
-        @app.restful_action(app.url("api/users"))
+        @app.restful_handler(app.url("api/users"))
         async def get_users(options: AppOptions, logger: ILogger, db: IDatabase):
             logger.log(f"Fetching users from {options.get('name')}")
             return db.get_all_users()
@@ -163,14 +163,14 @@ class Dispatcher(IDispatcher):
 
         # Map context types to their decorator methods
         decorator_map = {
-            RESTfulContext: self.restful_action,
-            HttpContext: self.web_action,
-            WebSocketContext: self.websocket_action,
-            ClientSourceContext: self.client_source_action,
-            ClientSourceMemberContext: self.client_source_member_action,
-            ServerSourceContext: self.server_source_action,
-            ServerSourceMemberContext: self.server_source_member_action,
-            RabbitContext: self.rabbit_action,
+            RESTfulContext: self.restful_handler,
+            HttpContext: self.web_handler,
+            WebSocketContext: self.websocket_handler,
+            ClientSourceContext: self.client_source_handler,
+            ClientSourceMemberContext: self.client_source_member_handler,
+            ServerSourceContext: self.server_source_handler,
+            ServerSourceMemberContext: self.server_source_member_handler,
+            RabbitContext: self.rabbit_handler,
         }
 
         # Get appropriate decorator
@@ -227,9 +227,9 @@ class Dispatcher(IDispatcher):
 
         return self
 
-    def restful_action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def restful_handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
         """
-        Decorator for RESTful action with automatic DI
+        Decorator for RESTful handler with automatic DI
 
         Context parameter is now optional - handler can choose to:
         - Accept context: def handler(context: RESTfulContext)
@@ -244,28 +244,28 @@ class Dispatcher(IDispatcher):
         Example:
             ```python
             # Using route as first argument
-            @app.restful_action("users/:id")
+            @app.restful_handler("users/:id")
             def get_user(context: RESTfulContext):
                 user_id = context.url_segments['id']
                 return {"user_id": user_id}
 
             # Using route and single method
-            @app.restful_action("users", method="post")
+            @app.restful_handler("users", method="post")
             def create_user(context: RESTfulContext):
                 return {"status": "created"}
 
             # Using multiple methods as array
-            @app.restful_action("users/:id", method=["GET", "PUT"])
+            @app.restful_handler("users/:id", method=["GET", "PUT"])
             def user_handler(context: RESTfulContext):
                 return {"user_id": context.url_segments['id']}
 
             # Using route with additional predicates
-            @app.restful_action("posts/:id", method="GET", app.has_value("context.query.filter"))
+            @app.restful_handler("posts/:id", method="GET", app.has_value("context.query.filter"))
             def get_filtered_post(context: RESTfulContext):
                 return {"post_id": context.url_segments['id']}
 
             # No route, just predicates
-            @app.restful_action(predicates=[app.equal("context.query.type", "admin")])
+            @app.restful_handler(predicates=[app.equal("context.query.type", "admin")])
             def admin_handler(context: RESTfulContext):
                 return {"admin": True}
             ```
@@ -280,11 +280,11 @@ class Dispatcher(IDispatcher):
             *predicates
         )
 
-        def _decorator(restful_action_handler: Callable):
+        def _decorator(restful_handler_fn: Callable):
             # Pre-compile injection plan at decoration time (once)
-            injection_plan = InjectionPlan(restful_action_handler)
+            injection_plan = InjectionPlan(restful_handler_fn)
 
-            @wraps(restful_action_handler)
+            @wraps(restful_handler_fn)
             async def wrapper(context: RESTfulContext):
                 # Execute pre-compiled plan (fast - no reflection)
                 kwargs = {**(context.url_segments or {}),
@@ -295,12 +295,12 @@ class Dispatcher(IDispatcher):
 
             self._get_context_lookup(RESTfulContext)\
                 .append(CallbackInfo(combined_predicates, wrapper))
-            return restful_action_handler
+            return restful_handler_fn
         return _decorator
 
-    def web_action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def web_handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
         """
-        Decorator for legacy web request action with automatic DI
+        Decorator for legacy web request handler with automatic DI
 
         Context parameter is optional - handler can choose to:
         - Accept context: def handler(context: HttpContext)
@@ -315,27 +315,27 @@ class Dispatcher(IDispatcher):
         Example:
             ```python
             # Using route as first argument
-            @app.web_action("about")
+            @app.web_handler("about")
             def about_page(context: HttpContext):
                 return "<h1>About Us</h1>"
 
             # Using route and single method
-            @app.web_action("contact", method="post")
+            @app.web_handler("contact", method="post")
             def submit_contact(context: HttpContext):
                 return "<h1>Thank you!</h1>"
 
             # Using multiple methods as array
-            @app.web_action("form", method=["GET", "POST"])
+            @app.web_handler("form", method=["GET", "POST"])
             def form_handler(context: HttpContext):
                 return "<h1>Form Page</h1>"
 
             # Using route with additional predicates
-            @app.web_action("admin/:section", method="GET", app.has_value("context.query.token"))
+            @app.web_handler("admin/:section", method="GET", app.has_value("context.query.token"))
             def admin_panel(context: HttpContext):
                 return f"<h1>Admin: {context.url_segments['section']}</h1>"
 
             # No route, just predicates
-            @app.web_action(predicates=[app.callback(check_auth)])
+            @app.web_handler(predicates=[app.callback(check_auth)])
             def protected_page(context: HttpContext):
                 return "<h1>Protected</h1>"
             ```
@@ -350,11 +350,11 @@ class Dispatcher(IDispatcher):
             *predicates
         )
 
-        def _decorator(web_action_handler: Callable):
+        def _decorator(web_handler_fn: Callable):
             # Pre-compile injection plan at decoration time (once)
-            injection_plan = InjectionPlan(web_action_handler)
+            injection_plan = InjectionPlan(web_handler_fn)
 
-            @wraps(web_action_handler)
+            @wraps(web_handler_fn)
             async def wrapper(context: HttpContext):
                 kwargs = context.url_segments if context.url_segments else {}
                 action_result = await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
@@ -362,12 +362,12 @@ class Dispatcher(IDispatcher):
 
             self._get_context_lookup(HttpContext)\
                 .append(CallbackInfo(combined_predicates, wrapper))
-            return web_action_handler
+            return web_handler_fn
         return _decorator
 
-    def websocket_action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def websocket_handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
         """
-        Decorator for WebSocket action with automatic DI
+        Decorator for WebSocket handler with automatic DI
 
         Context parameter is optional - handler can choose to:
         - Accept context: def handler(context: WebSocketSession)
@@ -389,23 +389,23 @@ class Dispatcher(IDispatcher):
             *predicates
         )
 
-        def _decorator(websocket_action_handler: Callable):
+        def _decorator(websocket_handler_fn: Callable):
             # Pre-compile injection plan at decoration time (once)
-            injection_plan = InjectionPlan(websocket_action_handler)
+            injection_plan = InjectionPlan(websocket_handler_fn)
 
-            @wraps(websocket_action_handler)
+            @wraps(websocket_handler_fn)
             async def wrapper(context: WebSocketContext):
                 kwargs = context.url_segments if context.url_segments else {}
                 return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
 
             self._get_context_lookup(WebSocketContext)\
                 .append(CallbackInfo(combined_predicates, wrapper))
-            return websocket_action_handler
+            return websocket_handler_fn
         return _decorator
 
-    def client_source_action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def client_source_handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
         """
-        Decorator for client source action with automatic DI
+        Decorator for client source handler with automatic DI
 
         Context parameter is optional - handler can choose to:
         - Accept context: def handler(context: ClientSourceContext)
@@ -428,11 +428,11 @@ class Dispatcher(IDispatcher):
             *predicates
         )
 
-        def _decorator(client_source_action_handler: Callable):
+        def _decorator(client_source_handler_fn: Callable):
             # Pre-compile injection plan at decoration time (once)
-            injection_plan = InjectionPlan(client_source_action_handler)
+            injection_plan = InjectionPlan(client_source_handler_fn)
 
-            @wraps(client_source_action_handler)
+            @wraps(client_source_handler_fn)
             async def wrapper(context):
                 kwargs = context.url_segments if context.url_segments else {}
                 data = await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
@@ -466,12 +466,12 @@ class Dispatcher(IDispatcher):
             self._get_context_lookup(ClientSourceContext)\
                 .append(CallbackInfo(combined_predicates, wrapper))
 
-            return client_source_action_handler
+            return client_source_handler_fn
         return _decorator
 
-    def client_source_member_action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def client_source_member_handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
         """
-        Decorator for client source member action with automatic DI
+        Decorator for client source member handler with automatic DI
 
         Context parameter is optional - handler can choose to:
         - Accept context: def handler(context: ClientSourceMemberContext)
@@ -493,23 +493,23 @@ class Dispatcher(IDispatcher):
             *predicates
         )
 
-        def _decorator(client_source_member_handler: Callable):
+        def _decorator(client_source_member_handler_fn: Callable):
             # Pre-compile injection plan at decoration time (once)
-            injection_plan = InjectionPlan(client_source_member_handler)
+            injection_plan = InjectionPlan(client_source_member_handler_fn)
 
-            @wraps(client_source_member_handler)
+            @wraps(client_source_member_handler_fn)
             async def wrapper(context: ClientSourceMemberContext):
                 kwargs = context.url_segments if context.url_segments else {}
                 return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
 
             self._get_context_lookup(ClientSourceMemberContext)\
                 .append(CallbackInfo(combined_predicates, wrapper))
-            return client_source_member_handler
+            return client_source_member_handler_fn
         return _decorator
 
-    def server_source_action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def server_source_handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
         """
-        Decorator for server source action with automatic DI
+        Decorator for server source handler with automatic DI
 
         Context parameter is optional - handler can choose to:
         - Accept context: def handler(context: ServerSourceContext)
@@ -532,11 +532,11 @@ class Dispatcher(IDispatcher):
             *predicates
         )
 
-        def _decorator(server_source_action_handler: Callable):
+        def _decorator(server_source_handler_fn: Callable):
             # Pre-compile injection plan at decoration time (once)
-            injection_plan = InjectionPlan(server_source_action_handler)
+            injection_plan = InjectionPlan(server_source_handler_fn)
 
-            @wraps(server_source_action_handler)
+            @wraps(server_source_handler_fn)
             async def wrapper(context: ServerSourceContext):
                 kwargs = context.url_segments if context.url_segments else {}
                 data = await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
@@ -570,12 +570,12 @@ class Dispatcher(IDispatcher):
             self._get_context_lookup(ServerSourceContext)\
                 .append(CallbackInfo(combined_predicates, wrapper))
 
-            return server_source_action_handler
+            return server_source_handler_fn
         return _decorator
 
-    def server_source_member_action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def server_source_member_handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
         """
-        Decorator for server source member action with automatic DI
+        Decorator for server source member handler with automatic DI
 
         Context parameter is optional - handler can choose to:
         - Accept context: def handler(context: ServerSourceMemberContext)
@@ -597,23 +597,23 @@ class Dispatcher(IDispatcher):
             *predicates
         )
 
-        def _decorator(server_source_member_action_handler: Callable):
+        def _decorator(server_source_member_handler_fn: Callable):
             # ✨ Pre-compile injection plan at decoration time (once)
-            injection_plan = InjectionPlan(server_source_member_action_handler)
+            injection_plan = InjectionPlan(server_source_member_handler_fn)
 
-            @wraps(server_source_member_action_handler)
+            @wraps(server_source_member_handler_fn)
             async def wrapper(context):
                 kwargs = context.url_segments if context.url_segments else {}
                 return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
 
             self._get_context_lookup(ServerSourceMemberContext)\
                 .append(CallbackInfo(combined_predicates, wrapper))
-            return server_source_member_action_handler
+            return server_source_member_handler_fn
         return _decorator
 
-    def rabbit_action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def rabbit_handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
         """
-        Decorator for RabbitMQ message action with automatic DI
+        Decorator for RabbitMQ message handler with automatic DI
 
         Context parameter is optional - handler can choose to:
         - Accept context: def handler(context: RabbitContext)
@@ -635,11 +635,11 @@ class Dispatcher(IDispatcher):
             *predicates
         )
 
-        def _decorator(rabbit_action_handler: Callable):
+        def _decorator(rabbit_handler_fn: Callable):
             # ✨ Pre-compile injection plan at decoration time (once)
-            injection_plan = InjectionPlan(rabbit_action_handler)
+            injection_plan = InjectionPlan(rabbit_handler_fn)
 
-            @wraps(rabbit_action_handler)
+            @wraps(rabbit_handler_fn)
             async def wrapper(context):
                 kwargs = context.url_segments if context.url_segments else {}
                 return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
@@ -647,50 +647,42 @@ class Dispatcher(IDispatcher):
             self._get_context_lookup(RabbitContext)\
                 .append(CallbackInfo(combined_predicates, wrapper))
 
-            return rabbit_action_handler
+            return rabbit_handler_fn
         return _decorator
 
-    def action(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
         """
-        Universal action decorator that automatically determines the action type based on handler's context parameter
+        Universal handler decorator that automatically determines the action type based on handler's context parameter
 
         This decorator inspects the handler's signature to find the context type parameter and automatically
-        routes to the appropriate specific action decorator (web_action, restful_action, websocket_action, etc.).
-
-        Args:
-            route: Optional URL route pattern
-            method: Optional HTTP method filter - single string or list
-            *predicates: Variable number of Predicate objects for additional matching rules
-
-        Returns:
-            The appropriate decorator based on the handler's context type
+        routes to the appropriate specific handler decorator (web_handler, restful_handler, websocket_handler, etc.).
 
         Example:
             ```python
-            # Automatically uses restful_action because context is RESTfulContext
-            @app.action("users/:id", method="GET")
+            # Automatically uses restful_handler because context is RESTfulContext
+            @app.handler("users/:id", method="GET")
             def get_user(context: RESTfulContext):
                 return {"user_id": context.url_segments['id']}
 
-            # Automatically uses web_action because context is HttpContext
-            @app.action("home", method="GET")
+            # Automatically uses web_handler because context is HttpContext
+            @app.handler("home", method="GET")
             def home_page(context: HttpContext):
                 return "<h1>Home Page</h1>"
 
-            # Automatically uses websocket_action because context is WebSocketContext
-            @app.action("ws/chat/:room")
+            # Automatically uses websocket_handler because context is WebSocketContext
+            @app.handler("ws/chat/:room")
             async def chat_handler(context: WebSocketContext):
                 await context.send_text(f"Welcome to room {context.url_segments['room']}")
 
             # Works without context parameter too (inspects other type hints)
-            @app.action("api/data")
+            @app.handler("api/data")
             def get_data():
                 return {"data": "value"}
             ```
 
         Note:
             The decorator determines the action type by inspecting the handler's type hints.
-            If no context type is found, it defaults to restful_action.
+            If no context type is found, it defaults to restful_handler.
         """
         from typing import get_type_hints
 
@@ -739,28 +731,28 @@ class Dispatcher(IDispatcher):
 
                 # Route to appropriate decorator based on context type
                 if context_type == HttpContext:
-                    return self.web_action(route, method, *predicates)(handler)
+                    return self.web_handler(route, method, *predicates)(handler)
                 elif context_type == RESTfulContext:
-                    return self.restful_action(route, method, *predicates)(handler)
+                    return self.restful_handler(route, method, *predicates)(handler)
                 elif context_type == WebSocketContext:
-                    return self.websocket_action(route, method, *predicates)(handler)
+                    return self.websocket_handler(route, method, *predicates)(handler)
                 elif context_type == ClientSourceContext:
-                    return self.client_source_action(route, method, *predicates)(handler)
+                    return self.client_source_handler(route, method, *predicates)(handler)
                 elif context_type == ClientSourceMemberContext:
-                    return self.client_source_member_action(route, method, *predicates)(handler)
+                    return self.client_source_member_handler(route, method, *predicates)(handler)
                 elif context_type == ServerSourceContext:
-                    return self.server_source_action(route, method, *predicates)(handler)
+                    return self.server_source_handler(route, method, *predicates)(handler)
                 elif context_type == ServerSourceMemberContext:
-                    return self.server_source_member_action(route, method, *predicates)(handler)
+                    return self.server_source_member_handler(route, method, *predicates)(handler)
                 elif context_type == RabbitContext:
-                    return self.rabbit_action(route, method, *predicates)(handler)
+                    return self.rabbit_handler(route, method, *predicates)(handler)
                 else:
-                    # Default to restful_action if no context type found
-                    return self.restful_action(route, method, *predicates)(handler)
+                    # Default to restful_handler if no context type found
+                    return self.restful_handler(route, method, *predicates)(handler)
 
             except Exception:
-                # If type hint inspection fails, default to restful_action
-                return self.restful_action(route, method, *predicates)(handler)
+                # If type hint inspection fails, default to restful_handler
+                return self.restful_handler(route, method, *predicates)(handler)
 
         return _universal_decorator
 

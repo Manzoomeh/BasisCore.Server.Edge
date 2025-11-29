@@ -19,13 +19,13 @@ options = {
 app = dispatcher.SocketDispatcher(options)
 
 
-@ app.rabbit_action(app.equal("context.message.type", "clear-cache1"))
+@ app.rabbit_handler(app.equal("context.message.type", "clear-cache1"))
 def process_rabbit_message1(context: context.RabbitContext):
     print("process_rabbit_message1", context.host,
           context.queue, context.message)
 
 
-@ app.rabbit_action()
+@ app.rabbit_handler()
 def process_rabbit_message2(context: context.RabbitContext):
     print("process_rabbit_message2", context.host,
           context.queue, context.message.type)

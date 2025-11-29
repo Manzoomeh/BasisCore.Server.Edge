@@ -14,7 +14,7 @@ Key Features:
 
 Example:
     ```python
-    @app.websocket_action(app.url("ws/chat"))
+    @app.websocket_handler(app.url("ws/chat"))
     async def chat_handler(context: WebSocketContext):
         # Access session information
         session_id = context.session.session_id
@@ -63,7 +63,7 @@ class WebSocketContext(CmsBaseContext):
 
     Example:
         ```python
-        @app.websocket_action(app.url("ws/notifications"))
+        @app.websocket_handler(app.url("ws/notifications"))
         async def notifications(context: WebSocketContext):
             # Get session info
             user_id = context.url_segments.get('user_id')

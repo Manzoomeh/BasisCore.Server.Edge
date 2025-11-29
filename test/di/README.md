@@ -18,7 +18,7 @@ Instead of manually calling `context.get_service()`, you can simply add type-hin
 
 ```python
 # ❌ Old way - manual service resolution
-@app.restful_action()
+@app.restful_handler()
 async def handler(context: RESTfulContext):
     logger = context.get_service(ILogger)
     db = context.get_service(IDatabase)
@@ -28,7 +28,7 @@ async def handler(context: RESTfulContext):
     return {"data": result}
 
 # ✅ New way - automatic injection
-@app.restful_action()
+@app.restful_handler()
 async def handler(
     context: RESTfulContext,
     logger: ILogger,
@@ -46,7 +46,7 @@ async def handler(
 - ✅ Explicit dependencies in function signature
 - ✅ Better IDE support (autocomplete, type checking)
 - ✅ Easier to test (can call handlers directly with mock services)
-- ✅ Works with all handler decorators (`@restful_action`, `@web_action`, `@socket_action`, etc.)
+- ✅ Works with all handler decorators (`@restful_handler`, `@web_handler`, `@socket_action`, etc.)
 
 **See:** `auto_injection.py` for complete examples
 
@@ -294,7 +294,7 @@ app = MyDispatcher(options)
 ```### Step 4: Use Services in Handlers
 
 ```python
-@app.restful_action()
+@app.restful_handler()
 async def my_handler(context: RESTfulContext):
     # Get services from DI container
     logger = context.get_service(ILogger)
@@ -635,20 +635,20 @@ When you add type-hinted parameters to your handler functions, the dispatcher au
 
 Automatic DI injection works with ALL handler decorators:
 
-- `@restful_action()` - RESTful API endpoints
-- `@web_action()` - Legacy web requests
+- `@restful_handler()` - RESTful API endpoints
+- `@web_handler()` - Legacy web requests
 - `@socket_action()` - Socket connections
-- `@websocket_action()` - WebSocket connections
-- `@client_source_action()` - Client source actions
-- `@server_source_action()` - Server source actions
-- `@rabbit_action()` - RabbitMQ message handlers
+- `@websocket_handler()` - WebSocket connections
+- `@client_source_handler()` - Client source actions
+- `@server_source_handler()` - Server source actions
+- `@rabbit_handler()` - RabbitMQ message handlers
 
 ### Examples
 
 #### Single Service Injection
 
 ```python
-@app.restful_action("/users")
+@app.restful_handler("/users")
 async def get_users(context: RESTfulContext, logger: ILogger):
     logger.log("Fetching users...")
     # No need for: logger = context.get_service(ILogger)
@@ -658,7 +658,7 @@ async def get_users(context: RESTfulContext, logger: ILogger):
 #### Multiple Services Injection
 
 ```python
-@app.restful_action("/orders/:id")
+@app.restful_handler("/orders/:id")
 async def get_order(
     context: RESTfulContext,
     logger: ILogger,
@@ -683,7 +683,7 @@ async def get_order(
 #### Mixed Parameters (Context + Services)
 
 ```python
-@app.restful_action("/report/:type")
+@app.restful_handler("/report/:type")
 async def generate_report(
     context: RESTfulContext,
     logger: ILogger,
@@ -705,7 +705,7 @@ async def generate_report(
 #### Before (Manual Service Resolution)
 
 ```python
-@app.restful_action("/process")
+@app.restful_handler("/process")
 async def process_data(context: RESTfulContext):
     # Lots of boilerplate
     logger = context.get_service(ILogger)
@@ -730,7 +730,7 @@ async def process_data(context: RESTfulContext):
 #### After (Automatic Injection)
 
 ```python
-@app.restful_action("/process")
+@app.restful_handler("/process")
 async def process_data(
     context: RESTfulContext,
     logger: ILogger,
@@ -795,7 +795,7 @@ For automatic injection to work:
 **Parameters without type hints:** Not injected, you must provide them manually
 
 ```python
-@app.restful_action()
+@app.restful_handler()
 async def handler(context, logger):  # No type hints
     # logger will NOT be injected
     logger = context.get_service(ILogger)  # Still need manual resolution
@@ -804,7 +804,7 @@ async def handler(context, logger):  # No type hints
 **Unregistered services:** Silently skipped, handler called without them
 
 ```python
-@app.restful_action()
+@app.restful_handler()
 async def handler(context: RESTfulContext, unknown: IUnknownService):
     # IUnknownService not registered - parameter not provided
     # Handler called with only 'context'

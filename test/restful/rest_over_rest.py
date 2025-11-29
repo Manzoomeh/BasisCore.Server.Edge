@@ -16,17 +16,17 @@ options = {
 app = edge.from_options(options)
 
 
-@app.restful_action(app.url("inner_api"))
-def process_default_web_action(context: edge.RESTfulContext):
+@app.restful_handler(app.url("inner_api"))
+def process_default_web_handler(context: edge.RESTfulContext):
     return context.query
 
 
-@app.restful_action()
-async def process_default_web_action_async(context: edge.RESTfulContext):
+@app.restful_handler()
+async def process_default_web_handler_async(context: edge.RESTfulContext):
     api = context.open_restful_connection("rest_demo")
     data = await api.post_async(params={"name": "ali"})
     await asyncio.sleep(2)
-    return {"data": "result from process_default_web_action", "param": data}
+    return {"data": "result from process_default_web_handler", "param": data}
 
 
 app.listening()

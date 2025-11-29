@@ -30,28 +30,28 @@ def generate_data() -> list:
     return ret_val
 
 
-@app.server_source_action()
-@app.client_source_action(
+@app.server_source_handler()
+@app.client_source_handler(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
 def load_source(context: edge.SourceContext) -> Any:
     return generate_data()
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "list")
 )
-@app.server_source_member_action(
+@app.server_source_member_handler(
     app.equal("context.member.name", "list")
 )
 def process_list_member(context: edge.SourceMemberContext) -> Any:
     return context.data
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "paging")
 )
-@app.server_source_member_action(
+@app.server_source_member_handler(
     app.equal("context.member.name", "paging")
 )
 def process_page_member(context: edge.SourceMemberContext) -> Any:
@@ -63,10 +63,10 @@ def process_page_member(context: edge.SourceMemberContext) -> Any:
     return data
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "count")
 )
-@app.server_source_member_action(
+@app.server_source_member_handler(
     app.equal("context.member.name", "count")
 )
 def process_count_member(context: edge.SourceMemberContext) -> Any:
@@ -80,7 +80,7 @@ def process_count_member(context: edge.SourceMemberContext) -> Any:
 #####
 
 
-@app.web_action(
+@app.web_handler(
     app.url("qam-test/sample-client-source"))
 def process_web_sample_source_request(context: edge.HttpContext):
     return f"""
@@ -114,7 +114,7 @@ def process_web_sample_source_request(context: edge.HttpContext):
         """
 
 
-@app.web_action(app.url("qam-test/sample-server-source"))
+@app.web_handler(app.url("qam-test/sample-server-source"))
 def process_web_sample_dbsource_request(context: edge.HttpContext):
     context.response_type = edge.ResponseTypes.RENDERABLE
     return """
@@ -133,7 +133,7 @@ def process_web_sample_dbsource_request(context: edge.HttpContext):
         """
 
 
-@app.web_action()
+@app.web_handler()
 def process_web_remain_request(context: edge.HttpContext):
     print("process_web_remain_request")
     context.add_header(edge.HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")

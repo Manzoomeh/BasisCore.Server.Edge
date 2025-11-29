@@ -14,7 +14,7 @@ options = {
 app = edge.from_options(options)
 
 
-@app.restful_action(app.get("api/stream"))
+@app.restful_handler(app.get("api/stream"))
 async def stream_handler(context: RESTfulContext):
     """Handler that uses streaming response"""
 
@@ -35,7 +35,7 @@ async def stream_handler(context: RESTfulContext):
     return None
 
 
-@app.restful_action(app.get("api/normal"))
+@app.restful_handler(app.get("api/normal"))
 async def normal_handler(context: RESTfulContext):
     """Normal JSON response"""
     return {"message": "Normal response", "streaming": False}

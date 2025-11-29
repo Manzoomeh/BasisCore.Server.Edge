@@ -26,7 +26,7 @@ Example:
     combined = All(status_check, admin_check)
     
     # Using in decorators
-    @app.action(route="/api/users/:id", method="GET")
+    @app.handler(route="/api/users/:id", method="GET")
     async def get_user(context):
         pass
     ```

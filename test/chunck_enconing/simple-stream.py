@@ -14,8 +14,8 @@ if "options" not in dir():
 app = edge.from_options(options)
 
 
-@app.web_action(app.get("stream"))
-async def process_web_action_async(context: edge.HttpContext):
+@app.web_handler(app.get("stream"))
+async def process_web_handler_async(context: edge.HttpContext):
     print("start")
     await context.start_stream_response_async(headers={'Content-Type': 'text/html; charset=utf-8'})
     count = 0
@@ -29,7 +29,7 @@ async def process_web_action_async(context: edge.HttpContext):
     return True
 
 
-@app.web_action()
+@app.web_handler()
 def process_web_message(_: edge.HttpContext):
     path = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), "index.html")

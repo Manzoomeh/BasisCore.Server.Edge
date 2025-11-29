@@ -14,7 +14,7 @@ Key Features:
 
 Example:
     ```python
-    @app.restful_action(app.url("api/users"))
+    @app.restful_handler(app.url("api/users"))
     async def create_user(context: RESTfulContext):
         # Access parsed JSON body
         user_data = context.body
@@ -29,7 +29,7 @@ Example:
             "email": user.email
         }
         
-    @app.restful_action(app.url("api/users/{id}"))
+    @app.restful_handler(app.url("api/users/{id}"))
     async def get_user(context: RESTfulContext):
         user_id = context.url_segments.get('id')
         user = await get_user_from_db(user_id)
