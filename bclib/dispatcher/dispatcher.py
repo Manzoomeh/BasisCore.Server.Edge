@@ -887,11 +887,11 @@ class Dispatcher(IDispatcher):
 
     def add_static_handler(self, handler: StaticFileHandler) -> None:
         """Add static file handler to dispatcher"""
-        from bclib.context import HttpContext
+        from bclib.context import CmsBaseContext, HttpContext
 
-        async def async_wrapper(context):
-            action_result = await handler.handle(context)
-            return None if action_result is None else context.generate_response(action_result)
+        async def async_wrapper(context: CmsBaseContext):
+            handler_result = await handler.handle(context)
+            return None if handler_result is None else context.generate_response(handler_result)
 
         self._get_context_lookup(HttpContext)\
             .append(CallbackInfo([], async_wrapper))

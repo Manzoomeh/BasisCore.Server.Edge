@@ -120,6 +120,7 @@ class CmsBaseContext(Context):
         self.url: str = self.cms.get('request', {}).get('url')
         self.query: dict[str, str] = self.cms.get('query', {})
         self.form: dict[str, str] = self.cms.get('form', {})
+        self.methode: str = self.cms.get('request', {}).get('methode')
         self.__headers: dict[str, list[str]] = None
         self.response_type: str = ResponseTypes.RENDERED
         self.status_code: str = HttpStatusCodes.OK

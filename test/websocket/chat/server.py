@@ -14,9 +14,6 @@ sys.path.insert(0, os.path.abspath(
 
 app = edge.from_options({
     "server":  "localhost:8080",
-    "router": {
-        "web": ["*"]
-    },
     "log_error": True,
     "log_request": True,
 })
@@ -30,7 +27,7 @@ app.add_static_handler(static_handler)
 
 
 # Register WebSocket handler
-@app.websocket_handler()
+@app.handler()
 async def websocket_handler(context: WebSocketContext):
     """Handle WebSocket chat messages"""
     # Get session and manager from context

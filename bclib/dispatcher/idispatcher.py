@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from app_options import AppOptions
 from log_service.ilog_service import ILogService
+from utility.static_file_handler import StaticFileHandler
 
 from bclib.cache.manager import CacheManager
 from bclib.predicate.predicate_helper import PredicateHelper
@@ -57,4 +58,9 @@ class IDispatcher(PredicateHelper, ABC):
     @abstractmethod
     def listening(self, before_start: Coroutine = None, after_end: Coroutine = None, with_block: bool = True):
         """Start listening to request for process"""
+        pass
+
+    @abstractmethod
+    def add_static_handler(self, handler: StaticFileHandler) -> None:
+        """Add static file handler to dispatcher"""
         pass
