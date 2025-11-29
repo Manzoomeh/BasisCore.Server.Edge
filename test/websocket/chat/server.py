@@ -85,6 +85,8 @@ async def websocket_handler(context: WebSocketContext):
         print(
             f"[CLOSE] Session {session_id[:8]} closing (code: {context.message.code})")
 
+    return True
+
 
 async def handle_command(manager, session, command_text: str):
     """Handle chat commands"""

@@ -251,7 +251,7 @@ class CmsBaseContext(Context):
             Tuple[dict, str]: Error object dict and HTTP status code
 
         Note:
-            Includes stack trace if dispatcher.Logger.log_error is enabled.
+            Includes stack trace if dispatcher.logger.log_error is enabled.
             For ShortCircuitErr, uses exception's custom data and status code.
         """
         error_code = None
@@ -268,7 +268,7 @@ class CmsBaseContext(Context):
                 "errorCode": error_code,
                 "errorMessage": str(exception)
             }
-            if self.dispatcher.Logger.log_error:
+            if self.dispatcher.logger.log_error:
                 error_object["error"] = traceback.format_exc()
         return (error_object, status_code)
 

@@ -1,4 +1,45 @@
-"""Base class for dispatching request"""
+"""Dispatcher Implementation for BasisCore Edge
+
+Provides unified message dispatching with integrated dependency injection, routing,
+and multi-protocol listener management (HTTP, WebSocket, TCP, RabbitMQ).
+
+Features:
+    - Unified dispatcher architecture with composition-based listeners
+    - Automatic dependency injection for handlers
+    - Pattern-based routing with URL parameter extraction
+    - Multiple context type support (RESTful, Web, WebSocket, Socket, RabbitMQ)
+    - Service lifetime management (singleton, scoped, transient)
+    - Dynamic handler registration/unregistration with router rebuild
+    - Background task execution support
+    - WebSocket session management integration
+    - Cache decorator support
+    - Static file serving
+
+Example:
+    ```python
+    from bclib import edge
+    
+    # Create dispatcher from options
+    app = edge.from_options({
+        "http": "localhost:8080",
+        "router": "restful"
+    })
+    
+    # Register services
+    app.add_singleton(ILogger, ConsoleLogger)
+    app.add_scoped(IDatabase, PostgresDatabase)
+    
+    # Register handlers with DI
+    @app.restful_handler("api/users/:id")
+    async def get_user(context: RESTfulContext, logger: ILogger, db: IDatabase):
+        user_id = context.url_segments['id']
+        logger.log(f"Fetching user {user_id}")
+        return db.get_user(user_id)
+    
+    # Start listening
+    app.listening()
+    ```
+"""
 import asyncio
 import inspect
 import signal
@@ -19,47 +60,33 @@ from bclib.listener_factory import IListenerFactory
 from bclib.log_service.ilog_service import ILogService
 from bclib.predicate import Predicate
 from bclib.service_provider import InjectionPlan, IServiceProvider
-from bclib.service_provider.iservice_provider import IServiceProvider
 from bclib.utility.static_file_handler import StaticFileHandler
 from bclib.websocket import WebSocketSessionManager
 
 
 class Dispatcher(IDispatcher):
-    """
-    Base class for dispatching requests with integrated dependency injection
+    """Unified dispatcher for request handling with dependency injection
 
-    Provides a flexible routing system for different context types (RESTful, WebSocket, etc.)
-    with automatic service resolution and handler registration capabilities.
+    Provides flexible routing for different context types with automatic service
+    resolution and handler registration. Supports HTTP, WebSocket, TCP, and RabbitMQ
+    protocols through composition-based listener architecture.
 
-    Features:
-        - Automatic dependency injection for handlers
-        - Multiple context type support (RESTful, Socket, WebSocket, RabbitMQ, etc.)
-        - Service lifetime management (singleton, scoped, transient)
-        - Dynamic handler registration/unregistration
-        - Predicate-based routing
-        - Background task support
+    Attributes:
+        name (str): Dispatcher name from configuration
 
     Example:
         ```python
         from bclib import edge
 
-        # Create dispatcher
-        app = edge.from_options({"http": "localhost:8080", "router": "restful"})
-
-        # Register services
+        # Create and configure dispatcher
+        app = edge.from_options({"http": "localhost:8080"})
         app.add_singleton(ILogger, ConsoleLogger)
-        app.add_scoped(IDatabase, PostgresDatabase)
 
-        # Register handlers with DI
-        @app.restful_handler(app.url("api/users"))
-        async def get_users(options: AppOptions, logger: ILogger, db: IDatabase):
-            logger.log(f"Fetching users from {options.get('name')}")
-            return db.get_all_users()
+        # Register handler with DI
+        @app.restful_handler("api/users/:id")
+        async def get_user(context: RESTfulContext, logger: ILogger):
+            return {"id": context.url_segments['id']}
 
-        # Or register programmatically
-        app.register_handler(RESTfulContext, get_users, [app.url("api/users")])
-
-        # Start server
         app.listening()
         ```
     """
@@ -68,10 +95,15 @@ class Dispatcher(IDispatcher):
         """Initialize dispatcher with injected dependencies
 
         Args:
-            service_provider: The DI container with all registered services
-            options: Application configuration (AppOptions type alias for dict)
-            loop: The asyncio event loop for async operations
-            listener_factory: Factory for creating listeners based on configuration
+            service_provider (IServiceProvider): DI container with registered services
+            options (AppOptions): Application configuration dict (host.json)
+            logger (ILogService): Logging service for dispatcher operations
+            loop (asyncio.AbstractEventLoop): Event loop for async task execution
+            listener_factory (IListenerFactory): Factory for creating protocol listeners
+
+        Note:
+            WebSocket session manager is initialized with 30s heartbeat interval.
+            Listeners are loaded lazily in initialize_task() method.
         """
         self.__options = options
         self.__look_up: 'dict[Type, list[CallbackInfo]]' = dict()
@@ -102,42 +134,60 @@ class Dispatcher(IDispatcher):
         )
 
     @property
-    def Logger(self) -> ILogService:
-        """Get logger service"""
+    def logger(self) -> ILogService:
+        """Get logger service instance
+
+        Returns:
+            ILogService: The logging service configured for this dispatcher
+        """
         return self.__logger
 
     @property
     def service_provider(self) -> IServiceProvider:
-        """Get the root service provider (DI container)"""
+        """Get the root service provider (DI container)
+
+        Returns:
+            IServiceProvider: The root DI container with all registered services
+        """
         return self.__service_provider
 
     # Properties for IDispatcher interface
     @property
     def options(self) -> AppOptions:
-        """Get application configuration options (AppOptions = dict)"""
+        """Get application configuration options
+
+        Returns:
+            AppOptions: Application configuration dict (host.json content)
+        """
         return self.__options
 
     @property
     def cache_manager(self) -> 'CacheManager':
-        """Get cache manager"""
+        """Get cache manager for result caching
+
+        Returns:
+            CacheManager: Cache manager instance for storing handler results
+        """
         return self.__cache_manager
 
     def register_handler(
         self,
         context_type: Type['Context'],
         handler: Callable,
-        predicates: list[Predicate] = None
+        predicates: Optional[list[Predicate]] = None
     ) -> 'Dispatcher':
-        """
-        Register a handler for a specific context type without using decorators
+        """Register a handler for a specific context type without using decorators
 
         Args:
-            context_type: The context type (RESTfulContext, SocketContext, etc.)
-            handler: The handler function (can be sync or async)
-            predicates: List of predicates for routing
+            context_type (Type[Context]): Context type (RESTfulContext, SocketContext, etc.)
+            handler (Callable): Handler function (sync or async)
+            predicates (list[Predicate], optional): List of predicates for routing. Defaults to None.
 
         Returns:
-            Self for chaining
+            Dispatcher: Self for method chaining
+
+        Raises:
+            ValueError: If context_type is not supported
 
         Example:
             ```python
@@ -189,17 +239,20 @@ class Dispatcher(IDispatcher):
     def unregister_handler(
         self,
         context_type: Type['Context'],
-        handler: Callable
+        handler: Optional[Callable]
     ) -> 'Dispatcher':
-        """
-        Unregister handler(s) for a specific context type
+        """Unregister handler(s) for a specific context type
 
         Args:
-            context_type: The context type (RESTfulContext, SocketContext, etc.)
-            handler: Specific handler to remove. If None, removes all handlers for this context type
+            context_type (Type[Context]): Context type (RESTfulContext, SocketContext, etc.)
+            handler (Callable): Specific handler to remove. If None, removes all handlers
+                for this context type.
 
         Returns:
-            Self for chaining
+            Dispatcher: Self for method chaining
+
+        Note:
+            Automatically rebuilds the router after handler removal
 
         Example:
             ```python
@@ -227,7 +280,7 @@ class Dispatcher(IDispatcher):
 
         return self
 
-    def restful_handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def restful_handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
         """
         Decorator for RESTful handler with automatic DI
 
@@ -298,7 +351,7 @@ class Dispatcher(IDispatcher):
             return restful_handler_fn
         return _decorator
 
-    def web_handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def web_handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
         """
         Decorator for legacy web request handler with automatic DI
 
@@ -365,7 +418,7 @@ class Dispatcher(IDispatcher):
             return web_handler_fn
         return _decorator
 
-    def websocket_handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def websocket_handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
         """
         Decorator for WebSocket handler with automatic DI
 
@@ -403,7 +456,7 @@ class Dispatcher(IDispatcher):
             return websocket_handler_fn
         return _decorator
 
-    def client_source_handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def client_source_handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
         """
         Decorator for client source handler with automatic DI
 
@@ -469,7 +522,7 @@ class Dispatcher(IDispatcher):
             return client_source_handler_fn
         return _decorator
 
-    def client_source_member_handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def client_source_member_handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
         """
         Decorator for client source member handler with automatic DI
 
@@ -507,7 +560,7 @@ class Dispatcher(IDispatcher):
             return client_source_member_handler_fn
         return _decorator
 
-    def server_source_handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def server_source_handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
         """
         Decorator for server source handler with automatic DI
 
@@ -573,7 +626,7 @@ class Dispatcher(IDispatcher):
             return server_source_handler_fn
         return _decorator
 
-    def server_source_member_handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def server_source_member_handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
         """
         Decorator for server source member handler with automatic DI
 
@@ -611,7 +664,7 @@ class Dispatcher(IDispatcher):
             return server_source_member_handler_fn
         return _decorator
 
-    def rabbit_handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def rabbit_handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
         """
         Decorator for RabbitMQ message handler with automatic DI
 
@@ -650,7 +703,7 @@ class Dispatcher(IDispatcher):
             return rabbit_handler_fn
         return _decorator
 
-    def handler(self, route: str = None, method: 'str | list[str]' = None, *predicates: (Predicate)):
+    def handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
         """
         Universal handler decorator that automatically determines the action type based on handler's context parameter
 
@@ -757,7 +810,14 @@ class Dispatcher(IDispatcher):
         return _universal_decorator
 
     def _get_context_lookup(self, key: Type) -> 'list[CallbackInfo]':
-        """Get key related action list object"""
+        """Get or create callback info list for context type
+
+        Args:
+            key (Type): Context type class
+
+        Returns:
+            list[CallbackInfo]: List of registered callbacks for this context type
+        """
 
         ret_val: None
         if key in self.__look_up:
@@ -817,11 +877,23 @@ class Dispatcher(IDispatcher):
 
     @property
     def ws_manager(self) -> WebSocketSessionManager:
-        """Get WebSocket session manager"""
+        """Get WebSocket session manager instance
+
+        Returns:
+            WebSocketSessionManager: Manager for WebSocket session lifecycle and messaging
+        """
         return self.__ws_manager
 
     def run_in_background(self, callback: 'Callable|Coroutine', *args: Any) -> asyncio.Future:
-        """Execute function or coroutine in background"""
+        """Execute function or coroutine in background
+
+        Args:
+            callback (Callable | Coroutine): Function or coroutine to execute
+            *args (Any): Arguments to pass to callback
+
+        Returns:
+            asyncio.Future: Future object representing the background execution
+        """
         if inspect.iscoroutinefunction(callback):
             return self.__event_loop.create_task(callback(*args))
         else:
@@ -831,15 +903,25 @@ class Dispatcher(IDispatcher):
         """Add a listener to the dispatcher
 
         Args:
-            listener: Listener instance implementing IListener interface
+            listener (IListener): Listener instance implementing IListener interface
+                (HttpListener, TcpListener, RabbitListener, etc.)
+
+        Note:
+            Listeners are initialized when initialize_task() is called
         """
         self.__listeners.append(listener)
 
     def initialize_task(self):
         """Initialize all listeners and tasks
 
-        Loads listeners from factory and initializes them. This includes HTTP, WebSocket, 
+        Loads listeners from factory and initializes them. This includes HTTP, WebSocket,
         TCP, and RabbitMQ listeners based on application configuration.
+
+        Note:
+            - Ensures router is built before listeners start
+            - Lazily loads listeners from factory on first call
+            - Initializes endpoint listener if configured
+            - Called automatically by listening() method
         """
         # Ensure router is ready before server starts
         self.__context_factory.rebuild_router()
@@ -865,8 +947,23 @@ class Dispatcher(IDispatcher):
 
             self.__event_loop.create_task(start_endpoint_server())
 
-    def listening(self, before_start: Coroutine = None, after_end: Coroutine = None, with_block: bool = True):
-        """Start listening to request for process"""
+    def listening(self, before_start: Optional[Coroutine] = None, after_end: Optional[Coroutine] = None, with_block: bool = True):
+        """Start listening for incoming requests
+
+        Args:
+            before_start (Coroutine, optional): Coroutine to execute before starting listeners.
+                Defaults to None.
+            after_end (Coroutine, optional): Coroutine to execute after event loop stops.
+                Defaults to None.
+            with_block (bool, optional): Whether to block until SIGTERM/SIGINT received.
+                Defaults to True.
+
+        Note:
+            - Registers SIGTERM and SIGINT handlers for graceful shutdown
+            - Calls initialize_task() to set up all listeners
+            - If with_block=True, runs event loop until stopped
+            - Cancels all pending tasks on shutdown
+        """
         for sig in (signal.SIGTERM, signal.SIGINT):
             signal.signal(sig, lambda sig, _: self.__event_loop.stop())
         if before_start != None:
@@ -886,7 +983,14 @@ class Dispatcher(IDispatcher):
             self.__event_loop.close()
 
     def add_static_handler(self, handler: StaticFileHandler) -> None:
-        """Add static file handler to dispatcher"""
+        """Add static file handler for serving files
+
+        Args:
+            handler (StaticFileHandler): Handler instance for static file serving
+
+        Note:
+            Registers handler for HttpContext with empty predicates (matches all requests)
+        """
         from bclib.context import CmsBaseContext, HttpContext
 
         async def async_wrapper(context: CmsBaseContext):
@@ -896,7 +1000,7 @@ class Dispatcher(IDispatcher):
         self._get_context_lookup(HttpContext)\
             .append(CallbackInfo([], async_wrapper))
 
-    def cache(self, life_time: "int" = 0, key: "str" = None):
+    def cache(self, life_time: int = 0, key: Optional[str] = None):
         """Decorator to cache function results
 
         Args:

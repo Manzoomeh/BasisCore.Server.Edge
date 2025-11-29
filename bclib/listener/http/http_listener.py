@@ -1,6 +1,35 @@
+"""HTTP Listener Implementation for BasisCore Edge
+
+Provides HTTP/HTTPS server functionality with WebSocket support, SSL/TLS configuration,
+and CMS-based request/response handling.
+
+Features:
+    - HTTP/HTTPS server with configurable SSL/TLS (cert files or PFX)
+    - WebSocket connection handling via session manager
+    - CMS-based request parsing and response generation
+    - Static file serving with chunked transfer
+    - Configurable middleware and routing
+    - Streaming response support
+
+Example:
+    ```python
+    from bclib.listener.http import HttpListener
+    from bclib.listener import Endpoint
+    
+    # Create HTTP listener
+    listener = HttpListener(
+        endpoint=Endpoint("localhost:8080"),
+        async_callback=dispatcher.on_message_receive_async,
+        ssl_options=None,
+        configuration=None,
+        ws_manager=ws_manager
+    )
+    
+    # Initialize and start
+    listener.initialize_task(event_loop)
+    ```
+"""
 import asyncio
-import base64
-import json
 import os
 import pathlib
 import ssl
@@ -30,6 +59,68 @@ from aiohttp.log import web_logger
 
 
 class HttpListener(IListener):
+    """HTTP/HTTPS server listener with WebSocket support
+
+    Handles HTTP requests and WebSocket connections using aiohttp. Supports SSL/TLS
+    configuration via cert files or PFX, and integrates with BasisCore's CMS-based
+    message handling system.
+
+    Attributes:
+        LOGGER (str): Configuration key for custom logger
+        ROUTER (str): Configuration key for custom router
+        MIDDLEWARES (str): Configuration key for middleware list
+        HANDLER_ARGS (str): Configuration key for handler arguments
+        CLIENT_MAX_SIZE (str): Configuration key for max request size
+        _DEFAULT_LOGGER: Default logger (aiohttp web_logger)
+        _DEFAULT_ROUTER: Default router (None - uses wildcard)
+        _DEFAULT_MIDDLEWARES: Default middleware tuple (empty)
+        _DEFAULT_HANDLER_ARGS: Default handler args (None)
+        _DEFAULT_CLIENT_MAX_SIZE (int): Default max size (1MB)
+        _FILE_CHUNK_SIZE (int): Chunk size for file responses (256KB)
+
+    Args:
+        endpoint (Endpoint): Server endpoint (host:port)
+        async_callback (Callable): Async message handler from dispatcher
+        ssl_options (dict): SSL/TLS configuration (certfile/keyfile or pfxfile/password)
+        configuration (Optional[DictEx]): Additional server configuration
+        ws_manager (WebSocketSessionManager): WebSocket session manager
+
+    Example:
+        ```python
+        # HTTP server
+        listener = HttpListener(
+            Endpoint("localhost:8080"),
+            dispatcher.on_message_receive_async,
+            ssl_options=None,
+            configuration=None,
+            ws_manager=ws_manager
+        )
+
+        # HTTPS server with cert files
+        listener = HttpListener(
+            Endpoint("0.0.0.0:443"),
+            dispatcher.on_message_receive_async,
+            ssl_options={
+                "certfile": "/path/to/cert.pem",
+                "keyfile": "/path/to/key.pem"
+            },
+            configuration=None,
+            ws_manager=ws_manager
+        )
+
+        # HTTPS with PFX
+        listener = HttpListener(
+            Endpoint("0.0.0.0:443"),
+            dispatcher.on_message_receive_async,
+            ssl_options={
+                "pfxfile": "/path/to/cert.pfx",
+                "password": "secret"
+            },
+            configuration=None,
+            ws_manager=ws_manager
+        )
+        ```
+    """
     LOGGER = "logger"
     ROUTER = "router"
     MIDDLEWARES = "middlewares"
@@ -41,11 +132,21 @@ class HttpListener(IListener):
     _DEFAULT_MIDDLEWARES = ()
     _DEFAULT_HANDLER_ARGS = None
     _DEFAULT_CLIENT_MAX_SIZE = 1024 ** 2
+    _FILE_CHUNK_SIZE = 256 * 1024  # 256 KB chunks for file responses
 
-    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[Message], Awaitable[Message]]', ssl_options: 'dict', configuration: Optional[DictEx], ws_manager: 'WebSocketSessionManager'):
+    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[Message], Awaitable[Message]]', ssl_options: Optional[dict], configuration: Optional[DictEx], ws_manager: 'WebSocketSessionManager'):
+        """Initialize HTTP listener with endpoint and configuration
+
+        Args:
+            endpoint (Endpoint): Server binding (host:port)
+            async_callback (Callable): Async message handler from dispatcher
+            ssl_options (Optional[dict]): SSL/TLS config with certfile/keyfile or pfxfile/password
+            configuration (Optional[DictEx]): Server config (logger, middlewares, etc.)
+            ws_manager (WebSocketSessionManager): WebSocket session manager instance
+        """
         super().__init__(async_callback)
         self.__endpoint = endpoint
-        self.ssl_options = ssl_options
+        self.__ssl_options = ssl_options
         self.__config = configuration if configuration is not None else DictEx()
         self.__logger = self.__config.get(
             HttpListener.LOGGER, HttpListener._DEFAULT_LOGGER)
@@ -59,21 +160,42 @@ class HttpListener(IListener):
             HttpListener.CLIENT_MAX_SIZE, HttpListener._DEFAULT_CLIENT_MAX_SIZE)
         self.__ws_manager = ws_manager
 
-        # Use WebSocket session manager from dispatcher
-
     def initialize_task(self, event_loop: asyncio.AbstractEventLoop):
+        """Initialize HTTP server task in event loop
+
+        Args:
+            event_loop (asyncio.AbstractEventLoop): Event loop to run server in
+        """
         event_loop.create_task(self.__server_task(event_loop))
 
     async def __server_task(self, event_loop: asyncio.AbstractEventLoop):
+        """Main server task that runs the HTTP/HTTPS server
+
+        Sets up aiohttp web application with routing, SSL context, and starts
+        the TCP site. Handles graceful shutdown on cancellation.
+
+        Args:
+            event_loop (asyncio.AbstractEventLoop): Event loop for server
+
+        Notes:
+            - Creates wildcard route that handles all paths
+            - Supports both HTTP and HTTPS via ssl_options
+            - Auto-detects WebSocket upgrade requests
+            - Cleans up temporary SSL files from PFX conversion
+        """
         from aiohttp import web
 
         async def on_request_receive_async(request: 'web.Request') -> web.Response:
+            # Create CMS object from request
+            cms_object = await WebRequestHelper.create_cms_async(request)
+
             # Check for WebSocket upgrade
             if request.headers.get('Upgrade', '').lower() == 'websocket':
-                return await self.__handle_websocket_async(request)
+                # Manager creates WebSocket, prepares it, and handles everything
+                return await self.__ws_manager.handle_connection(request, cms_object)
 
             # Handle regular HTTP request
-            return await self.__handle_http_async(request)
+            return await self.__handle_http_async(request, cms_object)
 
         app = web.Application(
             logger=self.__logger,
@@ -86,24 +208,31 @@ class HttpListener(IListener):
         app.add_routes(
             [web.route('*', '/{tail:.*}', on_request_receive_async)])
         ssl_context = None
-        if self.ssl_options:
+        if self.__ssl_options:
             ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-            if "certfile" in self.ssl_options:
+            if "certfile" in self.__ssl_options:
                 ssl_context.load_cert_chain(
-                    certfile=self.ssl_options.certfile,
-                    keyfile=self.ssl_options.keyfile
+                    certfile=self.__ssl_options["certfile"],
+                    keyfile=self.__ssl_options["keyfile"]
                 )
-            elif "pfxfile" in self.ssl_options:
+            elif "pfxfile" in self.__ssl_options:
                 fullchain_path, key_path = HttpListener.convert_pfx_to_temp_files(
-                    self.ssl_options.pfxfile,
-                    self.ssl_options.password
+                    self.__ssl_options["pfxfile"],
+                    self.__ssl_options["password"]
                 )
-                ssl_context.load_cert_chain(
-                    certfile=fullchain_path, keyfile=key_path)
-
-                # حذف فایل‌های موقت بعد از load
-                os.remove(fullchain_path)
-                os.remove(key_path)
+                try:
+                    ssl_context.load_cert_chain(
+                        certfile=fullchain_path, keyfile=key_path)
+                finally:
+                    # حذف فایل‌های موقت بعد از load
+                    try:
+                        os.remove(fullchain_path)
+                    except OSError:
+                        pass
+                    try:
+                        os.remove(key_path)
+                    except OSError:
+                        pass
 
         runner = web.AppRunner(app, handle_signals=True)
         await runner.setup()
@@ -111,7 +240,7 @@ class HttpListener(IListener):
                            self.__endpoint.port, ssl_context=ssl_context)
         await site.start()
         print(
-            f"Development Edge server started at http{'s' if self.ssl_options else ''}://{self.__endpoint.url}:{self.__endpoint.port}")
+            f"Development Edge server started at http{'s' if self.__ssl_options else ''}://{self.__endpoint.url}:{self.__endpoint.port}")
         try:
             while True:
                 await asyncio.sleep(1)
@@ -119,28 +248,26 @@ class HttpListener(IListener):
             pass
         finally:
             print(
-                f"Development Edge server for http{'s' if self.ssl_options else ''}://{self.__endpoint.url}:{self.__endpoint.port} stopped.")
+                f"Development Edge server for http{'s' if self.__ssl_options else ''}://{self.__endpoint.url}:{self.__endpoint.port} stopped.")
             await site.stop()
             await runner.cleanup()
             await runner.shutdown()
 
-    async def __handle_http_async(self, request: 'web.Request') -> 'web.Response':
+    async def __handle_http_async(self, request: 'web.Request', cms_object: dict) -> 'web.Response':
         """
         Handle HTTP request
 
         Args:
             request: aiohttp web request
+            cms_object: CMS object created from request
 
         Returns:
             web.Response object
         """
         from aiohttp import web
-        from multidict import MultiDict
 
-        ret_val: web.Response = None
-        request_cms = await WebRequestHelper.create_cms_async(request)
         # Pass cms object directly without serialization overhead.
-        msg = HttpMessage(request_cms, request)
+        msg = HttpMessage(cms_object, request)
         await self._on_message_receive(msg)
 
         # Check if handler used streaming response
@@ -150,10 +277,25 @@ class HttpListener(IListener):
 
         # Use cms_object if HttpMessage, otherwise decode buffer
         cms_cms = msg.response_data[HttpBaseDataType.CMS]
+        return self.__create_response_from_cms(cms_cms)
+
+    def __create_response_from_cms(self, cms_cms: dict) -> 'web.Response':
+        """
+        Create HTTP response from CMS data
+
+        Args:
+            cms_cms: CMS data dictionary containing response information
+
+        Returns:
+            web.Response object
+        """
+        from aiohttp import web
+        from multidict import MultiDict
+
         cms_cms_webserver = cms_cms[HttpBaseDataType.WEB_SERVER]
         index = cms_cms_webserver[HttpBaseDataName.INDEX]
         header_code: str = cms_cms_webserver[HttpBaseDataName.HEADER_CODE]
-        mime = cms_cms[HttpBaseDataName.WEB_SERVER][HttpBaseDataName.MIME]
+        mime = cms_cms_webserver[HttpBaseDataName.MIME]
         headers = MultiDict()
         if HttpBaseDataName.HTTP in cms_cms:
             http: dict = cms_cms[HttpBaseDataName.HTTP]
@@ -171,7 +313,7 @@ class HttpListener(IListener):
                 path.stat()
                 ret_val = web.FileResponse(
                     path=path,
-                    chunk_size=256*1024,
+                    chunk_size=HttpListener._FILE_CHUNK_SIZE,
                     status=int(header_code.split(' ')[0]),
                     headers=headers
                 )
@@ -179,6 +321,11 @@ class HttpListener(IListener):
                 ret_val = web.Response(
                     status=404,
                     reason="File not found"
+                )
+            except (OSError, PermissionError) as e:
+                ret_val = web.Response(
+                    status=500,
+                    reason=f"File access error: {str(e)}"
                 )
         else:
             ret_val = web.Response(
@@ -190,18 +337,6 @@ class HttpListener(IListener):
             else:
                 ret_val.body = cms_cms[HttpBaseDataName.BLOB_CONTENT]
         return ret_val
-
-    async def __handle_websocket_async(self, request: 'web.Request') -> 'web.Response':
-        """
-        Handle WebSocket connection
-
-        Hand off to session manager which creates and returns WebSocket
-        """
-        # Create CMS object from request
-        cms_object = await WebRequestHelper.create_cms_async(request)
-
-        # Manager creates WebSocket, prepares it, and handles everything
-        return await self.__ws_manager.handle_connection(request, cms_object)
 
     @staticmethod
     def convert_pfx_to_temp_files(pfxfile: str, password: str):
