@@ -9,11 +9,26 @@ from bclib import edge
 options = {
     "http": "localhost:8080",
     "tcp": "127.0.0.1:1025",
-    # "router":  "web"
+    # "rabbit": {
+    #     "url": "amqp://guest:guest@localhost:5672/",
+    #     "exchange": "orders_exchange",
+    #     "durable": True
+    # },
+    "rabbit": {
+        "url": "amqp://guest:guest@localhost:5672/",
+        "exchange": "orders_exchange",
+        "durable": True
+    },
     "error_log": True
 }
 
 app = edge.from_options(options)
+
+
+@app.handler()
+async def rabbit_handler(con: edge.RabbitContext, dis: edge.IDispatcher):
+    print("RabbitMQ message received", con)
+    return True
 
 
 @app.web_handler("test00")

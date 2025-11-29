@@ -7,7 +7,6 @@ from bclib.listener.icms_base_message import ICmsBaseMessage
 from bclib.listener.ilistener import IListener
 from bclib.listener.message import Message
 from bclib.listener.message_type import MessageType
-from bclib.listener.rabbit.rabbit_bus_listener import RabbitBusListener
 from bclib.listener.rabbit.rabbit_message import RabbitMessage
 from bclib.listener.tcp.tcp_listener import TcpListener
 from bclib.listener.tcp.tcp_message import TcpMessage

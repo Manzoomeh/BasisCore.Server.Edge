@@ -17,6 +17,7 @@ from bclib.listener import HttpBaseDataType, Message, MessageType
 from bclib.listener.http.http_message import HttpMessage
 from bclib.listener.http.websocket_message import WebSocketMessage
 from bclib.listener.icms_base_message import ICmsBaseMessage
+from bclib.listener.rabbit.rabbit_message import RabbitMessage
 from bclib.listener.tcp.tcp_message import TcpMessage
 
 
@@ -116,12 +117,15 @@ class ContextFactory:
         # 2. Fallback to message type if no match found
         if context_type is None:
             # Import context types at runtime to avoid circular dependency
-            from bclib.context import HttpContext, WebSocketContext
-            
+            from bclib.context import (HttpContext, RabbitContext,
+                                       WebSocketContext)
+
             if isinstance(message, HttpMessage) or isinstance(message, TcpMessage):
                 context_type = HttpContext
             elif isinstance(message, WebSocketMessage):
                 context_type = WebSocketContext
+            elif isinstance(message, RabbitMessage):
+                context_type = RabbitContext
 
         # Create appropriate context instance
         if context_type is None:
@@ -143,10 +147,10 @@ class ContextFactory:
     def rebuild_router(self):
         """Auto-generate router from registered handlers in lookup"""
         # Import context types at runtime to avoid circular dependency
-        from bclib.context import (ClientSourceContext, HttpContext, 
-                                   RESTfulContext, ServerSourceContext, 
+        from bclib.context import (ClientSourceContext, HttpContext,
+                                   RESTfulContext, ServerSourceContext,
                                    WebSocketContext)
-        
+
         # Supported context types
         supported_contexts = {
             RESTfulContext,

@@ -1,9 +1,10 @@
 """Listener Factory Implementation"""
+import asyncio
 from typing import TYPE_CHECKING
 
 from bclib.app_options import AppOptions
-from bclib.listener import (Endpoint, HttpListener, RabbitBusListener,
-                            TcpListener)
+from bclib.listener import Endpoint, HttpListener, TcpListener
+from bclib.listener.rabbit.rabbit_listener import RabbitListener
 from bclib.listener_factory.ilistener_factory import IListenerFactory
 from bclib.utility import DictEx
 
@@ -39,7 +40,7 @@ class ListenerFactory(IListenerFactory):
         ```
     """
 
-    def __init__(self, options: AppOptions):
+    def __init__(self, options: AppOptions, loop: asyncio.AbstractEventLoop):
         """
         Initialize listener factory
 
@@ -47,6 +48,7 @@ class ListenerFactory(IListenerFactory):
             options: Application configuration (AppOptions type alias for dict)
         """
         self.__options = options
+        self.__loop = loop
 
     def load_listeners(self, dispatcher: 'IDispatcher') -> 'list[IListener]':
         """
@@ -96,10 +98,9 @@ class ListenerFactory(IListenerFactory):
             listeners.append(listener)
 
         # Add RabbitMQ listeners if configured
-        if "router" in self.__options and "rabbit" in self.__options["router"]:
-            for setting in self.__options["router"]["rabbit"]:
-                listener = RabbitBusListener(
-                    DictEx(setting), dispatcher)
-                listeners.append(listener)
+        if "rabbit" in self.__options:
+            listener = RabbitListener(
+                self.__options.get("rabbit"), dispatcher.on_message_receive_async, self.__loop)
+            listeners.append(listener)
 
         return listeners

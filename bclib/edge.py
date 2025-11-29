@@ -46,7 +46,7 @@ from bclib.db_manager import *
 from bclib.dispatcher import Dispatcher, IDispatcher
 from bclib.exception import *
 from bclib.listener import (HttpBaseDataName, HttpBaseDataType, Message,
-                            MessageType, RabbitBusListener)
+                            MessageType)
 from bclib.predicate import Predicate, PredicateHelper
 from bclib.utility import (DictEx, HttpHeaders, HttpMimeTypes, HttpStatusCodes,
                            ResponseTypes, StaticFileHandler)

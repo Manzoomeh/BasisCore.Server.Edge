@@ -44,6 +44,7 @@ import asyncio
 import inspect
 import signal
 import traceback
+from ast import Tuple
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, Optional, Type
 
@@ -106,7 +107,7 @@ class Dispatcher(IDispatcher):
             Listeners are loaded lazily in initialize_task() method.
         """
         self.__options = options
-        self.__look_up: 'dict[Type, list[CallbackInfo]]' = dict()
+        self.__look_up: dict[Type, list[CallbackInfo]] = dict()
         self.__service_provider = service_provider
         cache_options = self.__options.get('cache')
         # Event loop should already be registered in ServiceProvider by edge.from_options
@@ -134,7 +135,7 @@ class Dispatcher(IDispatcher):
         )
 
     @property
-    def logger(self) -> ILogService:
+    def Logger(self) -> ILogService:
         """Get logger service instance
 
         Returns:
@@ -280,7 +281,7 @@ class Dispatcher(IDispatcher):
 
         return self
 
-    def restful_handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
+    def restful_handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
         """
         Decorator for RESTful handler with automatic DI
 
@@ -351,7 +352,7 @@ class Dispatcher(IDispatcher):
             return restful_handler_fn
         return _decorator
 
-    def web_handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
+    def web_handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
         """
         Decorator for legacy web request handler with automatic DI
 
@@ -418,7 +419,7 @@ class Dispatcher(IDispatcher):
             return web_handler_fn
         return _decorator
 
-    def websocket_handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
+    def websocket_handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
         """
         Decorator for WebSocket handler with automatic DI
 
@@ -456,7 +457,7 @@ class Dispatcher(IDispatcher):
             return websocket_handler_fn
         return _decorator
 
-    def client_source_handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
+    def client_source_handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
         """
         Decorator for client source handler with automatic DI
 
@@ -522,7 +523,7 @@ class Dispatcher(IDispatcher):
             return client_source_handler_fn
         return _decorator
 
-    def client_source_member_handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
+    def client_source_member_handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
         """
         Decorator for client source member handler with automatic DI
 
@@ -560,7 +561,7 @@ class Dispatcher(IDispatcher):
             return client_source_member_handler_fn
         return _decorator
 
-    def server_source_handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
+    def server_source_handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
         """
         Decorator for server source handler with automatic DI
 
@@ -626,7 +627,7 @@ class Dispatcher(IDispatcher):
             return server_source_handler_fn
         return _decorator
 
-    def server_source_member_handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
+    def server_source_member_handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
         """
         Decorator for server source member handler with automatic DI
 
@@ -664,7 +665,7 @@ class Dispatcher(IDispatcher):
             return server_source_member_handler_fn
         return _decorator
 
-    def rabbit_handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
+    def rabbit_handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
         """
         Decorator for RabbitMQ message handler with automatic DI
 
@@ -689,13 +690,12 @@ class Dispatcher(IDispatcher):
         )
 
         def _decorator(rabbit_handler_fn: Callable):
-            # ✨ Pre-compile injection plan at decoration time (once)
+            # Pre-compile injection plan at decoration time (once)
             injection_plan = InjectionPlan(rabbit_handler_fn)
 
             @wraps(rabbit_handler_fn)
-            async def wrapper(context):
-                kwargs = context.url_segments if context.url_segments else {}
-                return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
+            async def wrapper(_: RabbitContext):
+                return await injection_plan.execute_async(self.__service_provider, self.__event_loop)
 
             self._get_context_lookup(RabbitContext)\
                 .append(CallbackInfo(combined_predicates, wrapper))
@@ -703,7 +703,7 @@ class Dispatcher(IDispatcher):
             return rabbit_handler_fn
         return _decorator
 
-    def handler(self, route: Optional[str] = None, method: Optional['str | list[str]'] = None, *predicates: (Predicate)):
+    def handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
         """
         Universal handler decorator that automatically determines the action type based on handler's context parameter
 
@@ -841,8 +841,7 @@ class Dispatcher(IDispatcher):
             else:
                 raise HandlerNotFoundErr(context_type.__name__)
         except Exception as ex:
-            if self.__logger.log_error:
-                traceback.print_exc()
+            traceback.print_exc()
             result = context.generate_error_response(ex)
         return result
 
