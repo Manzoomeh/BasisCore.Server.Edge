@@ -7,8 +7,8 @@ from typing import Optional
 from bclib import edge
 
 options = {
-    "server": "localhost:8080",
-    "endpoint": "127.0.0.1:1025",
+    "http": "localhost:8080",
+    "tcp": "127.0.0.1:1025",
     # "router":  "web"
     "error_log": True
 }

@@ -5,7 +5,7 @@ from bclib import edge
 options = {
     # "sender": "127.0.0.1:1025",
     # "receiver": "127.0.0.1:1026",
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "router": "restful",
     "settings": {
         "connections.rest.rest_demo": "http://127.0.0.1:8080/inner_api"

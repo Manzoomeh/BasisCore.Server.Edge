@@ -4,7 +4,7 @@ from pathlib import Path
 from bclib import edge
 
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     # "router": {
     #     "web": ["*"]
     # },

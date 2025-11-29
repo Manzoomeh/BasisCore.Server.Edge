@@ -8,7 +8,7 @@ import time
 from bclib import edge
 
 options = {
-    "endpoint": "127.0.0.1:1025",
+    "tcp": "127.0.0.1:1025",
     "defaultRouter": "server_source",
     "router": "web",
     "log_error": True

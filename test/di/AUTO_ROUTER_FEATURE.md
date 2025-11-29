@@ -48,13 +48,13 @@ Added automatic router generation from registered handlers in `RoutingDispatcher
 ```python
 # Before (required router config)
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "router": "restful"  # ❌ Must specify
 }
 
 # After (auto-generated)
 options = {
-    "server": "localhost:8080"  # ✅ That's it!
+    "http": "localhost:8080"  # ✅ That's it!
 }
 ```
 
@@ -97,7 +97,7 @@ options = {
 ```python
 from bclib import edge
 
-app = edge.from_options({"server": "localhost:8080"})
+app = edge.from_options({"http": "localhost:8080"})
 
 @app.restful_handler(app.url("api/data"))
 async def get_data():
@@ -110,7 +110,7 @@ app.listening()
 ### Mixed Context Types
 
 ```python
-app = edge.from_options({"server": "localhost:8080"})
+app = edge.from_options({"http": "localhost:8080"})
 
 @app.restful_handler(app.url("api/users"))
 async def api_handler():
@@ -198,7 +198,7 @@ New applications can omit router config entirely:
 
 ```python
 # Just works!
-app = edge.from_options({"server": "localhost:8080"})
+app = edge.from_options({"http": "localhost:8080"})
 ```
 
 ## 📝 Implementation Details

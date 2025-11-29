@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.abspath(
 # ==================== Edge Configuration ====================
 
 app = edge.from_options({
-    "server":  "localhost:8080",
+    "http":  "localhost:8080",
     "log_error": True,
     "log_request": True,
 })

@@ -6,7 +6,7 @@ from bclib.context import RESTfulContext
 
 # Create dispatcher
 options = {
-    "server": "localhost:8097",
+    "http": "localhost:8097",
     "router": "restful",  # Add router configuration
     "log_error": True
 }

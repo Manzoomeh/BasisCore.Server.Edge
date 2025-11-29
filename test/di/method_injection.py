@@ -190,7 +190,7 @@ class MethodInjectionDispatcher(edge.DevServerDispatcher):
         print("=" * 70 + "\n")
 
 
-options = {"server": "localhost:8094", "router": "restful"}
+options = {"http": "localhost:8094", "router": "restful"}
 app = MethodInjectionDispatcher(options)
 
 

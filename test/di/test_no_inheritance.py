@@ -42,7 +42,7 @@ print("=" * 70)
 print()
 
 # Create dispatcher WITHOUT inheritance
-options = {"server": "localhost:9999", "router": "restful"}
+options = {"http": "localhost:9999", "router": "restful"}
 app = edge.from_options(options)
 
 print("1. Testing direct services registration...")
@@ -87,7 +87,7 @@ print("   ✓ Additional services work")
 print()
 
 print("4. Testing with inline configuration...")
-options2 = {"server": "localhost:9998", "router": "restful"}
+options2 = {"http": "localhost:9998", "router": "restful"}
 app2 = edge.from_options(options2)
 
 app2.add_singleton(ILogger, ConsoleLogger)

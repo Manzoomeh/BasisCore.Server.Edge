@@ -45,7 +45,7 @@ def maintenance_handler(context: RESTfulContext):
 
 # Setup
 options = {
-    "server": "localhost:8099",
+    "http": "localhost:8099",
     "router": "restful",
     "log_errors": True
 }

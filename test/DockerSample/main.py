@@ -3,7 +3,7 @@ import os
 from bclib import edge
 
 options = {
-    "server": "0.0.0.0:8080",
+    "http": "0.0.0.0:8080",
     "router": {
         "web": ["*"]
     },

@@ -17,15 +17,15 @@ class ListenerFactory(IListenerFactory):
     Factory for creating listeners based on application configuration
 
     Analyzes AppOptions and creates appropriate listeners:
-    - HTTP/HTTPS listener (if 'server' option exists)
-    - TCP listener (if 'endpoint' option exists)
+    - HTTP/HTTPS listener (if 'http' option exists)
+    - TCP listener (if 'tcp' option exists)
     - RabbitMQ listeners (if 'router.rabbit' option exists)
 
     Example:
         ```python
         options = {
-            "server": "localhost:8080",
-            "endpoint": "localhost:3000",
+            "http": "localhost:8080",
+            "tcp": "localhost:3000",
             "router": {
                 "rabbit": [
                     {"host": "localhost", "queue": "tasks"}
@@ -55,8 +55,8 @@ class ListenerFactory(IListenerFactory):
         Examines the options dictionary for listener configurations and creates
         appropriate listener instances:
 
-        - 'server' key → HttpListener (HTTP/HTTPS with optional SSL)
-        - 'endpoint' key → TcpListener (TCP socket)
+        - 'http' key → HttpListener (HTTP/HTTPS with optional SSL)
+        - 'tcp' key → TcpListener (TCP socket)
         - 'router.rabbit' key → RabbitBusListener (one per queue config)
 
         Args:
@@ -76,10 +76,10 @@ class ListenerFactory(IListenerFactory):
         """
         listeners: list[IListener] = []
 
-        # Add HTTP/HTTPS listener if server endpoint configured
-        if "server" in self.__options:
+        # Add HTTP/HTTPS listener if http configured
+        if "http" in self.__options:
             listener = HttpListener(
-                Endpoint(self.__options.get('server')),
+                Endpoint(self.__options.get('http')),
                 dispatcher.on_message_receive_async,
                 self.__options.get('ssl'),
                 self.__options.get('configuration'),
@@ -87,10 +87,10 @@ class ListenerFactory(IListenerFactory):
             )
             listeners.append(listener)
 
-        # Add TCP endpoint listener if endpoint configured
-        if "endpoint" in self.__options:
+        # Add TCP listener if tcp configured
+        if "tcp" in self.__options:
             listener = TcpListener(
-                Endpoint(self.__options.get('endpoint')),
+                Endpoint(self.__options.get('tcp')),
                 dispatcher.on_message_receive_async
             )
             listeners.append(listener)

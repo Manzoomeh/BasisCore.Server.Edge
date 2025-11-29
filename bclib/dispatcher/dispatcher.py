@@ -44,7 +44,7 @@ class Dispatcher(IDispatcher):
         from bclib import edge
 
         # Create dispatcher
-        app = edge.from_options({"server": "localhost:8080", "router": "restful"})
+        app = edge.from_options({"http": "localhost:8080", "router": "restful"})
 
         # Register services
         app.add_singleton(ILogger, ConsoleLogger)

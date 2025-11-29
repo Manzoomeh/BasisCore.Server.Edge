@@ -4,7 +4,7 @@ import random
 from bclib import edge,utility
 
 main_service_options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "router": "restful",
      "settings": {
         "connections.rest.service1": "http://localhost:8081",
@@ -16,27 +16,27 @@ main_service_options = {
     }
 }
 service1_options = {
-    "server": "localhost:8081",
+    "http": "localhost:8081",
     "router": "restful"
 }
 service2_options = {
-    "server": "localhost:8082",
+    "http": "localhost:8082",
     "router": "restful"
 }
 service3_options = {
-    "server": "localhost:8083",
+    "http": "localhost:8083",
     "router": "restful"
 }
 service4_options = {
-    "server": "localhost:8084",
+    "http": "localhost:8084",
     "router": "restful"
 }
 service5_options = {
-    "server": "localhost:8085",
+    "http": "localhost:8085",
     "router": "restful"
 }
 service6_options = {
-    "server": "localhost:8086",
+    "http": "localhost:8086",
     "router": "restful"
 }
 

@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath(
 # ✨ No router configuration needed!
 # Router will be auto-generated from registered handlers
 options = {
-    "server": "localhost:8080"
+    "http": "localhost:8080"
 }
 
 app = edge.from_options(options)

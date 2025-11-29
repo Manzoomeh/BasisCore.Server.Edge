@@ -4,7 +4,7 @@ from bclib import edge
 
 if "options" not in dir():
     options = {
-        "server": "localhost:8080",
+        "http": "localhost:8080",
         "router": "web",
         "settings": {
             "connections.sql.sql_demo": "DRIVER={ODBC Driver 17 for SQL Server};SERVER=.;DATABASE=MarketData;UID=sa;PWD=1234",

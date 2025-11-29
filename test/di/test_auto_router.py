@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath(
 # Test 1: Auto-generate router from RESTful handlers
 print("Test 1: Auto-generate router with RESTful handlers")
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "log_request": False
 }
 
@@ -49,7 +49,7 @@ print()
 # Test 2: Auto-generate with multiple context types
 print("Test 2: Auto-generate router with multiple context types")
 options2 = {
-    "server": "localhost:8081",
+    "http": "localhost:8081",
     "log_request": False
 }
 
@@ -85,7 +85,7 @@ print()
 # Test 3: Manual router config still works
 print("Test 3: Manual router configuration (backward compatibility)")
 options3 = {
-    "server": "localhost:8082",
+    "http": "localhost:8082",
     "router": "web",
     "log_request": False
 }

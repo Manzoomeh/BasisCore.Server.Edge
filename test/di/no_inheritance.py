@@ -69,7 +69,7 @@ class GreetingService(IGreetingService):
 # ==================== Setup WITHOUT Inheritance ====================
 
 options = {
-    "server": "localhost:8095",
+    "http": "localhost:8095",
     "router": "restful"
 }
 

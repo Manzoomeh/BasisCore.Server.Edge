@@ -3,7 +3,7 @@ from bclib import edge
 from bclib.context import RESTfulContext
 
 options = {
-    "server": "localhost:8098",
+    "http": "localhost:8098",
     "router": "restful",
     "log_error": True
 }

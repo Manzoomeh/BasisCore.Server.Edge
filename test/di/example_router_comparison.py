@@ -16,7 +16,7 @@ print()
 print("1️⃣  Pure Auto-Generation (Recommended for simple apps)")
 print("-" * 70)
 options1 = {
-    "server": "localhost:8080"
+    "http": "localhost:8080"
 }
 app1 = edge.from_options(options1)
 
@@ -36,7 +36,7 @@ print()
 print("2️⃣  Simple Manual Override")
 print("-" * 70)
 options2 = {
-    "server": "localhost:8081",
+    "http": "localhost:8081",
     "router": "restful"  # Force all to RESTful
 }
 app2 = edge.from_options(options2)
@@ -55,7 +55,7 @@ print()
 print("3️⃣  Pattern-Based Manual Config (Advanced)")
 print("-" * 70)
 options3 = {
-    "server": "localhost:8082",
+    "http": "localhost:8082",
     "router": {
         "restful": ["api/.*", "v1/.*"],
         "web": ["static/.*", "assets/.*"],
@@ -88,7 +88,7 @@ print()
 print("4️⃣  Default Router + Auto-Generation")
 print("-" * 70)
 options4 = {
-    "server": "localhost:8083",
+    "http": "localhost:8083",
     "defaultRouter": "restful"
 }
 app4 = edge.from_options(options4)

@@ -6,7 +6,7 @@ import time
 
 
 options = {
-    "endpoint": "127.0.0.1:1026",
+    "tcp": "127.0.0.1:1026",
     "router":  "restful"
 }
 

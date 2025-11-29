@@ -123,7 +123,7 @@ class DIDispatcher(edge.DevServerDispatcher):
 
 # Create custom options
 options = {
-    "server": "localhost:8092",
+    "http": "localhost:8092",
     "router": "restful"
 }
 

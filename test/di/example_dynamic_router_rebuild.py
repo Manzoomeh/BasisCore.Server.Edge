@@ -17,7 +17,7 @@ print()
 print("📦 Scenario: Hot-Swapping API Versions")
 print("-" * 70)
 
-app = edge.from_options({"server": "localhost:8080"})
+app = edge.from_options({"http": "localhost:8080"})
 
 # Version 1 handlers
 
@@ -88,7 +88,7 @@ print()
 print("📦 Scenario: Adding WebSocket Support Dynamically")
 print("-" * 70)
 
-app2 = edge.from_options({"server": "localhost:8081"})
+app2 = edge.from_options({"http": "localhost:8081"})
 
 # Start with only REST API
 
@@ -119,7 +119,7 @@ print()
 print("📦 Scenario: Maintenance Mode Toggle")
 print("-" * 70)
 
-app3 = edge.from_options({"server": "localhost:8082"})
+app3 = edge.from_options({"http": "localhost:8082"})
 
 # Normal operation handlers
 
@@ -158,7 +158,7 @@ print()
 print("📦 Scenario: Feature Flags")
 print("-" * 70)
 
-app4 = edge.from_options({"server": "localhost:8083"})
+app4 = edge.from_options({"http": "localhost:8083"})
 
 # Old feature
 

@@ -86,7 +86,7 @@ class UserService(IUserService):
 # ==================== Setup ====================
 
 options = {
-    "server": "localhost:8096",
+    "http": "localhost:8096",
     "router": "restful",
     "log_errors": True
 }

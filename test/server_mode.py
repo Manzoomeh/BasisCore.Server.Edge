@@ -4,7 +4,7 @@ from bclib import edge
 from bclib.listener.http.http_listener import HttpListener
 
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "configuration": {
         HttpListener.CLIENT_MAX_SIZE: 1024**4
     },

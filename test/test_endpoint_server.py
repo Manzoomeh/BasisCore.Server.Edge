@@ -11,7 +11,7 @@ from bclib.context import RESTfulContext
 
 # Create dispatcher with endpoint listener
 server_options = {
-    "endpoint": "127.0.0.1:1025",
+    "tcp": "127.0.0.1:1025",
 }
 
 app = edge.from_options(server_options)

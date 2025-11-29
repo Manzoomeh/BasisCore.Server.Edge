@@ -41,7 +41,7 @@ class TimeService(ITimeService):
 # ==================== Create App ====================
 
 options = {
-    "server": "localhost:8098",
+    "http": "localhost:8098",
     "router": "restful"
 }
 

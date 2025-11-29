@@ -19,7 +19,7 @@ print("1️⃣  Router Rebuild on Handler Registration")
 print("-" * 70)
 
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "log_request": False
 }
 
@@ -53,7 +53,7 @@ print()
 print("2️⃣  Router Rebuild on Context Type Change")
 print("-" * 70)
 
-app2 = edge.from_options({"server": "localhost:8081", "log_request": False})
+app2 = edge.from_options({"http": "localhost:8081", "log_request": False})
 
 # Register WebSocket handler
 
@@ -90,7 +90,7 @@ print("3️⃣  Manual Config Unchanged by Dynamic Handlers")
 print("-" * 70)
 
 options3 = {
-    "server": "localhost:8082",
+    "http": "localhost:8082",
     "router": "restful",  # Manual config
     "log_request": False
 }
@@ -127,7 +127,7 @@ print()
 print("4️⃣  Multiple Dynamic Handler Registrations")
 print("-" * 70)
 
-app4 = edge.from_options({"server": "localhost:8083", "log_request": False})
+app4 = edge.from_options({"http": "localhost:8083", "log_request": False})
 
 
 async def handler1():
@@ -166,7 +166,7 @@ print()
 print("5️⃣  Router Rebuild on Unregister All Handlers")
 print("-" * 70)
 
-app5 = edge.from_options({"server": "localhost:8084", "log_request": False})
+app5 = edge.from_options({"http": "localhost:8084", "log_request": False})
 
 
 async def temp_handler():

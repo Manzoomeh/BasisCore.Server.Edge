@@ -32,19 +32,19 @@ app = edge.from_config(".", "host.json")
 
 # Create from options dict - listeners added automatically
 app = edge.from_options({
-    "server": "localhost:8080"  # Adds HttpListener
+    "http": "localhost:8080"  # Adds HttpListener
 })
 
 # Multiple listeners can coexist
 app = edge.from_options({
-    "server": "localhost:8080",  # HTTP server
+    "http": "localhost:8080",  # HTTP server
     "receiver": "localhost:8081",
     "sender": "localhost:8082"    # Socket listener
 })
 
 # Endpoint configuration
 app = edge.from_options({
-    "endpoint": "localhost:8080"  # TCP endpoint handler
+    "tcp": "localhost:8080"  # TCP endpoint handler
 })
 ```
 
@@ -347,7 +347,7 @@ app.ensure_router_ready()  # Public method for explicit initialization
 
 ```python
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "router": "restful"  # Explicit router type prevents auto-generation
 }
 ```
@@ -477,7 +477,7 @@ rabbit = context.open_rabbit_connection("rabbit_key")
 
 ```python
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "db": {
         "main": {
             "type": "sql",
@@ -530,7 +530,7 @@ from bclib import edge
 
 # Simple dev server
 app = edge.from_options({
-    "server": "localhost:8080"
+    "http": "localhost:8080"
 })
 
 # Register handlers...
@@ -703,7 +703,7 @@ The framework now uses **composition over inheritance**:
 ```python
 # Single Dispatcher with multiple listeners
 app = edge.from_options({
-    "server": "localhost:8080",      # Adds HttpListener
+    "http": "localhost:8080",      # Adds HttpListener
     "receiver": "localhost:8081",
     "sender": "localhost:8082"        # Adds TcpListener
 })
@@ -792,7 +792,7 @@ app = SocketDispatcher(options)
 from bclib import edge
 
 # HTTP server
-app = edge.from_options({"server": "localhost:8080"})
+app = edge.from_options({"http": "localhost:8080"})
 
 # Socket server
 app = edge.from_options({
@@ -802,7 +802,7 @@ app = edge.from_options({
 
 # Both simultaneously!
 app = edge.from_options({
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "receiver": "localhost:8081",
     "sender": "localhost:8082"
 })

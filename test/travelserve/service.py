@@ -11,7 +11,7 @@ passenger_csv_path = Path(__file__).parent / "passengers.csv"
 rules_path = Path(__file__).parent / "rules.json"
 
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "router": "restful",
     "log_request": True
 }

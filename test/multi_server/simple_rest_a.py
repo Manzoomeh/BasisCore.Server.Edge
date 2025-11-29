@@ -1,7 +1,7 @@
 from bclib import edge
 
 options = {
-    "server": "localhost:8082",
+    "http": "localhost:8082",
     "router": "restful",
     "log_request": True
 }

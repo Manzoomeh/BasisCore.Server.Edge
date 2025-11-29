@@ -6,7 +6,7 @@ HOST = "localhost"
 PORT = 5672
 
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "router": {
         "restful": [
             "*"

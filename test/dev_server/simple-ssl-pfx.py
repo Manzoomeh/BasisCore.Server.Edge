@@ -2,7 +2,7 @@ from bclib import edge
 
 if "options" not in dir():
     options = {
-        "server": "localhost:8081",
+        "http": "localhost:8081",
         "router": "web",
         "ssl": {
             "pfxfile": "D:/Programming/Falsafi/BasisCore/Server/BasisCore.Server.Edge/test/test-cert/server.pfx",

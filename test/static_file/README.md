@@ -29,7 +29,7 @@ from bclib.context import RESTfulContext
 from bclib.utility import StaticFileHandler
 
 app = edge.from_options({
-    "server": {"url": "localhost", "port": 2022}
+    "http": {"url": "localhost", "port": 2022}
 })
 
 # Create handler

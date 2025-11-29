@@ -11,7 +11,7 @@ This file showcases the convenience parameters added to web_handler and restful_
 from bclib import edge
 
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "router": {
         "restful": ["/api/*"],
         "web": ["*"]

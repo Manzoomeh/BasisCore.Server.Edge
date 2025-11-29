@@ -23,7 +23,7 @@ Example:
     
     # Simple HTTP server
     options = {
-        "server": "localhost:8080",
+        "http": "localhost:8080",
         "router": "restful"
     }
     app = edge.from_options(options)
@@ -132,8 +132,8 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDisp
     the provided options.
 
     Supported Configuration Keys:
-        - server: HTTP/HTTPS server endpoint (e.g., "localhost:8080")
-        - endpoint: TCP socket endpoint (e.g., "localhost:3000")
+        - http: HTTP/HTTPS server endpoint (e.g., "localhost:8080")
+        - tcp: TCP socket endpoint (e.g., "localhost:3000")
         - router: Routing configuration (string or dict)
         - ssl: SSL/TLS configuration for HTTPS
         - configuration: Additional HTTP server configuration
@@ -156,7 +156,7 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDisp
 
         # Minimal HTTP server
         options = {
-            "server": "localhost:8080",
+            "http": "localhost:8080",
             "router": "restful"
         }
         app = edge.from_options(options)
@@ -164,7 +164,7 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDisp
         # Full configuration
         options = {
             "name": "MyAPI",
-            "server": "0.0.0.0:443",
+            "http": "0.0.0.0:443",
             "ssl": {
                 "cert": "/path/to/cert.pem",
                 "key": "/path/to/key.pem"
@@ -173,7 +173,7 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDisp
                 "restful": ["api/*"],
                 "web": ["*"]
             },
-            "endpoint": "localhost:3000",
+            "tcp": "localhost:3000",
             "log_request": True,
             "log_error": True
         }

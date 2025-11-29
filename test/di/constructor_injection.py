@@ -175,7 +175,7 @@ class ConstructorInjectionDispatcher(edge.DevServerDispatcher):
 
 # Create dispatcher
 options = {
-    "server": "localhost:8093",
+    "http": "localhost:8093",
     "router": "restful"
 }
 

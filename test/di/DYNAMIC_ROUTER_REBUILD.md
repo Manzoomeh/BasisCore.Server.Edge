@@ -88,7 +88,7 @@ else:
 ### 1. **Automatic Rebuild on Registration**
 
 ```python
-app = edge.from_options({"server": "localhost:8080"})
+app = edge.from_options({"http": "localhost:8080"})
 
 # Initial: no handlers → router = "socket"
 
@@ -316,7 +316,7 @@ if not available_routers:
 
    ```python
    # Let router adapt to handlers
-   app = edge.from_options({"server": "localhost:8080"})
+   app = edge.from_options({"http": "localhost:8080"})
    app.register_handler(RESTfulContext, handler, predicates)
    # ✅ Router auto-generated and auto-updated
    ```

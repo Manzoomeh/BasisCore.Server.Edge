@@ -12,7 +12,7 @@ SCRIPT_DIR = Path(__file__).parent
 
 # Create app
 app = edge.from_options({
-    "server": "localhost:2022",
+    "http": "localhost:2022",
     "router": "web",
     "log_error": True,
     "log_request": True

@@ -44,7 +44,7 @@ def health_check_handler():
 
 # Setup
 options = {
-    "server": "localhost:8098",
+    "http": "localhost:8098",
     "router": "restful",
     "log_errors": True
 }

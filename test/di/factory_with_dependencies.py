@@ -57,7 +57,7 @@ class PostgresDatabase(IDatabase):
 
 # Setup
 options = {
-    "server": "localhost:8097",
+    "http": "localhost:8097",
     "router": "restful",
     "log_errors": True
 }
