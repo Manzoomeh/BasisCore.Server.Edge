@@ -4,7 +4,7 @@ import re
 from struct import error
 from typing import TYPE_CHECKING, Callable, Optional, Type
 
-from app_options import AppOptions
+from bclib.app_options import AppOptions
 
 if TYPE_CHECKING:
     from bclib.context import (ClientSourceContext, Context, HttpContext,

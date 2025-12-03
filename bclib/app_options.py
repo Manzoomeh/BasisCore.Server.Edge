@@ -3,3 +3,4 @@
 # Type alias for application configuration options
 # This allows dependency injection to distinguish app options from regular dicts
 AppOptions = dict
+__version__ = "3.37.0"

@@ -4,12 +4,11 @@ from abc import ABC, abstractmethod
 from collections.abc import Coroutine
 from typing import TYPE_CHECKING, Any, Callable
 
-from app_options import AppOptions
-from log_service.ilog_service import ILogService
-from utility.static_file_handler import StaticFileHandler
-
+from bclib.app_options import AppOptions
 from bclib.cache.manager import CacheManager
+from bclib.log_service.ilog_service import ILogService
 from bclib.predicate.predicate_helper import PredicateHelper
+from bclib.utility.static_file_handler import StaticFileHandler
 
 if TYPE_CHECKING:
     from bclib.context.context import Context
