@@ -58,7 +58,6 @@ from bclib.exception import HandlerNotFoundErr
 from bclib.listener import IListener, Message
 from bclib.listener.iresponse_base_message import IResponseBaseMessage
 from bclib.listener_factory import IListenerFactory
-from bclib.log_service.ilog_service import ILogService
 from bclib.predicate import Predicate
 from bclib.service_provider import InjectionPlan, IServiceProvider
 from bclib.utility.static_file_handler import StaticFileHandler
@@ -92,7 +91,7 @@ class Dispatcher(IDispatcher):
         ```
     """
 
-    def __init__(self, service_provider: IServiceProvider, options: AppOptions, logger: ILogService, loop: asyncio.AbstractEventLoop, listener_factory: IListenerFactory):
+    def __init__(self, service_provider: IServiceProvider, options: AppOptions, loop: asyncio.AbstractEventLoop, listener_factory: IListenerFactory):
         """Initialize dispatcher with injected dependencies
 
         Args:
@@ -113,7 +112,6 @@ class Dispatcher(IDispatcher):
         # Event loop should already be registered in ServiceProvider by edge.from_options
         self.__event_loop = loop
         self.__cache_manager = CacheFactory.create(cache_options)
-        self.__logger = logger
 
         self.name = self.__options.get('name')
 
@@ -133,15 +131,6 @@ class Dispatcher(IDispatcher):
             options=options,
             lookup=self.__look_up
         )
-
-    @property
-    def Logger(self) -> ILogService:
-        """Get logger service instance
-
-        Returns:
-            ILogService: The logging service configured for this dispatcher
-        """
-        return self.__logger
 
     @property
     def service_provider(self) -> IServiceProvider:

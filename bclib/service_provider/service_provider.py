@@ -61,7 +61,7 @@ class ServiceProvider(IServiceProvider):
         self,
         service_type: Type[T],
         implementation: Optional[Type[T]] = None,
-        factory: Optional[Callable[['IServiceProvider'], T]] = None,
+        factory: Optional[Callable[['IServiceProvider', Any], T]] = None,
         instance: Optional[T] = None
     ) -> 'IServiceProvider':
         """
@@ -70,7 +70,7 @@ class ServiceProvider(IServiceProvider):
         Args:
             service_type: The service interface/type
             implementation: Concrete implementation class
-            factory: Factory function that receives ServiceProvider and creates the service
+            factory: Factory function that receives ServiceProvider and **kwargs, creates the service
             instance: Pre-created instance
 
         Returns:
@@ -81,9 +81,14 @@ class ServiceProvider(IServiceProvider):
             # Register by implementation type
             services.add_singleton(ILogger, ConsoleLogger)
 
-            # Register by factory (with ServiceProvider access)
-            services.add_singleton(ILogger, factory=lambda sp: ConsoleLogger())
-            services.add_singleton(IDatabase, factory=lambda sp: PostgresDB(sp.get_service(ILogger)))
+            # Register by factory (with ServiceProvider and **kwargs access)
+            services.add_singleton(ILogger, factory=lambda sp, **kwargs: ConsoleLogger())
+            services.add_singleton(IDatabase, factory=lambda sp, **kwargs: PostgresDB(sp.get_service(ILogger)))
+
+            # Factory can use generic_type_args from kwargs
+            services.add_singleton(ILogger, factory=lambda sp, **kwargs: ConsoleLogger.create_logger(
+                kwargs.get('generic_type_args', ('App',))[0], options
+            ))
 
             # Register existing instance
             logger = ConsoleLogger()
@@ -104,7 +109,7 @@ class ServiceProvider(IServiceProvider):
         self,
         service_type: Type[T],
         implementation: Optional[Type[T]] = None,
-        factory: Optional[Callable[['IServiceProvider'], T]] = None,
+        factory: Optional[Callable[['IServiceProvider', Any], T]] = None,
         priority: int = 0
     ) -> 'IServiceProvider':
         """
@@ -117,7 +122,7 @@ class ServiceProvider(IServiceProvider):
         Args:
             service_type: The service interface/type
             implementation: Concrete implementation class
-            factory: Factory function that receives ServiceProvider and creates the service
+            factory: Factory function that receives ServiceProvider and **kwargs, creates the service
             priority: Initialization priority (higher = initialized first, default=0)
 
         Returns:
@@ -132,8 +137,8 @@ class ServiceProvider(IServiceProvider):
             services.add_hosted(IDatabase, DatabaseService, priority=100)
             services.add_hosted(IBackgroundWorker, BackgroundWorker, priority=50)
 
-            # Register with factory
-            services.add_hosted(IStartupTask, factory=lambda sp: StartupTask(sp.get_service(ILogger)))
+            # Register with factory (receives ServiceProvider and **kwargs)
+            services.add_hosted(IStartupTask, factory=lambda sp, **kwargs: StartupTask(sp.get_service(ILogger)))
 
             # Initialize all hosted services at startup (sorted by priority)
             await services.initialize_hosted_services_async()
@@ -154,15 +159,15 @@ class ServiceProvider(IServiceProvider):
         self,
         service_type: Type[T],
         implementation: Optional[Type[T]] = None,
-        factory: Optional[Callable[['IServiceProvider'], T]] = None
+        factory: Optional[Callable[['IServiceProvider', Any], T]] = None
     ) -> 'IServiceProvider':
         """
-        Register a scoped service (one instance per request/scope)
+        Register a scoped service (one instance per scope/request)
 
         Args:
             service_type: The service interface/type
             implementation: Concrete implementation class
-            factory: Factory function that receives ServiceProvider and creates the service
+            factory: Factory function that receives ServiceProvider and **kwargs, creates the service
 
         Returns:
             Self for chaining
@@ -172,9 +177,9 @@ class ServiceProvider(IServiceProvider):
             # Register by implementation type
             services.add_scoped(IDatabase, PostgresDatabase)
 
-            # Register by factory (with ServiceProvider access)
-            services.add_scoped(IDatabase, factory=lambda sp: PostgresDatabase("connection_string"))
-            services.add_scoped(ICache, factory=lambda sp: RedisCache(sp.get_service(ILogger)))
+            # Register by factory (receives ServiceProvider and **kwargs)
+            services.add_scoped(IDatabase, factory=lambda sp, **kwargs: PostgresDatabase("connection_string"))
+            services.add_scoped(ICache, factory=lambda sp, **kwargs: RedisCache(sp.get_service(ILogger)))
             ```
         """
         descriptor = ServiceDescriptor(
@@ -190,7 +195,7 @@ class ServiceProvider(IServiceProvider):
         self,
         service_type: Type[T],
         implementation: Optional[Type[T]] = None,
-        factory: Optional[Callable[['IServiceProvider'], T]] = None
+        factory: Optional[Callable[['IServiceProvider', Any], T]] = None
     ) -> 'IServiceProvider':
         """
         Register a transient service (new instance every time)
@@ -198,7 +203,7 @@ class ServiceProvider(IServiceProvider):
         Args:
             service_type: The service interface/type
             implementation: Concrete implementation class
-            factory: Factory function that receives ServiceProvider and creates the service
+            factory: Factory function that receives ServiceProvider and **kwargs, creates the service
 
         Returns:
             Self for chaining
@@ -208,9 +213,9 @@ class ServiceProvider(IServiceProvider):
             # Register by implementation type
             services.add_transient(IEmailService, SmtpEmailService)
 
-            # Register by factory (with ServiceProvider access)
-            services.add_transient(IEmailService, factory=lambda sp: SmtpEmailService("smtp.gmail.com"))
-            services.add_transient(INotifier, factory=lambda sp: Notifier(sp.get_service(ILogger), sp.get_service(IEmailService)))
+            # Register by factory (receives ServiceProvider and **kwargs)
+            services.add_transient(IEmailService, factory=lambda sp, **kwargs: SmtpEmailService("smtp.gmail.com"))
+            services.add_transient(INotifier, factory=lambda sp, **kwargs: Notifier(sp.get_service(ILogger), sp.get_service(IEmailService)))
             ```
         """
         descriptor = ServiceDescriptor(
@@ -285,9 +290,9 @@ class ServiceProvider(IServiceProvider):
         if descriptor.instance is not None:
             return descriptor.instance
 
-        # Factory function (pass ServiceProvider for dependency resolution)
+        # Factory function (pass ServiceProvider and **kwargs for dependency resolution)
         if descriptor.factory is not None:
-            return descriptor.factory(self)
+            return descriptor.factory(self, **kwargs)
 
         # Implementation type with constructor injection
         if descriptor.implementation is not None:
@@ -327,9 +332,25 @@ class ServiceProvider(IServiceProvider):
             # Use InjectionPlan for optimized injection
             plan = InjectionPlan(implementation_type)
             return plan.create_instance(self, **kwargs)
+        except TypeError as e:
+            # If it's a TypeError about missing arguments, the class might not support DI
+            # Try parameterless constructor as fallback
+            if "missing" in str(e) and "required positional argument" in str(e):
+                try:
+                    return implementation_type()
+                except TypeError:
+                    # Parameterless constructor also failed, re-raise original error
+                    raise e
+            else:
+                # Other TypeError, re-raise
+                raise
         except Exception:
-            # Fallback to parameterless constructor
-            return implementation_type()
+            # For other exceptions during injection, try parameterless constructor
+            try:
+                return implementation_type()
+            except:
+                # If both fail, re-raise original exception
+                raise
 
     def inject_dependencies(self, handler: Callable, *args: Any, **kwargs: Any) -> Dict[str, Any]:
         """
@@ -554,6 +575,41 @@ class ServiceProvider(IServiceProvider):
         """
         descriptor = self._descriptors.get(service_type)
         return descriptor.lifetime if descriptor else None
+
+    def remove_service(self, service_type: Type[T]) -> bool:
+        """
+        Remove a registered service from the container
+
+        Removes the service descriptor and any cached instances (singleton or scoped).
+        This is useful for testing, dynamic service replacement, or cleanup.
+
+        Args:
+            service_type: The service type to remove
+
+        Returns:
+            True if service was removed, False if it wasn't registered
+
+        Example:
+            ```python
+            # Remove and replace a service
+            services.remove_service(ILogger)
+            services.add_singleton(ILogger, factory=lambda sp, **kw: NewLogger())
+
+            # Clean up test registrations
+            services.remove_service(IMockDatabase)
+            ```
+        """
+        if service_type not in self._descriptors:
+            return False
+
+        # Remove descriptor
+        del self._descriptors[service_type]
+
+        # Remove scoped instance if exists
+        if service_type in self._scoped_instances:
+            del self._scoped_instances[service_type]
+
+        return True
 
     async def invoke_in_executor(self, method: Callable, event_loop: Any, *args: Any, **kwargs: Any) -> Any:
         """

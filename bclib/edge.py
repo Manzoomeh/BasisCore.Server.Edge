@@ -47,6 +47,7 @@ from bclib.dispatcher import Dispatcher, IDispatcher
 from bclib.exception import *
 from bclib.listener import (HttpBaseDataName, HttpBaseDataType, Message,
                             MessageType)
+from bclib.logger import ConsoleLogger, ILogger
 from bclib.predicate import Predicate, PredicateHelper
 from bclib.utility import (DictEx, HttpHeaders, HttpMimeTypes, HttpStatusCodes,
                            ResponseTypes, StaticFileHandler)
@@ -213,6 +214,7 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDisp
     from bclib.service_provider import IServiceProvider, ServiceProvider
     service_provider = ServiceProvider()
     service_provider.add_singleton(IServiceProvider, instance=service_provider)
+    service_provider.add_singleton(ILogger, implementation=ConsoleLogger)
 
     # Create or get event loop
     if loop is None and sys.platform == 'win32':

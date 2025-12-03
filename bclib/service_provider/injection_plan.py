@@ -16,8 +16,8 @@ import inspect
 from typing import (TYPE_CHECKING, Any, Callable, Coroutine, Dict, Type, Union,
                     get_args, get_origin, get_type_hints)
 
-from .injection_strategy import (InjectionStrategy, ServiceStrategy,
-                                 ValueStrategy)
+from .injection_strategy import (GenericServiceStrategy, InjectionStrategy,
+                                 ServiceStrategy, ValueStrategy)
 
 if TYPE_CHECKING:
     from .service_provider import ServiceProvider
@@ -78,7 +78,8 @@ class InjectionPlan:
                 is_optional = False
 
                 # Handle Optional types (Union[X, None])
-                if get_origin(param_type) is Union:
+                origin = get_origin(param_type)
+                if origin is Union:
                     args = get_args(param_type)
                     # Check if it's Optional (Union with None)
                     if type(None) in args:
@@ -86,19 +87,34 @@ class InjectionPlan:
                         # Get the non-None type
                         actual_type = next(
                             (arg for arg in args if arg is not type(None)), None)
+                        origin = get_origin(
+                            actual_type) if actual_type else None
 
                 # Check if it's a primitive type that could be URL segment
-                if actual_type in (str, int, float):
+                if actual_type in (str, int, float, list, tuple, set):
                     self.param_strategies[param_name] = ValueStrategy(
                         param_name, actual_type)
+                # Check if it's a generic type (has type arguments)
+                elif origin is not None:
+                    # Check if origin is a primitive collection type (List, Tuple, Set)
+                    # These should use ValueStrategy, not GenericServiceStrategy
+                    if origin in (list, tuple, set):
+                        self.param_strategies[param_name] = ValueStrategy(
+                            param_name, origin)
+                    else:
+                        # It's a generic type like ILogger[T], Repository[User], etc.
+                        # (non-primitive generic types)
+                        self.param_strategies[param_name] = GenericServiceStrategy(
+                            actual_type)
                 else:
                     # Assume it's a service type
                     self.param_strategies[param_name] = ServiceStrategy(
                         param_type)
 
-        except Exception:
+        except Exception as ex:
             # If analysis fails, fall back to empty strategies
-            pass
+            print(f"InjectionPlan analysis failed: {ex}")
+            raise ex
 
     def inject_parameters(self, services: 'ServiceProvider', **kwargs: Any) -> Dict[str, Any]:
         """

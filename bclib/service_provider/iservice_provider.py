@@ -239,6 +239,26 @@ class IServiceProvider(ABC):
         pass
 
     @abstractmethod
+    def remove_service(self, service_type: Type[T]) -> bool:
+        """
+        Remove a registered service from the container
+
+        Args:
+            service_type: The service type to remove
+
+        Returns:
+            True if service was removed, False if it wasn't registered
+
+        Example:
+            ```python
+            services.add_singleton(ILogger, ConsoleLogger)
+            services.remove_service(ILogger)  # Returns True
+            services.remove_service(ILogger)  # Returns False (already removed)
+            ```
+        """
+        pass
+
+    @abstractmethod
     async def invoke_in_executor(self, method: Callable, event_loop: Any, *args: Any, **kwargs: Any) -> Any:
         """
         Invoke a method with DI, running sync methods in thread pool to avoid blocking

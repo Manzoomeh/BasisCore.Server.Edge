@@ -268,7 +268,7 @@ class CmsBaseContext(Context):
                 "errorCode": error_code,
                 "errorMessage": str(exception)
             }
-            if self.dispatcher.logger.log_error:
+            if self.dispatcher.options.get("error_log", False):
                 error_object["error"] = traceback.format_exc()
         return (error_object, status_code)
 

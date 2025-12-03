@@ -30,7 +30,7 @@ class ServiceDescriptor:
         self,
         service_type: Type,
         implementation: Optional[Type] = None,
-        factory: Optional[Callable[['IServiceProvider'], Any]] = None,
+        factory: Optional[Callable[['IServiceProvider', Any], Any]] = None,
         instance: Optional[Any] = None,
         lifetime: ServiceLifetime = ServiceLifetime.TRANSIENT,
         is_hosted: bool = False,
@@ -42,7 +42,7 @@ class ServiceDescriptor:
         Args:
             service_type: The interface or abstract type to register
             implementation: Concrete implementation type (will be instantiated)
-            factory: Factory function that returns an instance
+            factory: Factory function that receives ServiceProvider and **kwargs, returns an instance
             instance: Pre-created instance (for singletons)
             lifetime: Service lifetime (singleton/scoped/transient)
             is_hosted: Whether service should be instantiated at application startup
@@ -50,7 +50,8 @@ class ServiceDescriptor:
         """
         self.service_type: Type = service_type
         self.implementation: Optional[Type] = implementation
-        self.factory: Optional[Callable[['IServiceProvider'], Any]] = factory
+        self.factory: Optional[Callable[[
+            'IServiceProvider', Any], Any]] = factory
         self.instance: Optional[Any] = instance
         self.lifetime: ServiceLifetime = lifetime
         self.is_hosted: bool = is_hosted

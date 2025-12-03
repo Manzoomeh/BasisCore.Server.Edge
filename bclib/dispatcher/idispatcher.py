@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from bclib.app_options import AppOptions
 from bclib.cache.manager import CacheManager
-from bclib.log_service.ilog_service import ILogService
 from bclib.predicate.predicate_helper import PredicateHelper
 from bclib.utility.static_file_handler import StaticFileHandler
 
@@ -18,12 +17,6 @@ if TYPE_CHECKING:
 
 class IDispatcher(PredicateHelper, ABC):
     """Dispatcher base class with core functionality for manage cache and background process"""
-
-    @property
-    @abstractmethod
-    def Logger(self) -> ILogService:
-        """Get logger service"""
-        pass
 
     @property
     @abstractmethod
