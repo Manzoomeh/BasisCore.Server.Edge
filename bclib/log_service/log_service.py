@@ -4,9 +4,7 @@ from typing import Coroutine, Optional
 
 from bclib.app_options import AppOptions
 from bclib.log_service.ilog_service import ILogService
-from bclib.log_service.ilogger import ILogger
 from bclib.log_service.log_object import LogObject
-from bclib.log_service.no_logger import NoLogger
 from bclib.log_service.rabbit_schema_base_logger import RabbitSchemaBaseLogger
 from bclib.log_service.restful_schema_base_logger import \
     RESTfulSchemaBaseLogger
@@ -23,7 +21,7 @@ class LogService(ILogService):
     Supported logger types:
         - schema.restful: RESTful API-based logging
         - schema.rabbit: RabbitMQ-based logging
-        - None: NoLogger (no logging)
+        - None: No logging (logger disabled)
 
     Example:
         ```python
@@ -47,13 +45,13 @@ class LogService(ILogService):
             loop: The asyncio event loop for async operations
         """
         # Create logger based on configuration (integrated factory logic)
-        self.__logger: ILogger = self.__create_logger(options)
+        self.__logger: ILogService = self.__create_logger(options)
         self.__log_error: bool = options.get('log_error', False)
         self.__log_request: bool = options.get('log_request', True)
         self.__event_loop = loop
 
     @staticmethod
-    def __create_logger(options: AppOptions) -> ILogger:
+    def __create_logger(options: AppOptions) -> ILogService:
         """
         Create a logger instance based on configuration (factory method)
 
@@ -61,14 +59,14 @@ class LogService(ILogService):
             options: Application configuration (AppOptions type alias for dict)
 
         Returns:
-            ILogger: Configured logger instance
+            ILogService: Configured logger instance
 
         Raises:
             Exception: If logger type is not specified or not supported
         """
-        logger: ILogger = None
+        logger: ILogService = None
         if "logger" not in options:
-            logger = NoLogger()
+            logger = None
         else:
             logger_option: AppOptions = options.get('logger')
             if 'type' not in logger_option:
@@ -107,6 +105,8 @@ class LogService(ILogService):
         Returns:
             LogObject: New log object instance
         """
+        if self.__logger is None:
+            return LogObject(schema_name, routing_key, **kwargs)
         return self.__logger.new_object_log(schema_name, routing_key, **kwargs)
 
     async def log_async(self, log_object: LogObject = None, **kwargs):
@@ -120,6 +120,8 @@ class LogService(ILogService):
         Raises:
             Exception: If schema_name not provided when log_object is None
         """
+        if self.__logger is None:
+            return
         if log_object is None:
             if "schema_name" not in kwargs:
                 raise Exception("'schema_name' not set for apply logging!")
@@ -138,6 +140,9 @@ class LogService(ILogService):
         Returns:
             Coroutine: Task for background logging
         """
+        if self.__logger is None:
+            import asyncio
+            return self.__event_loop.create_task(asyncio.sleep(0))
         return self.__event_loop.create_task(
             self.log_async(log_object, **kwargs)
         )

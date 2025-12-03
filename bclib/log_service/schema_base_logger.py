@@ -1,12 +1,13 @@
 from abc import abstractmethod
+from typing import Coroutine, Optional
 from urllib.parse import urljoin
 
-from bclib.log_service.ilogger import ILogger
+from bclib.log_service.ilog_service import ILogService
 from bclib.log_service.log_object import LogObject
 from bclib.log_service.log_schema import LogSchema
 
 
-class SchemaBaseLogger(ILogger):
+class SchemaBaseLogger(ILogService):
     """
     Schema-Based Logger Base Class
 
@@ -112,7 +113,31 @@ class SchemaBaseLogger(ILogger):
             self.__schemas[schema_name] = schema
         return self.__schemas[schema_name]
 
-    async def log_async(self, log_object: LogObject):
+    def new_object_log(self, schema_name: str, routing_key: Optional[str] = None, **kwargs) -> LogObject:
+        """
+        Create a new log object
+
+        Args:
+            schema_name: Name of the log schema to use
+            routing_key: Optional routing key for message-based loggers (e.g., RabbitMQ)
+            **kwargs: Property key-value pairs to include in the log
+
+        Returns:
+            LogObject: Configured log object ready for logging
+
+        Example:
+            ```python
+            log_obj = logger.new_object_log(
+                "user_activity",
+                routing_key="users.login",
+                user_id=123,
+                ip_address="192.168.1.1"
+            )
+            ```
+        """
+        return LogObject(schema_name, routing_key, **kwargs)
+
+    async def log_async(self, log_object: LogObject = None, **kwargs):
         """
         Log data asynchronously using schema
 
@@ -120,12 +145,23 @@ class SchemaBaseLogger(ILogger):
         schema format, and saves via the implementation-specific method.
 
         Args:
-            log_object: Log object containing schema name and properties
+            log_object: Log object containing schema name and properties.
+                       If None, creates from kwargs (requires 'schema_name' in kwargs)
+            **kwargs: Log parameters for creating log object if log_object is None
+
+        Raises:
+            Exception: If schema_name not provided when log_object is None
 
         Note:
             Errors are caught and printed to console without raising.
             This prevents logging failures from breaking application flow.
         """
+        if log_object is None:
+            if "schema_name" not in kwargs:
+                raise Exception("'schema_name' not set for apply logging!")
+            schema_name = kwargs.pop("schema_name")
+            log_object = self.new_object_log(schema_name, **kwargs)
+
         try:
             questions = await self.__get_dict_async(
                 schema_name=log_object.schema_name
@@ -137,3 +173,18 @@ class SchemaBaseLogger(ILogger):
         except Exception as ex:
             print(
                 f"Error in log with schema logger: {repr(ex)}")
+
+    def log_in_background(self, log_object: LogObject = None, **kwargs) -> Coroutine:
+        """
+        Log in background process
+
+        Args:
+            log_object: Pre-created log object. If None, creates from kwargs
+            **kwargs: Log parameters
+
+        Returns:
+            Coroutine: Task for background logging
+        """
+        import asyncio
+        loop = asyncio.get_event_loop()
+        return loop.create_task(self.log_async(log_object, **kwargs))

@@ -1,10 +1,8 @@
 """Log Service Interface"""
-import asyncio
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Coroutine, Optional
+from typing import Coroutine, Optional
 
-if TYPE_CHECKING:
-    from bclib.logger import LogObject
+from bclib.log_service.log_object import LogObject
 
 
 class ILogService(ABC):
@@ -16,29 +14,27 @@ class ILogService(ABC):
     """
 
     @property
-    @abstractmethod
     def log_error(self) -> bool:
         """
         Get log error setting
 
         Returns:
-            bool: True if error logging is enabled
+            bool: True if error logging is enabled (default: False)
         """
-        pass
+        return False
 
     @property
-    @abstractmethod
     def log_request(self) -> bool:
         """
         Get log request setting
 
         Returns:
-            bool: True if request logging is enabled
+            bool: True if request logging is enabled (default: True)
         """
-        pass
+        return True
 
     @abstractmethod
-    def new_object_log(self, schema_name: str, routing_key: Optional[str] = None, **kwargs) -> 'LogObject':
+    def new_object_log(self, schema_name: str, routing_key: Optional[str] = None, **kwargs) -> LogObject:
         """
         Create a new log object
 
@@ -53,7 +49,7 @@ class ILogService(ABC):
         pass
 
     @abstractmethod
-    async def log_async(self, log_object: 'LogObject' = None, **kwargs):
+    async def log_async(self, log_object: LogObject = None, **kwargs):
         """
         Log asynchronously
 
@@ -67,7 +63,7 @@ class ILogService(ABC):
         pass
 
     @abstractmethod
-    def log_in_background(self, log_object: 'LogObject' = None, **kwargs) -> Coroutine:
+    def log_in_background(self, log_object: LogObject = None, **kwargs) -> Coroutine:
         """
         Log in background process
 
