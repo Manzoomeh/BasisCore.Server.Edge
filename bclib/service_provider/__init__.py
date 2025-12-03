@@ -36,6 +36,8 @@ Example:
     ```
 """
 
+# Hosted service interface
+from .ihosted_service import IHostedService
 # Performance optimization
 from .injection_plan import InjectionPlan
 from .injection_strategy import (InjectionStrategy, ServiceStrategy,
@@ -55,6 +57,9 @@ __all__ = [
     # Configuration
     'ServiceLifetime',
     'ServiceDescriptor',
+
+    # Hosted services
+    'IHostedService',
 
     # Performance optimization
     'InjectionPlan',

@@ -104,7 +104,7 @@ class Dispatcher(IDispatcher):
 
         Note:
             WebSocket session manager is initialized with 30s heartbeat interval.
-            Listeners are loaded lazily in initialize_task() method.
+            Listeners are loaded lazily in initialize_task_async() method.
         """
         self.__options = options
         self.__look_up: dict[Type, list[CallbackInfo]] = dict()
@@ -906,11 +906,11 @@ class Dispatcher(IDispatcher):
                 (HttpListener, TcpListener, RabbitListener, etc.)
 
         Note:
-            Listeners are initialized when initialize_task() is called
+            Listeners are initialized when initialize_task_async() is called
         """
         self.__listeners.append(listener)
 
-    def initialize_task(self):
+    async def initialize_task_async(self):
         """Initialize all listeners and tasks
 
         Loads listeners from factory and initializes them. This includes HTTP, WebSocket,
@@ -918,12 +918,16 @@ class Dispatcher(IDispatcher):
 
         Note:
             - Ensures router is built before listeners start
+            - Initializes hosted services at startup
             - Lazily loads listeners from factory on first call
             - Initializes endpoint listener if configured
             - Called automatically by listening() method
         """
         # Ensure router is ready before server starts
         self.__context_factory.rebuild_router()
+
+        # Initialize all hosted services (async)
+        await self.__service_provider.initialize_hosted_services_async()
 
         # Load listeners from factory if not already loaded
         if not self.__listeners:
@@ -959,7 +963,7 @@ class Dispatcher(IDispatcher):
 
         Note:
             - Registers SIGTERM and SIGINT handlers for graceful shutdown
-            - Calls initialize_task() to set up all listeners
+            - Calls initialize_task_async() to set up all listeners
             - If with_block=True, runs event loop until stopped
             - Cancels all pending tasks on shutdown
         """
@@ -968,7 +972,7 @@ class Dispatcher(IDispatcher):
         if before_start != None:
             self.__event_loop.run_until_complete(
                 self.__event_loop.create_task(before_start()))
-        self.initialize_task()
+        self.__event_loop.run_until_complete(self.initialize_task_async())
         if with_block:
             self.__event_loop.run_forever()
             tasks = asyncio.all_tasks(loop=self.__event_loop)
@@ -976,6 +980,12 @@ class Dispatcher(IDispatcher):
                 task.cancel()
             group = asyncio.gather(*tasks, return_exceptions=True)
             self.__event_loop.run_until_complete(group)
+
+            # Stop all hosted services for graceful shutdown
+            self.__event_loop.run_until_complete(
+                self.__service_provider.stop_hosted_services_async()
+            )
+
             if after_end != None:
                 self.__event_loop.run_until_complete(
                     self.__event_loop.create_task(after_end()))

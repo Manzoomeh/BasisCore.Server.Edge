@@ -1240,6 +1240,7 @@ def privateMethod(self):
 - [ ] Private members start with `_` or `__`
 - [ ] Boolean variables use `is_`, `has_`, `can_`, `should_` prefixes
 - [ ] Method names are verbs (action-oriented)
+- [ ] **Async methods must have `_async` suffix** (e.g., `process_async`, `initialize_task_async`)
 - [ ] Names are descriptive and unambiguous
 - [ ] No typos in identifiers
 - [ ] Consistent naming patterns throughout the file
