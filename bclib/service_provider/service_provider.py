@@ -352,7 +352,7 @@ class ServiceProvider(IServiceProvider):
                 # If both fail, re-raise original exception
                 raise
 
-    def inject_dependencies(self, handler: Callable, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+    def inject_dependencies(self, handler: Callable, **kwargs: Any) -> Dict[str, Any]:
         """
         Inject dependencies from DI container into handler parameters
 
@@ -362,7 +362,6 @@ class ServiceProvider(IServiceProvider):
 
         Args:
             handler: The handler function to inject dependencies into
-            *args: Positional arguments already being passed
             **kwargs: Keyword arguments already being passed (including url_segments)
 
         Returns:
@@ -427,17 +426,16 @@ class ServiceProvider(IServiceProvider):
         """
         self._scoped_instances.clear()
 
-    def invoke_method(self, method: Callable, *args: Any, **kwargs: Any) -> Any:
+    def invoke_method(self, method: Callable, **kwargs: Any) -> Any:
         """
         Invoke a method with automatic dependency injection for its parameters
 
         Uses InjectionPlan for optimized parameter resolution.
         Type-hinted parameters are automatically resolved from the DI container.
-        Explicitly provided args/kwargs take precedence over DI resolution.
+        Explicitly provided kwargs take precedence over DI resolution.
 
         Args:
             method: The method/function to invoke
-            *args: Positional arguments (override DI for positional params)
             **kwargs: Keyword arguments (override DI for named params, including url_segments)
 
         Returns:
@@ -455,30 +453,29 @@ class ServiceProvider(IServiceProvider):
         """
         try:
             # Use inject_dependencies to get injected parameters
-            injected_kwargs = self.inject_dependencies(method, *args, **kwargs)
+            injected_kwargs = self.inject_dependencies(method, **kwargs)
 
             # Merge with provided kwargs
             final_kwargs = {**kwargs, **injected_kwargs}
 
             # Invoke method with injected dependencies
-            return method(*args, **final_kwargs)
+            return method(**final_kwargs)
 
         except Exception:
             # Fallback to direct call
-            return method(*args, **kwargs)
+            return method(**kwargs)
 
-    async def invoke_method_async(self, method: Callable, event_loop: Any, *args: Any, **kwargs: Any) -> Any:
+    async def invoke_method_async(self, method: Callable, event_loop: Any, **kwargs: Any) -> Any:
         """
         Invoke an async method with automatic dependency injection
 
         Uses InjectionPlan for optimized parameter resolution.
         Type-hinted parameters are automatically resolved from the DI container.
-        Explicitly provided args/kwargs take precedence over DI resolution.
+        Explicitly provided kwargs take precedence over DI resolution.
 
         Args:
             method: The async method/function to invoke
             event_loop: Event loop for running sync functions in executor
-            *args: Positional arguments (override DI for positional params)
             **kwargs: Keyword arguments (override DI for named params, including url_segments)
 
         Returns:
@@ -497,7 +494,7 @@ class ServiceProvider(IServiceProvider):
         try:
             # Use InjectionPlan for optimized injection
             plan = InjectionPlan(method)
-            result = plan.execute_async(self, event_loop, *args, **kwargs)
+            result = plan.execute_async(self, event_loop, **kwargs)
 
             # If result is coroutine, await it
             if inspect.iscoroutine(result):
@@ -506,9 +503,9 @@ class ServiceProvider(IServiceProvider):
 
         except Exception:
             # Fallback to direct call
-            return await method(*args, **kwargs)
+            return await method(**kwargs)
 
-    def invoke(self, method: Callable, event_loop: Any, *args: Any, **kwargs: Any) -> Any:
+    def invoke(self, method: Callable, event_loop: Any, **kwargs: Any) -> Any:
         """
         Smart invoke - automatically detects if method is async or sync and calls appropriately
 
@@ -519,7 +516,6 @@ class ServiceProvider(IServiceProvider):
         Args:
             method: The method/function to invoke (sync or async)
             event_loop: Event loop for running async/sync methods
-            *args: Positional arguments (override DI for positional params)
             **kwargs: Keyword arguments (override DI for named params, including url_segments)
 
         Returns:
@@ -547,9 +543,51 @@ class ServiceProvider(IServiceProvider):
         """
         # Check if method is a coroutine function (async)
         if inspect.iscoroutinefunction(method):
-            return self.invoke_method_async(method, event_loop, *args, **kwargs)
+            return self.invoke_method_async(method, event_loop, **kwargs)
         else:
-            return self.invoke_method(method, *args, **kwargs)
+            return self.invoke_method(method, **kwargs)
+
+    def create_instance(self, class_type: Type[T], **kwargs: Any) -> T:
+        """
+        Create an instance of a class with automatic dependency injection
+
+        Uses InjectionPlan for optimized parameter resolution.
+        Type-hinted constructor parameters are automatically resolved from the DI container.
+        Explicitly provided kwargs take precedence over DI resolution.
+
+        Args:
+            class_type: The class to instantiate
+            **kwargs: Keyword arguments (override DI for named params)
+
+        Returns:
+            Instance with injected dependencies
+
+        Example:
+            ```python
+            class MyService:
+                def __init__(self, logger: ILogger, db: IDatabase, config: str):
+                    self.logger = logger
+                    self.db = db
+                    self.config = config
+
+            # Create instance with DI - logger and db injected automatically
+            instance = services.create_instance(MyService, config="production")
+
+            # Without registration needed
+            class AnotherService:
+                def __init__(self, logger: ILogger):
+                    self.logger = logger
+
+            service = services.create_instance(AnotherService)
+            ```
+        """
+        try:
+            # Use InjectionPlan for optimized injection
+            plan = InjectionPlan(class_type)
+            return plan.create_instance(self, **kwargs)
+        except Exception as ex:
+            # Fallback to direct instantiation
+            return class_type(**kwargs)
 
     def is_registered(self, service_type: Type) -> bool:
         """
@@ -611,7 +649,7 @@ class ServiceProvider(IServiceProvider):
 
         return True
 
-    async def invoke_in_executor(self, method: Callable, event_loop: Any, *args: Any, **kwargs: Any) -> Any:
+    async def invoke_in_executor(self, method: Callable, event_loop: Any, **kwargs: Any) -> Any:
         """
         Invoke a method with DI, running sync methods in thread pool to avoid blocking
 
@@ -622,7 +660,6 @@ class ServiceProvider(IServiceProvider):
         Args:
             method: The method/function to invoke (sync or async)
             event_loop: The asyncio event loop for run_in_executor
-            *args: Positional arguments (override DI for positional params)
             **kwargs: Keyword arguments (override DI for named params, including url_segments)
 
         Returns:
@@ -642,7 +679,7 @@ class ServiceProvider(IServiceProvider):
         try:
             # Use InjectionPlan for optimized injection
             plan = InjectionPlan(method)
-            result = plan.execute_async(self, event_loop, *args, **kwargs)
+            result = plan.execute_async(self, event_loop, **kwargs)
 
             # If result is coroutine, await it
             if inspect.iscoroutine(result):
@@ -652,10 +689,10 @@ class ServiceProvider(IServiceProvider):
         except Exception:
             # Fallback
             if inspect.iscoroutinefunction(method):
-                return await method(*args, **kwargs)
+                return await method(**kwargs)
             else:
                 return await event_loop.run_in_executor(
-                    None, lambda: method(*args, **kwargs))
+                    None, lambda: method(**kwargs))
 
     async def initialize_hosted_services_async(self) -> None:
         """

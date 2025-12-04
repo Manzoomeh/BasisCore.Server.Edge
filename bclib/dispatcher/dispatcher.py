@@ -51,13 +51,17 @@ from typing import TYPE_CHECKING, Any, Callable, Coroutine, Optional, Type
 from bclib.app_options import AppOptions
 from bclib.cache import CacheFactory, CacheManager
 from bclib.context.context import Context
+
+if TYPE_CHECKING:
+    from bclib.context.context_factory import ContextFactory
+
 from bclib.dispatcher.callback_info import CallbackInfo
-from bclib.dispatcher.context_factory import ContextFactory
 from bclib.dispatcher.idispatcher import IDispatcher
 from bclib.exception import HandlerNotFoundErr
 from bclib.listener import IListener, Message
 from bclib.listener.iresponse_base_message import IResponseBaseMessage
 from bclib.listener_factory import IListenerFactory
+from bclib.logger.ilogger import ILogger
 from bclib.predicate import Predicate
 from bclib.service_provider import InjectionPlan, IServiceProvider
 from bclib.utility.static_file_handler import StaticFileHandler
@@ -91,7 +95,7 @@ class Dispatcher(IDispatcher):
         ```
     """
 
-    def __init__(self, service_provider: IServiceProvider, options: AppOptions, loop: asyncio.AbstractEventLoop, listener_factory: IListenerFactory):
+    def __init__(self, service_provider: IServiceProvider, logger: ILogger['Dispatcher'], options: AppOptions, loop: asyncio.AbstractEventLoop, listener_factory: IListenerFactory):
         """Initialize dispatcher with injected dependencies
 
         Args:
@@ -105,6 +109,7 @@ class Dispatcher(IDispatcher):
             WebSocket session manager is initialized with 30s heartbeat interval.
             Listeners are loaded lazily in initialize_task_async() method.
         """
+        self.__logger = logger
         self.__options = options
         self.__look_up: dict[Type, list[CallbackInfo]] = dict()
         self.__service_provider = service_provider
@@ -126,11 +131,12 @@ class Dispatcher(IDispatcher):
         self.__listeners: list[IListener] = []
 
         # Initialize ContextFactory - it handles all routing logic
-        self.__context_factory = ContextFactory(
-            dispatcher=self,
-            options=options,
-            lookup=self.__look_up
-        )
+        self.__context_factory: 'ContextFactory' = None
+        # self.__context_factory =  ContextFactory(
+        #     dispatcher=self,
+        #     options=options,
+        #     lookup=self.__look_up
+        # )
 
     @property
     def service_provider(self) -> IServiceProvider:
@@ -860,7 +866,8 @@ class Dispatcher(IDispatcher):
             if isinstance(message, IResponseBaseMessage):
                 await message.set_response_async(response)
         except Exception as ex:
-            print(f"Error in process received message {ex}")
+            self.__logger.error(
+                f"Error in process received message {ex}", exc_info=True)
             raise ex
 
     @property
@@ -912,6 +919,9 @@ class Dispatcher(IDispatcher):
             - Initializes endpoint listener if configured
             - Called automatically by listening() method
         """
+        from bclib.context.context_factory import ContextFactory
+        self.__context_factory = self.service_provider.create_instance(
+            ContextFactory, lookup=self.__look_up)
         # Ensure router is ready before server starts
         self.__context_factory.rebuild_router()
 

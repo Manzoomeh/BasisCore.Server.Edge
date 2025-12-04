@@ -1,22 +1,19 @@
 """Context Factory - Creates appropriate context instances from messages"""
-import json
 import re
-from struct import error
-from typing import TYPE_CHECKING, Callable, Optional, Type
+from typing import TYPE_CHECKING, Optional, Type
 
 from bclib.app_options import AppOptions
+from bclib.logger.ilogger import ILogger
 
 if TYPE_CHECKING:
-    from bclib.context import (ClientSourceContext, Context, HttpContext,
-                               RabbitContext, RESTfulContext, ServerSourceContext,
-                               WebSocketContext)
-    from bclib.dispatcher import IDispatcher
+    from .context import Context
 
 from bclib.dispatcher.callback_info import CallbackInfo
-from bclib.listener import HttpBaseDataType, Message, MessageType
+from bclib.dispatcher.idispatcher import IDispatcher
 from bclib.listener.http.http_message import HttpMessage
 from bclib.listener.http.websocket_message import WebSocketMessage
 from bclib.listener.icms_base_message import ICmsBaseMessage
+from bclib.listener.message import Message
 from bclib.listener.rabbit.rabbit_message import RabbitMessage
 from bclib.listener.tcp.tcp_message import TcpMessage
 
@@ -37,8 +34,9 @@ class ContextFactory:
 
     def __init__(
         self,
-        dispatcher: 'IDispatcher',
+        dispatcher: IDispatcher,
         options: AppOptions,
+        logger: ILogger['ContextFactory'],
         lookup: dict[Type, list[CallbackInfo]]
     ):
         """
@@ -47,8 +45,10 @@ class ContextFactory:
         Args:
             dispatcher: Dispatcher instance for context creation
             options: Dispatcher options containing router configuration
+            logger: Logger instance for request logging
             lookup: Handler lookup dictionary
         """
+        self.__logger = logger
         self.__dispatcher = dispatcher
         self.__options = options
         self.__look_up = lookup
@@ -85,7 +85,6 @@ class ContextFactory:
         url: Optional[str] = None
         request_id: Optional[str] = None
         method: Optional[str] = None
-        message_json: Optional[dict] = None
 
         # Extract CMS object from message
         if isinstance(message, ICmsBaseMessage):
@@ -137,7 +136,7 @@ class ContextFactory:
             log_msg = f"{self.__log_name}({context_name}::{message.type.name})"
             if cms_object:
                 log_msg += f" - {request_id} {method} {url}"
-            print(log_msg)
+            self.__logger.info(log_msg)
 
         # Instantiate the context
         ret_val = context_type(cms_object, self.__dispatcher, message)
@@ -161,7 +160,7 @@ class ContextFactory:
         }
 
         # Collect all URL patterns per context type
-        context_patterns: dict[Type[Context], list[str]] = {}
+        context_patterns: dict[Type['Context'], list[str]] = {}
 
         for ctx_type, handlers in self.__look_up.items():
             if ctx_type not in supported_contexts or len(handlers) == 0:

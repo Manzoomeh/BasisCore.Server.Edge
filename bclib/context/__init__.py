@@ -32,6 +32,7 @@ from bclib.context.client_source_member_context import \
     ClientSourceMemberContext
 from bclib.context.cms_base_context import CmsBaseContext
 from bclib.context.context import Context
+from bclib.context.context_factory import ContextFactory
 from bclib.context.http_context import HttpContext
 from bclib.context.merge_type import MergeType
 from bclib.context.rabbit_context import RabbitContext
@@ -68,4 +69,5 @@ __all__ = [
 
     # Utilities
     'MergeType',
+    'ContextFactory',
 ]

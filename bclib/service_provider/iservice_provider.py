@@ -131,13 +131,12 @@ class IServiceProvider(ABC):
         pass
 
     @abstractmethod
-    def inject_dependencies(self, handler: Callable, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+    def inject_dependencies(self, handler: Callable, **kwargs: Any) -> Dict[str, Any]:
         """
         Inject dependencies from DI container into handler parameters
 
         Args:
             handler: The handler function to inject dependencies into
-            *args: Positional arguments already being passed
             **kwargs: Keyword arguments already being passed (including url_segments)
 
         Returns:
@@ -166,13 +165,12 @@ class IServiceProvider(ABC):
         pass
 
     @abstractmethod
-    def invoke_method(self, method: Callable, *args: Any, **kwargs: Any) -> Any:
+    def invoke_method(self, method: Callable, **kwargs: Any) -> Any:
         """
         Invoke a method with automatic dependency injection for its parameters
 
         Args:
             method: The method/function to invoke
-            *args: Positional arguments (override DI for positional params)
             **kwargs: Keyword arguments (override DI for named params)
 
         Returns:
@@ -181,14 +179,13 @@ class IServiceProvider(ABC):
         pass
 
     @abstractmethod
-    async def invoke_method_async(self, method: Callable, event_loop: Any, *args: Any, **kwargs: Any) -> Any:
+    async def invoke_method_async(self, method: Callable, event_loop: Any, **kwargs: Any) -> Any:
         """
         Invoke an async method with automatic dependency injection
 
         Args:
             method: The async method/function to invoke
             event_loop: Event loop for running sync functions in executor
-            *args: Positional arguments (override DI for positional params)
             **kwargs: Keyword arguments (override DI for named params)
 
         Returns:
@@ -197,18 +194,31 @@ class IServiceProvider(ABC):
         pass
 
     @abstractmethod
-    def invoke(self, method: Callable, event_loop: Any, *args: Any, **kwargs: Any) -> Any:
+    def invoke(self, method: Callable, event_loop: Any, **kwargs: Any) -> Any:
         """
         Smart invoke - automatically detects if method is async or sync
 
         Args:
             method: The method/function to invoke (sync or async)
             event_loop: Event loop for running async/sync methods
-            *args: Positional arguments (override DI for positional params)
             **kwargs: Keyword arguments (override DI for named params)
 
         Returns:
             Method return value (or coroutine for async methods)
+        """
+        pass
+
+    @abstractmethod
+    def create_instance(self, class_type: Type[T], **kwargs: Any) -> T:
+        """
+        Create an instance of a class with automatic dependency injection
+
+        Args:
+            class_type: The class to instantiate
+            **kwargs: Keyword arguments (override DI for named params)
+
+        Returns:
+            Instance with injected dependencies
         """
         pass
 
@@ -259,14 +269,13 @@ class IServiceProvider(ABC):
         pass
 
     @abstractmethod
-    async def invoke_in_executor(self, method: Callable, event_loop: Any, *args: Any, **kwargs: Any) -> Any:
+    async def invoke_in_executor(self, method: Callable, event_loop: Any, **kwargs: Any) -> Any:
         """
         Invoke a method with DI, running sync methods in thread pool to avoid blocking
 
         Args:
             method: The method/function to invoke (sync or async)
             event_loop: The asyncio event loop for run_in_executor
-            *args: Positional arguments (override DI for positional params)
             **kwargs: Keyword arguments (override DI for named params)
 
         Returns:

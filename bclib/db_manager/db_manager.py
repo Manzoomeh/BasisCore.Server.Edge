@@ -2,7 +2,6 @@ import asyncio
 
 from bclib.app_options import AppOptions
 from bclib.db_manager.idb_manager import IDbManager
-from bclib.utility import DictEx
 
 from ..db_manager.db import Db
 from ..db_manager.mongo_db import MongoDb
@@ -58,7 +57,7 @@ class DbManager(IDbManager):
         elif db_type == "rabbit":
             ret_val = RabbitConnection(setting)
         else:
-            print(
+            raise Exception(
                 f"Data base of type '{db_type}' not supported in this version")
         return ret_val
 

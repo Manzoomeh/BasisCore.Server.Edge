@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING, Any, Awaitable, Callable
 from bclib.exception import ShortCircuitErr
 
 if TYPE_CHECKING:
-    from ..context import Context
+    from bclib.context.context import Context
 
-from ..predicate import Predicate
+from bclib.predicate.predicate import Predicate
 
 
 class CallbackInfo:
