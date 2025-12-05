@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Awaitable, Callable
 from bclib.listener import Endpoint
 from bclib.listener.ilistener import IListener
 from bclib.listener.tcp.tcp_message import TcpMessage
+from bclib.logger.ilogger import ILogger
 
 if TYPE_CHECKING:
     from bclib.listener import Message
@@ -16,10 +17,17 @@ class TcpListener(IListener):
     def __init__(
         self,
         endpoint: Endpoint,
-        on_message_receive_async: Callable[['Message'], Awaitable[None]]
+        on_message_receive_async: Callable[['Message'], Awaitable[None]],
+        logger: ILogger['TcpListener']
     ):
-        """Initialize TcpListener."""
-        super().__init__(on_message_receive_async)
+        """Initialize TcpListener.
+
+        Args:
+            endpoint: TCP endpoint (host:port)
+            on_message_receive_async: Message handler callback
+            logger: Logger instance (will be injected by DI if not provided)
+        """
+        super().__init__(on_message_receive_async, logger)
         self.__endpoint = endpoint
         self.__server: asyncio.Server = None
 
@@ -36,7 +44,9 @@ class TcpListener(IListener):
         )
 
         addr = self.__server.sockets[0].getsockname()
-        print(f'TCP Endpoint server started at {addr[0]}:{addr[1]}')
+        if self._logger:
+            self._logger.info(
+                f'TCP Endpoint server started at {addr[0]}:{addr[1]}')
 
         async with self.__server:
             await self.__server.serve_forever()
@@ -52,7 +62,8 @@ class TcpListener(IListener):
             if message:
                 await self._on_message_receive(message)
         except Exception as ex:
-            print(f"Error handling endpoint connection: {ex}")
+            if self._logger:
+                self._logger.error(f"Error handling endpoint connection: {ex}")
         finally:
             try:
                 if writer.can_write_eof():

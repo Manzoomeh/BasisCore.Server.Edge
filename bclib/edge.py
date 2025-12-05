@@ -213,8 +213,8 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDisp
     # Create ServiceProvider and set up event loop
     from bclib.service_provider import IServiceProvider, ServiceProvider
     service_provider = ServiceProvider()
-    service_provider.add_singleton(IServiceProvider, instance=service_provider)
     service_provider.add_singleton(ILogger, implementation=ConsoleLogger)
+    service_provider.add_singleton(IServiceProvider, instance=service_provider)
 
     # Create or get event loop
     if loop is None and sys.platform == 'win32':

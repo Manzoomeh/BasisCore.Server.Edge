@@ -42,6 +42,7 @@ from cryptography.hazmat.primitives.serialization import (Encoding,
                                                           pkcs12)
 
 from bclib.listener.ilistener import IListener
+from bclib.logger.ilogger import ILogger
 from bclib.utility import DictEx, ResponseTypes
 from bclib.utility.http_base_data_name import HttpBaseDataName
 from bclib.utility.http_base_data_type import HttpBaseDataType
@@ -134,7 +135,15 @@ class HttpListener(IListener):
     _DEFAULT_CLIENT_MAX_SIZE = 1024 ** 2
     _FILE_CHUNK_SIZE = 256 * 1024  # 256 KB chunks for file responses
 
-    def __init__(self, endpoint: Endpoint, async_callback: 'Callable[[Message], Awaitable[Message]]', ssl_options: Optional[dict], configuration: Optional[DictEx], ws_manager: 'WebSocketSessionManager'):
+    def __init__(
+        self,
+        endpoint: Endpoint,
+        async_callback: 'Callable[[Message], Awaitable[Message]]',
+        logger: ILogger['HttpListener'],
+        ssl_options: Optional[dict] = None,
+        configuration: Optional[dict] = None,
+        ws_manager: Optional['WebSocketSessionManager'] = None,
+    ):
         """Initialize HTTP listener with endpoint and configuration
 
         Args:
@@ -142,14 +151,14 @@ class HttpListener(IListener):
             async_callback (Callable): Async message handler from dispatcher
             ssl_options (Optional[dict]): SSL/TLS config with certfile/keyfile or pfxfile/password
             configuration (Optional[DictEx]): Server config (logger, middlewares, etc.)
-            ws_manager (WebSocketSessionManager): WebSocket session manager instance
+            ws_manager (Optional[WebSocketSessionManager]): WebSocket session manager instance
+            logger (Optional[ILogger]): Logger instance (will be injected by DI if not provided)
         """
-        super().__init__(async_callback)
         self.__endpoint = endpoint
         self.__ssl_options = ssl_options
         self.__config = configuration if configuration is not None else DictEx()
-        self.__logger = self.__config.get(
-            HttpListener.LOGGER, HttpListener._DEFAULT_LOGGER)
+
+        super().__init__(async_callback, logger)
         self.__router = self.__config.get(
             HttpListener.ROUTER, HttpListener._DEFAULT_ROUTER)
         self.__middlewares = self.__config.get(
@@ -198,7 +207,7 @@ class HttpListener(IListener):
             return await self.__handle_http_async(request, cms_object)
 
         app = web.Application(
-            logger=self.__logger,
+            logger=self._logger,
             router=self.__router,
             middlewares=self.__middlewares,
             handler_args=self.__handler_args,
@@ -239,7 +248,7 @@ class HttpListener(IListener):
         site = web.TCPSite(runner, self.__endpoint.url,
                            self.__endpoint.port, ssl_context=ssl_context)
         await site.start()
-        print(
+        self._logger.info(
             f"Development Edge server started at http{'s' if self.__ssl_options else ''}://{self.__endpoint.url}:{self.__endpoint.port}")
         try:
             while True:
@@ -247,7 +256,7 @@ class HttpListener(IListener):
         except asyncio.CancelledError:
             pass
         finally:
-            print(
+            self._logger.info(
                 f"Development Edge server for http{'s' if self.__ssl_options else ''}://{self.__endpoint.url}:{self.__endpoint.port} stopped.")
             await site.stop()
             await runner.cleanup()

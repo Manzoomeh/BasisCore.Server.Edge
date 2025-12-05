@@ -25,6 +25,9 @@ class InjectionStrategy(ABC):
 class ValueStrategy(InjectionStrategy):
     """Inject value with optional type conversion (typically from URL segments)
 
+    First checks kwargs for the parameter value, then applies optional type conversion.
+    Base class for other strategies that need kwargs lookup.
+
     Supports conversion for: str, int, float, list, tuple, set
     """
 
@@ -76,74 +79,25 @@ class ValueStrategy(InjectionStrategy):
         return value
 
 
-class ServiceStrategy(InjectionStrategy):
-    """Inject from DI container"""
+class ServiceStrategy(ValueStrategy):
+    """Inject from DI container or kwargs
 
-    def __init__(self, service_type: Type) -> None:
-        self.service_type: Type = service_type
-
-    def resolve(self, services: 'ServiceProvider', **kwargs: Any) -> Optional[any]:
-        if services is None:
-            return None
-
-        return services.get_service(self.service_type, **kwargs)
-
-
-class GenericServiceStrategy(InjectionStrategy):
-    """Inject generic types from DI container
-
-    Handles parameterized generic types like ILogger[T], Repository[User], etc.
-    Extracts the base generic type and type arguments to resolve the appropriate
-    service from the container. The type arguments are passed to the service
-    constructor/factory via kwargs.
-
-    Example:
-        For ILogger["MyApp"], extracts:
-        - generic_type: ILogger
-        - type_args: ("MyApp",)
-
-        Then calls: services.get_service(ILogger, generic_type_args=("MyApp",))
+    First checks if the parameter is provided in kwargs (via parent ValueStrategy),
+    then falls back to DI container. This allows explicit parameter overrides while 
+    still supporting dependency injection.
     """
 
-    def __init__(self, param_type: Type) -> None:
-        """
-        Initialize strategy for generic type
-
-        Args:
-            param_type: The full generic type (e.g., ILogger["MyApp"])
-        """
-        self.param_type: Type = param_type
-        self.generic_origin: Optional[Type] = get_origin(param_type)
-        self.type_args: tuple = get_args(param_type)
+    def __init__(self, param_name: str, service_type: Type) -> None:
+        # target_type not used, set to object
+        super().__init__(param_name, target_type=service_type)
 
     def resolve(self, services: 'ServiceProvider', **kwargs: Any) -> Optional[any]:
-        """
-        Resolve generic service from container
+        # First, check if value is explicitly provided in kwargs
+        if self.param_name in kwargs:
+            return kwargs[self.param_name]
 
-        Tries to resolve using the base generic type and passes type arguments
-        via kwargs so they can be used in constructor or factory function.
-
-        Args:
-            services: Service provider instance
-            **kwargs: Additional resolution parameters
-
-        Returns:
-            Resolved service instance or None
-        """
+        # Fall back to DI container
         if services is None:
             return None
 
-        # Prepare kwargs with generic type arguments
-        service_kwargs = kwargs.copy()
-        if self.type_args:
-            service_kwargs['generic_type_args'] = self.type_args
-
-        # Try to get service with generic origin (base type)
-        if self.generic_origin is not None:
-            service = services.get_service(
-                self.generic_origin, **service_kwargs)
-            if service is not None:
-                return service
-
-        # Fallback: try with full generic type
-        return services.get_service(self.param_type, **service_kwargs)
+        return services.get_service(self.target_type, **kwargs)

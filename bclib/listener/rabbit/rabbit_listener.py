@@ -1,15 +1,16 @@
 import asyncio
 from struct import error
-from typing import Awaitable, Callable, Optional
+from typing import TYPE_CHECKING, Awaitable, Callable, Optional
 
 from bclib.listener.ilistener import IListener
 from bclib.listener.message import Message
 from bclib.listener.rabbit.rabbit_message import RabbitMessage
+from bclib.logger.ilogger import ILogger
 
 
 class RabbitListener(IListener):
-    def __init__(self, connection_options: dict, async_callback: Callable[[Message], Awaitable[Message]], loop: asyncio.AbstractEventLoop) -> None:
-        super().__init__(async_callback)
+    def __init__(self, connection_options: dict, async_callback: Callable[[Message], Awaitable[Message]], loop: asyncio.AbstractEventLoop, logger: ILogger['RabbitListener']) -> None:
+        super().__init__(async_callback, logger)
         import pika
         from pika.adapters.blocking_connection import BlockingChannel
         try:
@@ -52,8 +53,9 @@ class RabbitListener(IListener):
 
             # Validate: if auto_queue=False with exchange, we need either queue name or will use default
             if self._exchange_name and not self._use_auto_queue and "queue" not in connection_options:
-                print(
-                    f"Warning: Using default queue name '{self._exchange_name}_queue' for exchange '{self._exchange_name}'")
+                if self._logger:
+                    self._logger.warning(
+                        f"Using default queue name '{self._exchange_name}_queue' for exchange '{self._exchange_name}'")
 
             self.__retry_delay: int = int(
                 connection_options.get("retry_delay", 60))
@@ -68,11 +70,13 @@ class RabbitListener(IListener):
             self.__event_loop: asyncio.AbstractEventLoop = loop
 
         except Exception as ex:
-            print(f"Error in config rabbit-mq ({ex})")
+            if self._logger:
+                self._logger.error(f"Error in config rabbit-mq ({ex})")
             raise ex
 
     def __try_to_apply_connection(self):
-        print("Rabbit connection attemp...")
+        if self._logger:
+            self._logger.info("Rabbit connection attempt...")
         import pika
         self.__connection = pika.BlockingConnection(self.__param)
         self.__channel = self.__connection.channel()
@@ -113,8 +117,9 @@ class RabbitListener(IListener):
                 routing_key=self._routing_key
             )
 
-            print(
-                f"Bound queue '{self.__consuming_queue_name}' to exchange '{self._exchange_name}' with routing key '{self._routing_key}'")
+            if self._logger:
+                self._logger.info(
+                    f"Bound queue '{self.__consuming_queue_name}' to exchange '{self._exchange_name}' with routing key '{self._routing_key}'")
 
         else:
             # Queue-based configuration (original behavior)
@@ -158,8 +163,9 @@ class RabbitListener(IListener):
             )
             await self._on_message_receive(message)
         except error as ex:
-            print(
-                f"error in dispatcher received message from rabbit in {self._host}:{self._queue_name} ({ex})")
+            if self._logger:
+                self._logger.error(
+                    f"error in dispatcher received message from rabbit in {self._host}:{self._queue_name} ({ex})")
 
     def initialize_task(self, loop: asyncio.AbstractEventLoop) -> asyncio.Future:
         return loop.create_task(self.__consuming_task())
@@ -170,8 +176,9 @@ class RabbitListener(IListener):
                 self.__try_to_apply_connection()
 
                 target_info = f"{self._exchange_name} (routing key: {self._routing_key})" if self._exchange_name else self._queue_name
-                print(
-                    f'Rabbit listener waiting for messages from "{self._host}:{target_info}"')
+                if self._logger:
+                    self._logger.info(
+                        f'Rabbit listener waiting for messages from "{self._host}:{target_info}"')
 
                 loop = asyncio.get_running_loop()
                 await loop.run_in_executor(None, self.__channel.start_consuming)
@@ -191,6 +198,9 @@ class RabbitListener(IListener):
                         pass
                 break
             except Exception as ex:
-                print(f"[{ex.__class__.__name__}]", str(ex))
-            print(f"Reconnecting in {self.__retry_delay} seconds...")
+                if self._logger:
+                    self._logger.error(f"[{ex.__class__.__name__}] {str(ex)}")
+            if self._logger:
+                self._logger.info(
+                    f"Reconnecting in {self.__retry_delay} seconds...")
             await asyncio.sleep(self.__retry_delay)

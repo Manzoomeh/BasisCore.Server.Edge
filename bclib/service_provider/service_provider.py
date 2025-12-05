@@ -245,10 +245,28 @@ class ServiceProvider(IServiceProvider):
                 logger.log("Service resolved")
             ```
         """
-        if service_type not in self._descriptors:
+        # If service_type is a string (unresolved forward reference), return None
+        # This can happen with TYPE_CHECKING imports
+        if isinstance(service_type, str):
             return None
 
-        descriptor = self._descriptors[service_type]
+        # Try exact match first
+        if service_type in self._descriptors:
+            descriptor = self._descriptors[service_type]
+        else:
+            # If not found and it's a generic type, try base type
+            from typing import get_args, get_origin
+            origin = get_origin(service_type)
+            if origin is not None and origin in self._descriptors:
+                # Found base generic type (e.g., ILogger when requesting ILogger['App'])
+                descriptor = self._descriptors[origin]
+                # Pass generic type arguments via kwargs
+                type_args = get_args(service_type)
+                if type_args:
+                    kwargs = {**kwargs, 'generic_type_args': type_args}
+            else:
+                # Not found at all
+                return None
 
         # Singleton: return cached or create once
         if descriptor.lifetime == ServiceLifetime.SINGLETON:
@@ -587,6 +605,15 @@ class ServiceProvider(IServiceProvider):
             return plan.create_instance(self, **kwargs)
         except Exception as ex:
             # Fallback to direct instantiation
+            from bclib.logger.ilogger import ILogger
+            logger = self.get_service(ILogger['ServiceProvider'])
+            if logger:
+                logger.error(
+                    "ServiceProvider.create_instance: Failed to create instance of %s: %s",
+                    class_type.__name__,
+                    str(ex),
+                    exc_info=True
+                )
             return class_type(**kwargs)
 
     def is_registered(self, service_type: Type) -> bool:

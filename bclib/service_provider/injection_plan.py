@@ -16,8 +16,8 @@ import inspect
 from typing import (TYPE_CHECKING, Any, Callable, Coroutine, Dict, Type, Union,
                     get_args, get_origin, get_type_hints)
 
-from .injection_strategy import (GenericServiceStrategy, InjectionStrategy,
-                                 ServiceStrategy, ValueStrategy)
+from .injection_strategy import (InjectionStrategy, ServiceStrategy,
+                                 ValueStrategy)
 
 if TYPE_CHECKING:
     from .service_provider import ServiceProvider
@@ -61,7 +61,15 @@ class InjectionPlan:
                 callable_to_analyze = self.target
 
             sig = inspect.signature(callable_to_analyze)
-            type_hints = get_type_hints(callable_to_analyze)
+
+            # Try to get type hints with proper resolution
+            try:
+                type_hints = get_type_hints(callable_to_analyze)
+            except (NameError, AttributeError) as hint_error:
+                # If get_type_hints fails (e.g., forward references in TYPE_CHECKING),
+                # fall back to __annotations__ (string annotations won't be resolved)
+                type_hints = getattr(callable_to_analyze,
+                                     '__annotations__', {})
 
             for param_name, param in sig.parameters.items():
                 # Skip 'self' parameter for class constructors
@@ -73,9 +81,17 @@ class InjectionPlan:
                 if param_type is None:
                     continue
 
+                # If param_type is still a string (forward reference), skip strategy
+                # It will be resolved at runtime by ServiceProvider
+                if isinstance(param_type, str):
+                    # Use ServiceStrategy with the original type hint
+                    # ServiceProvider will handle the resolution
+                    self.param_strategies[param_name] = ServiceStrategy(
+                        param_name, param_type)
+                    continue
+
                 # Check if it's a primitive type or Optional[primitive]
                 actual_type = param_type
-                is_optional = False
 
                 # Handle Optional types (Union[X, None])
                 origin = get_origin(param_type)
@@ -83,7 +99,6 @@ class InjectionPlan:
                     args = get_args(param_type)
                     # Check if it's Optional (Union with None)
                     if type(None) in args:
-                        is_optional = True
                         # Get the non-None type
                         actual_type = next(
                             (arg for arg in args if arg is not type(None)), None)
@@ -94,22 +109,15 @@ class InjectionPlan:
                 if actual_type in (str, int, float, list, tuple, set):
                     self.param_strategies[param_name] = ValueStrategy(
                         param_name, actual_type)
-                # Check if it's a generic type (has type arguments)
-                elif origin is not None:
-                    # Check if origin is a primitive collection type (List, Tuple, Set)
-                    # These should use ValueStrategy, not GenericServiceStrategy
-                    if origin in (list, tuple, set):
-                        self.param_strategies[param_name] = ValueStrategy(
-                            param_name, origin)
-                    else:
-                        # It's a generic type like ILogger[T], Repository[User], etc.
-                        # (non-primitive generic types)
-                        self.param_strategies[param_name] = GenericServiceStrategy(
-                            actual_type)
+                # Check if origin is a primitive collection type (List, Tuple, Set)
+                elif origin in (list, tuple, set):
+                    self.param_strategies[param_name] = ValueStrategy(
+                        param_name, origin)
                 else:
-                    # Assume it's a service type
+                    # Assume it's a service type (both regular and generic types)
+                    # get_service() now handles generic type resolution automatically
                     self.param_strategies[param_name] = ServiceStrategy(
-                        param_type)
+                        param_name, param_type)
 
         except Exception as ex:
             # If analysis fails, fall back to empty strategies

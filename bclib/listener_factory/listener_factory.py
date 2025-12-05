@@ -80,27 +80,35 @@ class ListenerFactory(IListenerFactory):
 
         # Add HTTP/HTTPS listener if http configured
         if "http" in self.__options:
-            listener = HttpListener(
-                Endpoint(self.__options.get('http')),
-                dispatcher.on_message_receive_async,
-                self.__options.get('ssl'),
-                self.__options.get('configuration'),
-                dispatcher.ws_manager
-            )
+            listener = dispatcher.service_provider.create_instance(HttpListener,
+                                                                   endpoint=Endpoint(
+                                                                       self.__options.get('http')),
+                                                                   async_callback=dispatcher.on_message_receive_async,
+                                                                   ssl_options=self.__options.get(
+                                                                       'ssl'),
+                                                                   configuration=self.__options.get(
+                                                                       'configuration'),
+                                                                   ws_manager=dispatcher.ws_manager
+                                                                   )
             listeners.append(listener)
 
         # Add TCP listener if tcp configured
         if "tcp" in self.__options:
-            listener = TcpListener(
-                Endpoint(self.__options.get('tcp')),
-                dispatcher.on_message_receive_async
+            listener = dispatcher.service_provider.create_instance(
+                TcpListener,
+                endpoint=Endpoint(self.__options.get('tcp')),
+                on_message_receive_async=dispatcher.on_message_receive_async
             )
             listeners.append(listener)
 
         # Add RabbitMQ listeners if configured
         if "rabbit" in self.__options:
-            listener = RabbitListener(
-                self.__options.get("rabbit"), dispatcher.on_message_receive_async, self.__loop)
+            listener = dispatcher.service_provider.create_instance(
+                RabbitListener,
+                connection_options=self.__options.get("rabbit"),
+                async_callback=dispatcher.on_message_receive_async,
+                loop=self.__loop
+            )
             listeners.append(listener)
 
         return listeners

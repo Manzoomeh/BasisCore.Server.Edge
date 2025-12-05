@@ -40,8 +40,8 @@ Example:
 from .ihosted_service import IHostedService
 # Performance optimization
 from .injection_plan import InjectionPlan
-from .injection_strategy import (GenericServiceStrategy, InjectionStrategy,
-                                 ServiceStrategy, ValueStrategy)
+from .injection_strategy import (InjectionStrategy, ServiceStrategy,
+                                 ValueStrategy)
 # Core DI container
 from .iservice_provider import IServiceProvider
 from .service_descriptor import ServiceDescriptor
@@ -68,5 +68,4 @@ __all__ = [
     'InjectionStrategy',
     'ValueStrategy',
     'ServiceStrategy',
-    'GenericServiceStrategy',
 ]

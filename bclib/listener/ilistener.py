@@ -1,7 +1,8 @@
 """Base Listener Interface - abstract base class for all listeners"""
 import asyncio
+import logging
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Awaitable, Callable
+from typing import TYPE_CHECKING, Awaitable, Callable, Optional
 
 if TYPE_CHECKING:
     from bclib.listener import Message
@@ -20,9 +21,9 @@ class IListener(ABC):
     Example:
         ```python
         class MyCustomListener(IListener):
-            def __init__(self, endpoint, on_message_receive_async):
+            def __init__(self, endpoint, on_message_receive_async, logger=None):
+                super().__init__(on_message_receive_async, logger)
                 self.__endpoint = endpoint
-                self.__on_message_receive = on_message_receive_async
 
             def initialize_task(self, event_loop: asyncio.AbstractEventLoop):
                 event_loop.create_task(self.__server_task())
@@ -35,15 +36,18 @@ class IListener(ABC):
 
     def __init__(
         self,
-        on_message_receive_async: Callable[['Message'], Awaitable[None]]
+        on_message_receive_async: Callable[['Message'], Awaitable[None]],
+        logger: logging.Logger
     ):
         """
         Initialize base listener
 
         Args:
             on_message_receive_async: Async callback to process received messages
+            logger: Logger instance
         """
         self._on_message_receive = on_message_receive_async
+        self._logger = logger
 
     @abstractmethod
     def initialize_task(self, event_loop: asyncio.AbstractEventLoop) -> None:
