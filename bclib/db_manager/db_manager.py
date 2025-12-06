@@ -1,7 +1,7 @@
 import asyncio
 
-from bclib.app_options import AppOptions
 from bclib.db_manager.idb_manager import IDbManager
+from bclib.options.app_options import AppOptions
 
 from ..db_manager.db import Db
 from ..db_manager.mongo_db import MongoDb

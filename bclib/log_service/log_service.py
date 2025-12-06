@@ -2,12 +2,12 @@
 import asyncio
 from typing import Coroutine, Optional
 
-from bclib.app_options import AppOptions
 from bclib.log_service.ilog_service import ILogService
 from bclib.log_service.log_object import LogObject
 from bclib.log_service.rabbit_schema_base_logger import RabbitSchemaBaseLogger
 from bclib.log_service.restful_schema_base_logger import \
     RESTfulSchemaBaseLogger
+from bclib.options.app_options import AppOptions
 
 
 class LogService(ILogService):

@@ -2,8 +2,8 @@
 import asyncio
 from typing import TYPE_CHECKING
 
-from bclib.app_options import AppOptions
 from bclib.dispatcher.imessage_handler import IMessageHandler
+from bclib.options.app_options import AppOptions
 from bclib.service_provider.iservice_provider import IServiceProvider
 
 from .endpoint import Endpoint

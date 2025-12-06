@@ -8,21 +8,20 @@ from bclib import edge
 
 options = {
     "http": "localhost:8080",
-    "tcp": "127.0.0.1:1025",
+    # "tcp": "127.0.0.1:1025",
     # "rabbit": {
     #     "url": "amqp://guest:guest@localhost:5672/",
     #     "exchange": "orders_exchange",
     #     "durable": True
     # },
-    "rabbit": {
-        "url": "amqp://guest:guest@localhost:5672/",
-        "exchange": "orders_exchange",
-        "durable": True
-    },
     "error_log": True
 }
 
 app = edge.from_options(options)
+
+
+class myApp:
+    pass
 
 
 @app.handler()
@@ -70,7 +69,7 @@ async def test_handler_2(context: edge.RESTfulContext, id: Optional[int] = None)
 
 
 @app.web_handler()
-async def process_web_remain_request():
+async def process_web_remain_request(logger: edge.ILogger[myApp]):
     # await asyncio.sleep(1)
     # def f(n):
     #     time.sleep(n)
@@ -80,6 +79,7 @@ async def process_web_remain_request():
     # time.sleep(1)
     # time.sleep(1)
     # print("process_web_remain_request")
+    logger.info("Processing remaining web request...")
     return """
         <form method="post" enctype="multipart/form-data">
 <input type="file" name="my_files" multiple="multiple"/>

@@ -47,9 +47,9 @@ import traceback
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, Optional, Type
 
-from bclib.app_options import AppOptions
 from bclib.cache import CacheFactory, CacheManager
 from bclib.context.context import Context
+from bclib.options.app_options import AppOptions
 
 if TYPE_CHECKING:
     from bclib.context.context_factory import ContextFactory

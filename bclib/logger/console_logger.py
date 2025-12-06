@@ -10,8 +10,8 @@ import queue
 import sys
 from typing import Generic, Optional, Type, TypeVar
 
-from bclib.app_options import AppOptions
 from bclib.logger.ilogger import ILogger
+from bclib.options.app_options import AppOptions
 
 T = TypeVar('T')
 

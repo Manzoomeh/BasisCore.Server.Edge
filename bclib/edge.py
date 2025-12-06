@@ -212,7 +212,7 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDisp
     # Create ServiceProvider and set up event loop
     from bclib.service_provider import IServiceProvider, ServiceProvider
     service_provider = ServiceProvider()
-    service_provider.add_singleton(ILogger, implementation=ConsoleLogger)
+    service_provider.add_transient(ILogger, implementation=ConsoleLogger)
     service_provider.add_singleton(IServiceProvider, instance=service_provider)
 
     # Create or get event loop
@@ -227,9 +227,9 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDisp
     service_provider.add_singleton(
         asyncio.AbstractEventLoop, instance=event_loop)
 
-    # Register application options
-    from bclib.app_options import AppOptions
-    service_provider.add_singleton(AppOptions, instance=options)
+    # Register IOptions factory for configuration access
+    from bclib.options import add_options_service
+    add_options_service(service_provider, options)
 
     # Register log service in DI container
     from bclib.log_service import ILogService, LogService

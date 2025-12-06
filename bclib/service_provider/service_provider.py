@@ -12,7 +12,9 @@ Features:
 - Scoped services for request isolation
 """
 import inspect
-from typing import Any, Callable, Dict, Optional, Type, TypeVar, get_type_hints
+import re
+from typing import (Any, Callable, Dict, ForwardRef, Optional, Type, TypeVar,
+                    get_type_hints)
 
 from .ihosted_service import IHostedService
 from .injection_plan import InjectionPlan
@@ -245,28 +247,52 @@ class ServiceProvider(IServiceProvider):
                 logger.log("Service resolved")
             ```
         """
-        # If service_type is a string (unresolved forward reference), return None
-        # This can happen with TYPE_CHECKING imports
+        # Handle string annotations (from __future__ annotations)
+        # These can be simple ("MyClass") or complex ("IOptions['database']")
         if isinstance(service_type, str):
-            return None
+            # Try to parse generic type from string annotation
+            # Pattern: "BaseType['arg']" or "BaseType[ForwardRef('arg')]"
+            generic_match = re.match(
+                r"^(\w+)\[(?:ForwardRef\()?['\"]([^'\"]+)['\"](?:\))?\]$", service_type)
 
-        # Try exact match first
-        if service_type in self._descriptors:
-            descriptor = self._descriptors[service_type]
-        else:
-            # If not found and it's a generic type, try base type
-            from typing import get_args, get_origin
-            origin = get_origin(service_type)
-            if origin is not None and origin in self._descriptors:
-                # Found base generic type (e.g., ILogger when requesting ILogger['App'])
-                descriptor = self._descriptors[origin]
-                # Pass generic type arguments via kwargs
-                type_args = get_args(service_type)
-                if type_args:
-                    kwargs = {**kwargs, 'generic_type_args': type_args}
+            if generic_match:
+                # Extract base type name and generic argument
+                base_type_name = generic_match.group(1)
+                generic_arg = generic_match.group(2)
+
+                # Try to find base type in registered descriptors
+                # Look for type with matching __name__
+                for registered_type in self._descriptors:
+                    if hasattr(registered_type, '__name__') and registered_type.__name__ == base_type_name:
+                        # Found the base type, pass generic arg via kwargs
+                        descriptor = self._descriptors[registered_type]
+                        kwargs = {
+                            **kwargs, 'generic_type_args': (ForwardRef(generic_arg),)}
+                        break
+                else:
+                    # Base type not found
+                    return None
             else:
-                # Not found at all
+                # Simple string annotation - not supported yet
                 return None
+        else:
+            # Try exact match first
+            if service_type in self._descriptors:
+                descriptor = self._descriptors[service_type]
+            else:
+                # If not found and it's a generic type, try base type
+                from typing import get_args, get_origin
+                origin = get_origin(service_type)
+                if origin is not None and origin in self._descriptors:
+                    # Found base generic type (e.g., ILogger when requesting ILogger['App'])
+                    descriptor = self._descriptors[origin]
+                    # Pass generic type arguments via kwargs
+                    type_args = get_args(service_type)
+                    if type_args:
+                        kwargs = {**kwargs, 'generic_type_args': type_args}
+                else:
+                    # Not found at all
+                    return None
 
         # Singleton: return cached or create once
         if descriptor.lifetime == ServiceLifetime.SINGLETON:

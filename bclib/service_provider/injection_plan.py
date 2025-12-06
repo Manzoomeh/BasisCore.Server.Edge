@@ -13,8 +13,8 @@ Can be used for:
 """
 import asyncio
 import inspect
-from typing import (TYPE_CHECKING, Any, Callable, Coroutine, Dict, Type, Union,
-                    get_args, get_origin, get_type_hints)
+from typing import (TYPE_CHECKING, Any, Callable, Coroutine, Dict, ForwardRef,
+                    Type, Union, get_args, get_origin, get_type_hints)
 
 from .injection_strategy import (InjectionStrategy, ServiceStrategy,
                                  ValueStrategy)
@@ -50,7 +50,15 @@ class InjectionPlan:
         self._analyze()
 
     def _analyze(self) -> None:
-        """Analyze target signature once and build injection strategies"""
+        """Analyze target signature once and build injection strategies
+
+        Handles various type annotation formats:
+        - Regular types: int, str, MyClass
+        - String annotations: "MyClass" (from __future__ annotations or forward refs)
+        - ForwardRef: ForwardRef('MyClass')
+        - Generic types: IOptions['database'], ILogger['App']
+        - String generic types: "IOptions['database']" (from __future__ annotations)
+        """
         try:
             # Get the right callable to analyze
             if self.is_class:
@@ -81,11 +89,22 @@ class InjectionPlan:
                 if param_type is None:
                     continue
 
-                # If param_type is still a string (forward reference), skip strategy
-                # It will be resolved at runtime by ServiceProvider
+                # Handle string annotations (from __future__ annotations or forward refs)
+                # These can be simple ("MyClass") or complex ("IOptions['database']")
                 if isinstance(param_type, str):
-                    # Use ServiceStrategy with the original type hint
+                    # String annotation - could be simple type or generic type expression
+                    # For generic types like "IOptions['database']", we need to evaluate it
+                    # But since evaluation might fail due to undefined names in the string,
+                    # we treat all string annotations as service types
                     # ServiceProvider will handle the resolution
+                    self.param_strategies[param_name] = ServiceStrategy(
+                        param_name, param_type)
+                    continue
+
+                # Handle ForwardRef (from generic types like IOptions['database'])
+                if isinstance(param_type, ForwardRef):
+                    # ForwardRef contains the original type - pass it as-is
+                    # ServiceProvider will extract the string via __forward_arg__
                     self.param_strategies[param_name] = ServiceStrategy(
                         param_name, param_type)
                     continue
@@ -115,7 +134,8 @@ class InjectionPlan:
                         param_name, origin)
                 else:
                     # Assume it's a service type (both regular and generic types)
-                    # get_service() now handles generic type resolution automatically
+                    # get_service() handles generic type resolution automatically
+                    # This includes types like ILogger['App'], IOptions['database']
                     self.param_strategies[param_name] = ServiceStrategy(
                         param_name, param_type)
 

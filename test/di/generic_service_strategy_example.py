@@ -7,8 +7,8 @@ parameterized generic types like ILogger[T], Repository[User], etc.
 import logging
 from typing import Generic, TypeVar
 
-from bclib.app_options import AppOptions
 from bclib.logger import ILogger
+from bclib.options.app_options import AppOptions
 from bclib.service_provider import ServiceProvider
 
 T = TypeVar('T')

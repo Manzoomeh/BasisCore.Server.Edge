@@ -4,8 +4,8 @@ from abc import ABC, abstractmethod
 from collections.abc import Coroutine
 from typing import TYPE_CHECKING, Any, Callable
 
-from bclib.app_options import AppOptions
 from bclib.cache.manager import CacheManager
+from bclib.options.app_options import AppOptions
 from bclib.predicate.predicate_helper import PredicateHelper
 from bclib.utility.static_file_handler import StaticFileHandler
 

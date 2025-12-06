@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import Optional, Type, TypeVar
 
 from bclib import edge
-from bclib.app_options import AppOptions
 from bclib.logger import ILogger
+from bclib.options.app_options import AppOptions
 
 T = TypeVar('T')
 

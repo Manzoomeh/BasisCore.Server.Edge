@@ -2,8 +2,8 @@
 import re
 from typing import TYPE_CHECKING, Optional, Type
 
-from bclib.app_options import AppOptions
 from bclib.logger.ilogger import ILogger
+from bclib.options.app_options import AppOptions
 
 if TYPE_CHECKING:
     from .context import Context
