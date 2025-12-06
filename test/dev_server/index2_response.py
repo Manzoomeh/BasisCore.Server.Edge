@@ -2,13 +2,13 @@ from bclib import edge
 
 
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "router": "restful"
 }
 
 app = edge.from_options(options)
 
-@app.restful_action(
+@app.restful_handler(
     app.url("test")
 )
 def process_send_file(context: edge.RESTfulContext):

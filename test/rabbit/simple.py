@@ -6,7 +6,7 @@ HOST = "localhost"
 PORT = 5672
 
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "router": {
         "restful": [
             "*"
@@ -31,11 +31,11 @@ options = {
 app = edge.from_options(options)
 
 
-@app.rabbit_action()
+@app.rabbit_handler()
 def process_rabbit_request(context: edge.RabbitContext):
     print(context.message)
 
-@app.restful_action()
+@app.restful_handler()
 def process_restful_request(context: edge.RESTfulContext):
     db = context.dispatcher.db_manager.open_rabbit_connection("demo")
     with db:

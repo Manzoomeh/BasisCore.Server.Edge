@@ -1,8 +1,8 @@
-import json
 import datetime
+import json
 import xml.etree.ElementTree
-import edge
 
+import edge
 
 options = {
     "sender": "127.0.0.1:1025",
@@ -20,8 +20,8 @@ app.cache()
 
 
 def generate_data() -> list:
-    import string
     import random  # define the random module
+    import string
 
     ret_val = list()
     for i in range(10):
@@ -35,7 +35,7 @@ def generate_data() -> list:
 ###########################################
 
 
-@app.restful_action(
+@app.restful_handler(
     app.url("qam-test/rest/:id"))
 def process_restful_with_filter_request(context: edge.RESTfulContext):
     print("process_restful_with_filter_request")
@@ -43,7 +43,7 @@ def process_restful_with_filter_request(context: edge.RESTfulContext):
     return [row for row in generate_data() if row["id"] == id]
 
 
-@app.restful_action(
+@app.restful_handler(
     app.url("qam-test/rest"))
 def process_restful_request(context: edge.RESTfulContext):
     print("process_restful_request")
@@ -55,7 +55,7 @@ def process_restful_request(context: edge.RESTfulContext):
 ######################
 
 
-@ app.client_source_action(
+@app.client_source_handler(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
 def process_basiscore_source(context: edge.ClientSourceContext):
@@ -63,14 +63,14 @@ def process_basiscore_source(context: edge.ClientSourceContext):
     return generate_data()
 
 
-@app.client_source_action(
+@app.client_source_handler(
     app.equal("context.command.source", "demo"),
     app.in_list("context.command.mid", "10", "20"))
 def process_demo_source(context: edge.ClientSourceContext):
     return [row for row in generate_data() if row["id"] < 5]
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "list")
 )
 def process_list_member(context: edge.ClientSourceMemberContext):
@@ -78,7 +78,7 @@ def process_list_member(context: edge.ClientSourceMemberContext):
     return context.data
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "paging")
 )
 def process_page_member(context: edge.ClientSourceMemberContext):
@@ -91,7 +91,7 @@ def process_page_member(context: edge.ClientSourceMemberContext):
     return data
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "count")
 )
 def process_count_member(context: edge.ClientSourceMemberContext):
@@ -117,7 +117,7 @@ class Client:
         command = xml.etree.ElementTree.fromstring(message.command)
         if self.UserName == None:
             self.UserName = command.get('user-name')
-            if(self.UserName == "."):
+            if (self.UserName == "."):
                 self.close(True)
             else:
                 ChatRoom.send_to_all_message(
@@ -161,7 +161,7 @@ class ChatRoom:
 
     @staticmethod
     def process_message(message: edge.Message, cms: edge.DictEx, body: edge.DictEx):
-        if(message.type == edge.MessageType.CONNECT):
+        if (message.type == edge.MessageType.CONNECT):
             ChatRoom.__sessions[message.session_id] = Client(
                 message.session_id, cms)
         elif message.type == edge.MessageType.DISCONNECT:
@@ -185,7 +185,7 @@ def process_not_exist_message(context: edge.SocketContext):
     ChatRoom.process_message(context.message, None, None)
 
 
-@ app.socket_action()
+@app.socket_action()
 def process_all_other_message(context: edge.SocketContext):
     print("process_all_other_message")
     ChatRoom.process_message(context.message,
@@ -195,8 +195,8 @@ def process_all_other_message(context: edge.SocketContext):
 #####
 # Web
 #####
-@ app.web_action(app.url("qam-test/chat"))
-def process_web_message(context: edge.WebContext):
+@app.web_handler(app.url("qam-test/chat"))
+def process_web_message(context: edge.HttpContext):
     return """
             <style>
             td {
@@ -347,10 +347,10 @@ def process_web_message(context: edge.WebContext):
         """
 
 
-@ app.web_action(
+@app.web_handler(
     app.url("qam-test/sample-source/:source"),
     app.in_list("context.url_segments.source", "demo", "basiscore"))
-def process_web_sample_source_request(context: edge.WebContext):
+def process_web_sample_source_request(context: edge.HttpContext):
     return f"""
      <basis core="dbsource" run="atclient" source="{context.url_segments.source}" mid="20" name="demo"  lid="1" dmnid="" ownerpermit="" >
         <member name="list" type="list" pageno="3" perpage="20" request="catname" order="id desc"></member>
@@ -382,8 +382,8 @@ def process_web_sample_source_request(context: edge.WebContext):
         """
 
 
-@ app.web_action()
-def process_web_remain_request(context: edge.WebContext):
+@app.web_handler()
+def process_web_remain_request(context: edge.HttpContext):
     print("process_web_remain_request")
     context.add_header(edge.HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
     context.add_header("x-ali", "12")

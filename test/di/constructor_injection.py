@@ -175,7 +175,7 @@ class ConstructorInjectionDispatcher(edge.DevServerDispatcher):
 
 # Create dispatcher
 options = {
-    "server": "localhost:8093",
+    "http": "localhost:8093",
     "router": "restful"
 }
 
@@ -184,7 +184,7 @@ app = ConstructorInjectionDispatcher(options)
 
 # ==================== Handlers ====================
 
-@app.restful_action()
+@app.restful_handler()
 async def hello(context: RESTfulContext):
     """
     Test constructor injection
@@ -206,7 +206,7 @@ async def hello(context: RESTfulContext):
     }
 
 
-@app.restful_action("/report/:type")
+@app.restful_handler("/report/:type")
 async def generate_report(context: RESTfulContext):
     """
     Generate report using service with multiple dependencies
@@ -228,7 +228,7 @@ async def generate_report(context: RESTfulContext):
     }
 
 
-@app.restful_action("/user/:id")
+@app.restful_handler("/user/:id")
 async def get_user(context: RESTfulContext):
     """
     Get user information
@@ -250,7 +250,7 @@ async def get_user(context: RESTfulContext):
     }
 
 
-@app.restful_action("/injection/info")
+@app.restful_handler("/injection/info")
 async def injection_info(context: RESTfulContext):
     """
     Show information about constructor injection
@@ -312,7 +312,7 @@ async def injection_info(context: RESTfulContext):
     }
 
 
-@app.restful_action("/test/dependency-chain")
+@app.restful_handler("/test/dependency-chain")
 async def test_dependency_chain(context: RESTfulContext):
     """
     Test complex dependency chain

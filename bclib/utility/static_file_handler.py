@@ -3,11 +3,12 @@ import mimetypes
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Set
 
-from bclib.exception import ForbiddenErr
 from bclib.utility.response_types import ResponseTypes
 
 if TYPE_CHECKING:
-    from bclib.context import RequestContext
+    from bclib.context.cms_base_context import CmsBaseContext
+
+    from bclib.exception import ForbiddenErr
 
 
 class StaticFileHandler:
@@ -27,7 +28,7 @@ class StaticFileHandler:
             enable_index=True
         )
 
-        @app.restful_action()
+        @app.restful_handler()
         async def serve_static(context: RESTfulContext):
             await static_handler.handle(context)
         ```
@@ -141,7 +142,7 @@ class StaticFileHandler:
                 return index_path
         return None
 
-    async def handle(self, context: 'RequestContext') -> None:
+    async def handle(self, context: 'CmsBaseContext') -> None:
         """
         Handle static file request
 
@@ -167,6 +168,7 @@ class StaticFileHandler:
 
         # Security check: prevent path traversal
         if not self._is_safe_path(file_path):
+            from bclib.exception import ForbiddenErr
             raise ForbiddenErr("Access denied: invalid path")
 
         # Handle directory requests
@@ -195,7 +197,7 @@ class StaticFileHandler:
 
         # Set response to serve the file
         context.response_type = ResponseTypes.RENDERED
-        context.add_header('Content-Type', mime_type)
+        context.mime = mime_type
         return file_path.read_bytes()
 
     def __repr__(self) -> str:

@@ -1,10 +1,12 @@
 import os
 from datetime import datetime
+
 from web_push import WebPush
+
 from bclib import edge
 
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "router": {
         "restful": ["/api"],
         "web": ["*"]
@@ -24,7 +26,7 @@ app = edge.from_options(options)
 push = WebPush(options)
 
 
-@app.restful_action(app.url("api/push/add-subscriber"))
+@app.restful_handler(app.url("api/push/add-subscriber"))
 def add_subscriber_handler(context: edge.RESTfulContext):
     edge.HttpHeaders.add_cors_headers(context)
     push.add_subscriber(context.body.client, context.body.endpoint,
@@ -32,13 +34,13 @@ def add_subscriber_handler(context: edge.RESTfulContext):
     return True
 
 
-@app.restful_action(app.url("api/push/:type/:client"))
+@app.restful_handler(app.url("api/push/:type/:client"))
 def push_handler(context: edge.RESTfulContext):
     return push.push_object(context.url_segments.client, context.url_segments.type,
                             context.body, "hi", "http://localhost:8080")
 
 
-@app.restful_action(app.url("api/push/test"))
+@app.restful_handler(app.url("api/push/test"))
 def test_push_handler(_: edge.RESTfulContext):
     now = datetime.now()
     data = {
@@ -51,21 +53,23 @@ def test_push_handler(_: edge.RESTfulContext):
                             data, "hi", "http://localhost:8080")
 
 
-@app.web_action(app.url("basiscore-serviceWorker.js"))
-def sw_js_handler(context: edge.WebContext):
+@app.web_handler(app.url("basiscore-serviceWorker.js"))
+def sw_js_handler(context: edge.HttpContext):
     context.mime = edge.HttpMimeTypes.JS
     return readAsset("basiscore-serviceWorker.js")
 
 
-@app.web_action(app.url("basiscore.js"))
-def basiscore_js_handler(context: edge.WebContext):
+@app.web_handler(app.url("basiscore.js"))
+def basiscore_js_handler(context: edge.HttpContext):
     context.mime = edge.HttpMimeTypes.JS
     return readAsset("basiscore.js")
 
 
-@app.web_action()
-def default_handler(context: edge.WebContext):
-    return readAsset("local-index.html").replace("___PUBLIK_KEY___", context.dispatcher.options.push.vapid.public_key)
+@app.web_handler()
+def default_handler(context: edge.HttpContext):
+    public_key = context.dispatcher.options.get(
+        'push', {}).get('vapid', {}).get('public_key', '')
+    return readAsset("local-index.html").replace("___PUBLIK_KEY___", public_key)
 
 
 def readAsset(asset_name: str) -> str:

@@ -1,8 +1,8 @@
-import json
 import datetime
+import json
 import xml.etree.ElementTree
-import edge
 
+import edge
 
 options = {
     "sender": "127.0.0.1:1025",
@@ -18,8 +18,8 @@ app = edge.from_options(options)
 
 @app.cache()
 def generate_data() -> list:
-    import string
     import random  # define the random module
+    import string
 
     ret_val = list()
     for i in range(10):
@@ -33,20 +33,20 @@ def generate_data() -> list:
 ######################
 
 
-@ app.server_source_action(app.equal("context.command.name", "demo"))
+@app.server_source_handler(app.equal("context.command.name", "demo"))
 def process_basiscore_server_source(context: edge.ServerSourceContext):
     print("process_basiscore_source", context.params.p1)
     return generate_data()
 
 
-@ app.server_source_action(
+@app.server_source_handler(
     app.equal("context.command.name", "basiscode"),
     app.in_list("context.command.mid", "10", "20"))
 def process_demo_source(context: edge.ServerSourceContext):
     return [row for row in generate_data() if row["id"] < 5]
 
 
-@app.server_source_member_action(
+@app.server_source_member_handler(
     app.equal("context.member.name", "list")
 )
 def process_list_server_member(context: edge.ServerSourceMemberContext):
@@ -54,7 +54,7 @@ def process_list_server_member(context: edge.ServerSourceMemberContext):
     return context.data
 
 
-@app.server_source_member_action(
+@app.server_source_member_handler(
     app.equal("context.member.name", "paging")
 )
 def process_page_server_member(context: edge.ServerSourceMemberContext):
@@ -67,7 +67,7 @@ def process_page_server_member(context: edge.ServerSourceMemberContext):
     return data
 
 
-@app.server_source_member_action(
+@app.server_source_member_handler(
     app.equal("context.member.name", "count")
 )
 def process_count_server_member(context: edge.ServerSourceMemberContext):
@@ -82,8 +82,8 @@ def process_count_server_member(context: edge.ServerSourceMemberContext):
 # Web
 #####
 
-@app.web_action()
-def process_web_sample_dbsource_request(context: edge.WebContext):
+@app.web_handler()
+def process_web_sample_dbsource_request(context: edge.HttpContext):
     context.response_type = edge.ResponseTypes.RENDERABLE
     return """
      <basis core="dbsource"  source="cmsDbService" mid="20" name="demo"  lid="1" dmnid="" ownerpermit="" >

@@ -1,9 +1,10 @@
 import json
 from pathlib import Path
-from context.web_context import WebContext
-from dispatcher import SocketDispatcher
-from context import ClientSourceContext, ClientSourceMemberContext, RESTfulContext
 
+from context import (ClientSourceContext, ClientSourceMemberContext,
+                     RESTfulContext)
+from context.http_context import HttpContext
+from dispatcher import SocketDispatcher
 
 with open(Path(__file__).with_name("host.json"), encoding='UTF-8') as options_file:
     options = json.load(options_file)
@@ -11,29 +12,29 @@ with open(Path(__file__).with_name("host.json"), encoding='UTF-8') as options_fi
 app = SocketDispatcher(options)
 
 
-# @app.web_action(
+# @app.web_handler(
 #     app.url("py/app/d"))
-# def process_basiscore_web3(_: WebContext):
+# def process_basiscore_web3(_: HttpContext):
 #     print("process_basiscore_restful1")
 #     return "<h1>Hello world!</h1>dddd"
 
 
-# @app.web_action(
+# @app.web_handler(
 #     app.url("py/:type/qam/:id"),
 #     app.in_list("context.url_segments.type", "book", "car"))
-# def process_basiscore_web2(context: WebContext):
+# def process_basiscore_web2(context: HttpContext):
 #     print("process_basiscore_restful1")
 #     return "<h1>Hello world!</h1>id is :{0}<br/> type is:{1}</br/".format(context.url_segments.id, context.url_segments.type)
 
 
-# @app.web_action(
+# @app.web_handler(
 #     app.url("py/:rkey"))
-# def process_basiscore_web1(context: WebContext):
+# def process_basiscore_web1(context: HttpContext):
 #     print("process_basiscore_restful1")
 #     return "<h1>Hello world! / </h1> rkey is :" + context.url_segments.rkey
 
-@app.web_action(app.url("xhr"))
-def process_basiscore_web4(context: WebContext):
+@app.web_handler(app.url("xhr"))
+def process_basiscore_web4(context: HttpContext):
     return """
 <script>
 var data = JSON.stringify({
@@ -69,8 +70,8 @@ xhr.send(data);
 """
 
 
-@app.web_action(app.url("fetch"))
-def process_basiscore_web46(context: WebContext):
+@app.web_handler(app.url("fetch"))
+def process_basiscore_web46(context: HttpContext):
     return """
     <script>
 var data = JSON.stringify({
@@ -101,8 +102,8 @@ fetch("rest/create-factor/B0B03E47-2FA7-4D97-AF2E-642D9B5D5FF5", {
 """
 
 
-@app.web_action(app.url("fetch2"))
-def process_basiscore_web45(context: WebContext):
+@app.web_handler(app.url("fetch2"))
+def process_basiscore_web45(context: HttpContext):
     context.add_header("Access-Control-Allow-Origin", "*")
     return """
     <script>
@@ -127,8 +128,8 @@ fetch("https://basisfly.com/rest/create-factor/A2E02B5B-6D89-4B0C-8ACF-75712B3D8
 """
 
 
-@app.web_action()
-def process_basiscore_web44(context: WebContext):
+@app.web_handler()
+def process_basiscore_web44(context: HttpContext):
     return """
     <html><head></head><body>
      <iframe  id="frame" ></iframe> 
@@ -141,9 +142,9 @@ def process_basiscore_web44(context: WebContext):
 """
 
 
-@app.restful_action(app.url("rest/create-factor/:rkey"))
+@app.restful_handler(app.url("rest/create-factor/:rkey"))
 def process_basiscore_restful1(context: RESTfulContext):
-    print("restful_action")
+    print("restful_handler")
     ret_val = dict()
     ret_val["client"] = context.body
     ret_val["rkey"] = context.url_segments
@@ -151,8 +152,8 @@ def process_basiscore_restful1(context: RESTfulContext):
     return ret_val
 
 
-# @app.web_action(app.url("tt/:rkey/:*pp"))
-# def process_basiscore_web4(context: WebContext):
+# @app.web_handler(app.url("tt/:rkey/:*pp"))
+# def process_basiscore_web4(context: HttpContext):
 #     print("process_basiscore_restful1")
 #     # context.response = {
 #     #     "cms": {
@@ -169,7 +170,7 @@ def process_basiscore_restful1(context: RESTfulContext):
 #     # 					localstoragesource="local.basket" basket-result-id="db.Listchoices" ></Basis>'''
 
 
-# @app.restful_action(
+# @app.restful_handler(
 #     app.in_list("context.body.id", 10))
 # def process_basiscore_restful1(context: RESTfulContext):
 #     ret_val = dict()
@@ -178,7 +179,7 @@ def process_basiscore_restful1(context: RESTfulContext):
 #     return ret_val
 
 
-# @app.restful_action(
+# @app.restful_handler(
 #     app.in_list("context.body.id", 12),
 #     app.equal("context.body.age", 13))
 # def process_basiscore_restful2(context: RESTfulContext):
@@ -188,7 +189,7 @@ def process_basiscore_restful1(context: RESTfulContext):
 #     return ret_val
 
 
-# @app.restful_action(
+# @app.restful_handler(
 #     app.in_list("context.body.id", 12))
 # def process_basiscore_restful3(context: RESTfulContext):
 #     ret_val = dict()
@@ -197,7 +198,7 @@ def process_basiscore_restful1(context: RESTfulContext):
 #     return ret_val
 
 
-# @app.restful_action()
+# @app.restful_handler()
 # def process_basiscore_restful4(_: RESTfulContext):
 #     ret_val = dict()
 #     ret_val["message"] = "hello world! - No match"

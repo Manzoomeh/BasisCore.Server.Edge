@@ -41,7 +41,7 @@ class TimeService(ITimeService):
 # ==================== Create App ====================
 
 options = {
-    "server": "localhost:8098",
+    "http": "localhost:8098",
     "router": "restful"
 }
 
@@ -54,7 +54,7 @@ app.add_transient(ITimeService, TimeService)
 
 # ==================== Handlers ====================
 
-@app.restful_action(app.url("traditional_handler"))
+@app.restful_handler(app.url("traditional_handler"))
 def traditional_handler():
     """Traditional way - still works perfectly!"""
     return {
@@ -64,7 +64,7 @@ def traditional_handler():
     }
 
 
-@app.restful_action(app.url("clean_handler"))
+@app.restful_handler(app.url("clean_handler"))
 def clean_handler(logger: ILogger, time: ITimeService):
     """New way - no context needed!"""
     logger.log(f"Clean handler called at {time.get_time()}")
@@ -75,7 +75,7 @@ def clean_handler(logger: ILogger, time: ITimeService):
     }
 
 
-@app.restful_action(app.url("logger_only"))
+@app.restful_handler(app.url("logger_only"))
 def logger_only(context: RESTfulContext, logger: ILogger):
     """Minimal handler - just one service"""
     logger.log("Minimal handler with only logger")
@@ -85,7 +85,7 @@ def logger_only(context: RESTfulContext, logger: ILogger):
     }
 
 
-@app.restful_action(app.url("mixed_handler"))
+@app.restful_handler(app.url("mixed_handler"))
 def mixed_handler(context: RESTfulContext, logger: ILogger, time: ITimeService):
     """Mix of old and new - context + services"""
     logger.log(f"Mixed handler at {time.get_time()}")
@@ -97,7 +97,7 @@ def mixed_handler(context: RESTfulContext, logger: ILogger, time: ITimeService):
     }
 
 
-@app.restful_action(app.url("async_clean"))
+@app.restful_handler(app.url("async_clean"))
 async def async_clean(logger: ILogger):
     """Async handler without context"""
     logger.log("Async handler without context!")
@@ -108,7 +108,7 @@ async def async_clean(logger: ILogger):
     }
 
 
-@app.restful_action(app.url("comparison"))
+@app.restful_handler(app.url("comparison"))
 def comparison():
     """Show the difference"""
     return {

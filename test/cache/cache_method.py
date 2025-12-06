@@ -3,7 +3,7 @@ from datetime import datetime
 import time
 
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "router": "restful",
     "cache": {
         "type": "memory",
@@ -14,7 +14,7 @@ options = {
 
 app = edge.from_options(options)
 
-@app.restful_action(
+@app.restful_handler(
     app.get("api/data")
 )
 @app.cache(30, "demo")
@@ -27,7 +27,7 @@ def data(context: "edge.RESTfulContext"):
     }
 
 
-@app.restful_action(
+@app.restful_handler(
     app.get("api/get/:key")
 )
 def get_data(context: edge.RESTfulContext):
@@ -38,7 +38,7 @@ def get_data(context: edge.RESTfulContext):
     }
 
 
-@app.restful_action(
+@app.restful_handler(
     app.post("api/:action")
 )
 def action_api(context: edge.RESTfulContext):
@@ -94,7 +94,7 @@ def action_api(context: edge.RESTfulContext):
         }
     return ret_val
 
-@app.restful_action(
+@app.restful_handler(
     app.post("api/clean")
 )
 def clean_cache(context: edge.RESTfulContext):

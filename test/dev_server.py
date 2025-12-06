@@ -2,7 +2,7 @@ from bclib import edge
 
 if "options" not in dir():
     options = {
-        "server": "localhost:8080",
+        "http": "localhost:8080",
         "router": {
             "client_source": ["/source"],
             "restful": ["/rest"],
@@ -16,8 +16,8 @@ app = edge.from_options(options)
 
 @app.cache()
 def generate_data() -> list:
-    import string
     import random  # define the random module
+    import string
 
     ret_val = list()
     for i in range(10):
@@ -31,7 +31,7 @@ def generate_data() -> list:
 ###########################################
 
 
-@app.restful_action(
+@app.restful_handler(
     app.url("rest/:id"))
 def process_restful_with_filter_request(context: edge.RESTfulContext):
     print("process_restful_with_filter_request")
@@ -39,7 +39,7 @@ def process_restful_with_filter_request(context: edge.RESTfulContext):
     return [row for row in generate_data() if row["id"] == id]
 
 
-@app.restful_action(
+@app.restful_handler(
     app.url("rest"))
 def process_restful_request(context: edge.RESTfulContext):
     print("process_restful_request")
@@ -51,7 +51,7 @@ def process_restful_request(context: edge.RESTfulContext):
 ######################
 
 
-@app.client_source_action(
+@app.client_source_handler(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
 def process_basiscore_source(context: edge.ClientSourceContext):
@@ -59,14 +59,14 @@ def process_basiscore_source(context: edge.ClientSourceContext):
     return generate_data()
 
 
-@app.client_source_action(
+@app.client_source_handler(
     app.equal("context.command.source", "demo"),
     app.in_list("context.command.mid", "10", "20"))
 def process_demo_source(context: edge.ClientSourceContext):
     return [row for row in generate_data() if row["id"] < 5]
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "list")
 )
 def process_list_member(context: edge.ClientSourceMemberContext):
@@ -74,7 +74,7 @@ def process_list_member(context: edge.ClientSourceMemberContext):
     return context.data
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "paging")
 )
 def process_page_member(context: edge.ClientSourceMemberContext):
@@ -87,7 +87,7 @@ def process_page_member(context: edge.ClientSourceMemberContext):
     return data
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "count")
 )
 def process_count_member(context: edge.ClientSourceMemberContext):
@@ -102,10 +102,10 @@ def process_count_member(context: edge.ClientSourceMemberContext):
 #####
 
 
-@ app.web_action(
+@app.web_handler(
     app.url("sample-source/:source"),
     app.in_list("context.url_segments.source", "demo", "basiscore"))
-def process_web_sample_source_request(context: edge.WebContext):
+def process_web_sample_source_request(context: edge.HttpContext):
     return f"""
      <basis core="dbsource" run="atclient" source="{context.url_segments.source}" mid="20" name="demo"  lid="1" dmnid="" ownerpermit="" >
         <member name="list" type="list" pageno="3" perpage="20" request="catname" order="id desc"></member>
@@ -140,8 +140,8 @@ def process_web_sample_source_request(context: edge.WebContext):
         """
 
 
-@app.web_action()
-def process_web_remain_request(context: edge.WebContext):
+@app.web_handler()
+def process_web_remain_request(context: edge.HttpContext):
     print("process_web_remain_request")
     context.add_header("Access-Control-Allow-Origin", "*")
     context.add_header("x-ali", "12")

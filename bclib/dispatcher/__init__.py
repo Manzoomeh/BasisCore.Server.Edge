@@ -1,8 +1,31 @@
-from bclib.dispatcher.dev_server_dispatcher import DevServerDispatcher
-from bclib.dispatcher.dispatcher import Dispatcher
-from bclib.dispatcher.endpoint_dispatcher import EndpointDispatcher
-from bclib.dispatcher.idispatcher import IDispatcher
-from bclib.dispatcher.routing_dispatcher import RoutingDispatcher
-from bclib.dispatcher.socket_dispatcher import SocketDispatcher
-from bclib.dispatcher.websocket_session import WebSocketSession
-from bclib.dispatcher.websocket_session_manager import WebSocketSessionManager
+from bclib.service_provider.iservice_provider import IServiceProvider
+
+from .dispatcher import Dispatcher
+from .idispatcher import IDispatcher
+from .imessage_handler import IMessageHandler
+
+
+def adding_dispatcher_services(service_provider: IServiceProvider) -> None:
+    """
+    Add Dispatcher services to the service provider
+
+    This function registers the Dispatcher class and its related interfaces
+    in the provided service provider (dependency injection container). It ensures
+    that the Dispatcher can be resolved and used throughout the application.
+
+    Args:
+        service_provider: The IServiceProvider instance to register services with
+    """
+    # Register dispatcher itself in DI container
+    service_provider.add_singleton(Dispatcher, Dispatcher)
+    service_provider.add_singleton(
+        IDispatcher, factory=lambda sp: sp.get_service(Dispatcher))
+    service_provider.add_singleton(
+        IMessageHandler, factory=lambda sp: sp.get_service(Dispatcher))
+
+
+__all__ = [
+    'Dispatcher',
+    'IDispatcher',
+    'adding_dispatcher_services',
+]

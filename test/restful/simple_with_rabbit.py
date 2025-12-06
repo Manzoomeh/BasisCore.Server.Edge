@@ -2,7 +2,7 @@ import edge
 
 
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "router": {
         "rabbit": [
             {
@@ -29,7 +29,7 @@ def generate_data() -> list:
     return ret_val
 
 
-@app.restful_action(
+@app.restful_handler(
     app.url(":id"))
 def process_restful_with_filter_request(context: edge.RESTfulContext):
     print("process_restful_with_filter_request")
@@ -37,7 +37,7 @@ def process_restful_with_filter_request(context: edge.RESTfulContext):
     return [row for row in generate_data() if row["id"] == id]
 
 
-@app.restful_action()
+@app.restful_handler()
 def process_restful_request(context: edge.RESTfulContext):
     print("process_restful_request")
     return generate_data()

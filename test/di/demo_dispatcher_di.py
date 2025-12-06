@@ -59,7 +59,7 @@ class GreetingService(IGreetingService):
 
 
 app = edge.from_options({
-    "server": "localhost:8098",
+    "http": "localhost:8098",
     "router": "restful",
     "name": "dispatcher_di_demo"
 })
@@ -88,14 +88,14 @@ def configure_services():
 # ==================== Handlers with Automatic DI ====================
 
 
-@app.restful_action()
+@app.restful_handler()
 def hello_handler(logger: ILogger):
     """Handler with only logger - no context needed"""
     logger.log("Hello endpoint called")
     return {"message": "Hello from dispatcher DI!"}
 
 
-@app.restful_action()
+@app.restful_handler()
 def time_handler(time_service: ITimeService, logger: ILogger):
     """Handler with multiple services injected"""
     logger.log("Time endpoint called")
@@ -106,7 +106,7 @@ def time_handler(time_service: ITimeService, logger: ILogger):
     }
 
 
-@app.restful_action()
+@app.restful_handler()
 def greet_handler(greeting: IGreetingService, logger: ILogger):
     """Handler with transient service (new instance each time)"""
     logger.log("Greet endpoint called")
@@ -114,7 +114,7 @@ def greet_handler(greeting: IGreetingService, logger: ILogger):
     return {"greeting": message}
 
 
-@app.restful_action()
+@app.restful_handler()
 def mixed_handler(context: RESTfulContext, time_service: ITimeService, logger: ILogger):
     """Handler with context AND injected services"""
     logger.log(f"Mixed endpoint called: {context.url}")
@@ -126,7 +126,7 @@ def mixed_handler(context: RESTfulContext, time_service: ITimeService, logger: I
     }
 
 
-@app.restful_action()
+@app.restful_handler()
 def info_handler():
     """Handler with no dependencies at all"""
     return {

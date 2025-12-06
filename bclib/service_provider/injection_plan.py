@@ -13,8 +13,8 @@ Can be used for:
 """
 import asyncio
 import inspect
-from typing import (TYPE_CHECKING, Any, Callable, Coroutine, Dict, Type, Union,
-                    get_type_hints)
+from typing import (TYPE_CHECKING, Any, Callable, Coroutine, Dict, ForwardRef,
+                    Type, Union, get_args, get_origin, get_type_hints)
 
 from .injection_strategy import (InjectionStrategy, ServiceStrategy,
                                  ValueStrategy)
@@ -50,7 +50,15 @@ class InjectionPlan:
         self._analyze()
 
     def _analyze(self) -> None:
-        """Analyze target signature once and build injection strategies"""
+        """Analyze target signature once and build injection strategies
+
+        Handles various type annotation formats:
+        - Regular types: int, str, MyClass
+        - String annotations: "MyClass" (from __future__ annotations or forward refs)
+        - ForwardRef: ForwardRef('MyClass')
+        - Generic types: IOptions['database'], ILogger['App']
+        - String generic types: "IOptions['database']" (from __future__ annotations)
+        """
         try:
             # Get the right callable to analyze
             if self.is_class:
@@ -61,7 +69,15 @@ class InjectionPlan:
                 callable_to_analyze = self.target
 
             sig = inspect.signature(callable_to_analyze)
-            type_hints = get_type_hints(callable_to_analyze)
+
+            # Try to get type hints with proper resolution
+            try:
+                type_hints = get_type_hints(callable_to_analyze)
+            except (NameError, AttributeError) as hint_error:
+                # If get_type_hints fails (e.g., forward references in TYPE_CHECKING),
+                # fall back to __annotations__ (string annotations won't be resolved)
+                type_hints = getattr(callable_to_analyze,
+                                     '__annotations__', {})
 
             for param_name, param in sig.parameters.items():
                 # Skip 'self' parameter for class constructors
@@ -73,18 +89,60 @@ class InjectionPlan:
                 if param_type is None:
                     continue
 
-                # Check if it's a primitive type that could be URL segment
-                if param_type in (str, int, float):
-                    self.param_strategies[param_name] = ValueStrategy(
-                        param_name, param_type)
-                else:
-                    # Assume it's a service type
+                # Handle string annotations (from __future__ annotations or forward refs)
+                # These can be simple ("MyClass") or complex ("IOptions['database']")
+                if isinstance(param_type, str):
+                    # String annotation - could be simple type or generic type expression
+                    # For generic types like "IOptions['database']", we need to evaluate it
+                    # But since evaluation might fail due to undefined names in the string,
+                    # we treat all string annotations as service types
+                    # ServiceProvider will handle the resolution
                     self.param_strategies[param_name] = ServiceStrategy(
-                        param_type)
+                        param_name, param_type)
+                    continue
 
-        except Exception:
+                # Handle ForwardRef (from generic types like IOptions['database'])
+                if isinstance(param_type, ForwardRef):
+                    # ForwardRef contains the original type - pass it as-is
+                    # ServiceProvider will extract the string via __forward_arg__
+                    self.param_strategies[param_name] = ServiceStrategy(
+                        param_name, param_type)
+                    continue
+
+                # Check if it's a primitive type or Optional[primitive]
+                actual_type = param_type
+
+                # Handle Optional types (Union[X, None])
+                origin = get_origin(param_type)
+                if origin is Union:
+                    args = get_args(param_type)
+                    # Check if it's Optional (Union with None)
+                    if type(None) in args:
+                        # Get the non-None type
+                        actual_type = next(
+                            (arg for arg in args if arg is not type(None)), None)
+                        origin = get_origin(
+                            actual_type) if actual_type else None
+
+                # Check if it's a primitive type that could be URL segment
+                if actual_type in (str, int, float, list, tuple, set):
+                    self.param_strategies[param_name] = ValueStrategy(
+                        param_name, actual_type)
+                # Check if origin is a primitive collection type (List, Tuple, Set)
+                elif origin in (list, tuple, set):
+                    self.param_strategies[param_name] = ValueStrategy(
+                        param_name, origin)
+                else:
+                    # Assume it's a service type (both regular and generic types)
+                    # get_service() handles generic type resolution automatically
+                    # This includes types like ILogger['App'], IOptions['database']
+                    self.param_strategies[param_name] = ServiceStrategy(
+                        param_name, param_type)
+
+        except Exception as ex:
             # If analysis fails, fall back to empty strategies
-            pass
+            print(f"InjectionPlan analysis failed: {ex}")
+            raise ex
 
     def inject_parameters(self, services: 'ServiceProvider', **kwargs: Any) -> Dict[str, Any]:
         """

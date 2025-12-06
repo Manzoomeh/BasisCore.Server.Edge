@@ -3,7 +3,7 @@ from bclib import edge
 
 
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "router": "client_source"
 }
 
@@ -35,7 +35,7 @@ def generate_data() -> list:
     return ret_val
 
 
-@app.client_source_action(
+@app.client_source_handler(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
 async def process_basiscore_source(context: edge.ClientSourceContext):
@@ -44,14 +44,14 @@ async def process_basiscore_source(context: edge.ClientSourceContext):
     return generate_data()
 
 
-@app.client_source_action(
+@app.client_source_handler(
     app.equal("context.command.source", "demo"),
     app.in_list("context.command.mid", "10", "20"))
 def process_demo_source(context: edge.ClientSourceContext):
     return [row for row in generate_data() if row["id"] < 5]
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "list")
 )
 def process_list_member(context: edge.ClientSourceMemberContext):
@@ -59,7 +59,7 @@ def process_list_member(context: edge.ClientSourceMemberContext):
     return context.data
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "paging")
 )
 def process_page_member(context: edge.ClientSourceMemberContext):
@@ -72,7 +72,7 @@ def process_page_member(context: edge.ClientSourceMemberContext):
     return data
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "count")
 )
 def process_count_member(context: edge.ClientSourceMemberContext):

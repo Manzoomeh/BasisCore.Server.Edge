@@ -1,3 +1,12 @@
+"""Logger Module
+
+Provides independent generic logger functionality based on Python's standard logging.
+"""
+
+from bclib.logger.console_logger import ConsoleLogger
 from bclib.logger.ilogger import ILogger
-from bclib.logger.logger_factory import LoggerFactory
-from bclib.logger.log_object import LogObject
+
+__all__ = [
+    'ConsoleLogger',
+    'ILogger'
+]

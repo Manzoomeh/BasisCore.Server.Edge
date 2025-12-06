@@ -1,14 +1,40 @@
-from abc import ABC, abstractmethod
-from .log_object import LogObject
-from typing import Optional
+"""Logger Interface
 
-class ILogger(ABC):
-    """Base class for logger"""
+Generic logger interface for dependency injection.
+Extends Python's logging.Logger for direct compatibility.
+"""
+import logging
+from typing import Generic, TypeVar
 
-    @abstractmethod
-    async def log_async(self, log_object: LogObject):
-        """log data async"""
+T = TypeVar('T')
 
-    def new_object_log(self, schema_name: str, routing_key: Optional[str] = None, **kwargs) -> LogObject:
-        """New object log"""
-        return LogObject(schema_name, routing_key, **kwargs)
+
+class ILogger(logging.Logger, Generic[T]):
+    """
+    Generic Logger Interface
+
+    Interface for type-safe logger injection in constructors.
+    The generic type parameter determines the logger name.
+    Extends logging.Logger for direct compatibility with standard logging.
+
+    Example:
+        ```python
+        class MyService:
+            def __init__(self, logger: ILogger['MyService']):
+                self.logger = logger
+
+            def do_something(self):
+                self.logger.info("Doing something")
+                # Can use all standard logging.Logger methods
+                self.logger.debug("Details here")
+        ```
+    """
+
+    def __init__(self, name: str):
+        """
+        Initialize logger
+
+        Args:
+            name: Logger name
+        """
+        super().__init__(name)

@@ -10,7 +10,7 @@ with open(Path(__file__).with_name("host.json")) as options_file:
 app = Dispatcher(options)
 
 
-@app.restful_action(
+@app.restful_handler(
     app.url("api2/authorization/:rkey/set-active/:r"),
     app.has_value("context.url_segments.r"),
     app.equal("context.cms.request.methode", "post"),
@@ -21,19 +21,19 @@ def process_basiscore_restful0(context: RESTfulContext):
     return (context.body)
 
 
-@app.restful_action(app.between("context.body.id", -1, 13))
+@app.restful_handler(app.between("context.body.id", -1, 13))
 def process_basiscore_restful1(context: RESTfulContext):
     print("process_basiscore_restful1")
     return context.body
 
 
-@app.restful_action(app.in_list("context.body.id", 14))
+@app.restful_handler(app.in_list("context.body.id", 14))
 def process_basiscore_restful2(context: RESTfulContext):
     print("process_basiscore_restful2")
     return context.body
 
 
-@app.restful_action()
+@app.restful_handler()
 def process_basiscore_restful3(context: RESTfulContext):
     print("process_basiscore_restful3")
     return context.body

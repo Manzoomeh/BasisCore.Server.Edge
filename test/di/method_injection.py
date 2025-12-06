@@ -190,13 +190,13 @@ class MethodInjectionDispatcher(edge.DevServerDispatcher):
         print("=" * 70 + "\n")
 
 
-options = {"server": "localhost:8094", "router": "restful"}
+options = {"http": "localhost:8094", "router": "restful"}
 app = MethodInjectionDispatcher(options)
 
 
 # ==================== Handlers ====================
 
-@app.restful_action()
+@app.restful_handler()
 async def calculate(context: RESTfulContext):
     """
     Calculate total using method injection
@@ -221,7 +221,7 @@ async def calculate(context: RESTfulContext):
     }
 
 
-@app.restful_action("/order")
+@app.restful_handler("/order")
 async def create_order(context: RESTfulContext):
     """
     Create order using async method injection
@@ -252,7 +252,7 @@ async def create_order(context: RESTfulContext):
     }
 
 
-@app.restful_action("/validate")
+@app.restful_handler("/validate")
 async def validate(context: RESTfulContext):
     """
     Validate data using method injection
@@ -282,7 +282,7 @@ async def validate(context: RESTfulContext):
     }
 
 
-@app.restful_action("/report/:type")
+@app.restful_handler("/report/:type")
 async def report(context: RESTfulContext):
     """
     Generate report using method injection
@@ -306,7 +306,7 @@ async def report(context: RESTfulContext):
     }
 
 
-@app.restful_action("/method-injection/info")
+@app.restful_handler("/method-injection/info")
 async def info(context: RESTfulContext):
     """
     Information about method injection
@@ -358,7 +358,7 @@ async def info(context: RESTfulContext):
     }
 
 
-@app.restful_action("/test/complex")
+@app.restful_handler("/test/complex")
 async def test_complex(context: RESTfulContext):
     """
     Test complex method injection scenario
@@ -393,7 +393,7 @@ async def test_complex(context: RESTfulContext):
     }
 
 
-@app.restful_action("/smart-invoke/demo")
+@app.restful_handler("/smart-invoke/demo")
 async def smart_invoke_demo(context: RESTfulContext):
     """
     Demonstrate smart invoke with both sync and async functions

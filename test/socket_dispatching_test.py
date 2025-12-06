@@ -10,7 +10,7 @@ with open(Path(__file__).with_name("host.json"), encoding='UTF-8') as options_fi
 app = SocketDispatcher(options)
 
 
-@app.client_source_action(
+@app.client_source_handler(
     app.equal("context.command.source", "basiscore"),
     app.in_list("context.command.mid", "10", "20"))
 def process_basiscore_source(context: ClientSourceContext):
@@ -24,7 +24,7 @@ def process_basiscore_source(context: ClientSourceContext):
     return data
 
 
-@app.client_source_action(
+@app.client_source_handler(
     app.equal("context.command.source", "demo"),
     app.in_list("context.command.mid", "10", "20"))
 def process_demo_source(context: ClientSourceContext):
@@ -78,7 +78,7 @@ def process_demo_source(context: ClientSourceContext):
     return data
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "list")
 )
 @app.cache(key="member-list")
@@ -87,7 +87,7 @@ def process_list_member(context: ClientSourceMemberContext):
     return context.data
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "paging")
 )
 @app.cache(10)
@@ -101,7 +101,7 @@ def process_page_member(context: ClientSourceMemberContext):
     return data
 
 
-@app.client_source_member_action(
+@app.client_source_member_handler(
     app.equal("context.member.name", "count")
 )
 def process_count_member(context: ClientSourceMemberContext):
@@ -112,7 +112,7 @@ def process_count_member(context: ClientSourceMemberContext):
     return data
 
 
-@app.client_source_member_action()
+@app.client_source_member_handler()
 def all_member_process(_: ClientSourceMemberContext):
     print("all_member_process", )
     return None

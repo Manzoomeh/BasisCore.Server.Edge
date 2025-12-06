@@ -10,7 +10,7 @@ options = {
 app = edge.from_options(options)
 
 
-@app.restful_action()
+@app.restful_handler()
 def sabt_document(context: edge.RESTfulContext):
     print('end')
     return {"data": "isOk"}

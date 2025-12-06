@@ -15,11 +15,11 @@ class MyDispatcher(edge.DevServerDispatcher):
         services.add_transient(IEmailService, SmtpEmailService)
 
 # ایجاد instance از کلاس جدید
-options = {"server": "localhost:8080", "router": "restful"}
+options = {"http": "localhost:8080", "router": "restful"}
 app = MyDispatcher(options)
 
 # ثبت handlerها
-@app.restful_action()
+@app.restful_handler()
 async def handler(context):
     return {"status": "ok"}
 
@@ -37,7 +37,7 @@ app.listening()
 from bclib import edge
 
 # مستقیماً از DevServerDispatcher استفاده کنید
-options = {"server": "localhost:8080", "router": "restful"}
+options = {"http": "localhost:8080", "router": "restful"}
 app = edge.DevServerDispatcher(options)
 
 # ثبت سرویس‌ها با callback
@@ -48,7 +48,7 @@ app.configure_services(lambda services: (
 ))
 
 # ثبت handlerها
-@app.restful_action()
+@app.restful_handler()
 async def handler(context):
     return {"status": "ok"}
 

@@ -9,7 +9,8 @@ A modular dependency injection system with support for:
 - Async/sync handler support
 
 Main Components:
-- ServiceProvider: Core DI container
+- IServiceProvider: DI container interface
+- ServiceProvider: Core DI container implementation
 - ServiceLifetime: Enum for service scopes
 - ServiceDescriptor: Service registration metadata
 - InjectionPlan: Pre-compiled injection strategy (performance optimization)
@@ -17,7 +18,7 @@ Main Components:
 
 Example:
     ```python
-    from bclib.utility import ServiceProvider, ServiceLifetime
+    from bclib.utility import IServiceProvider, ServiceProvider, ServiceLifetime
     
     # Create and configure container
     services = ServiceProvider()
@@ -26,7 +27,7 @@ Example:
     services.add_transient(IEmailService, SmtpEmailService)
     
     # Use in handlers with automatic injection
-    @app.restful_action()
+    @app.restful_handler()
     def handler(logger: ILogger, db: IDatabase, id: int):
         # logger, db auto-injected from DI
         # id auto-injected from URL segment with type conversion
@@ -35,23 +36,30 @@ Example:
     ```
 """
 
+# Hosted service interface
+from .ihosted_service import IHostedService
 # Performance optimization
 from .injection_plan import InjectionPlan
 from .injection_strategy import (InjectionStrategy, ServiceStrategy,
                                  ValueStrategy)
+# Core DI container
+from .iservice_provider import IServiceProvider
 from .service_descriptor import ServiceDescriptor
 # Service configuration
 from .service_lifetime import ServiceLifetime
-# Core DI container
 from .service_provider import ServiceProvider
 
 __all__ = [
     # Main DI container
+    'IServiceProvider',
     'ServiceProvider',
 
     # Configuration
     'ServiceLifetime',
     'ServiceDescriptor',
+
+    # Hosted services
+    'IHostedService',
 
     # Performance optimization
     'InjectionPlan',

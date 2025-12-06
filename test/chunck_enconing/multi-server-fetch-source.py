@@ -4,7 +4,7 @@ import random
 from bclib import edge,utility
 
 main_service_options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "router": "restful",
      "settings": {
         "connections.rest.service1": "http://localhost:8081",
@@ -16,27 +16,27 @@ main_service_options = {
     }
 }
 service1_options = {
-    "server": "localhost:8081",
+    "http": "localhost:8081",
     "router": "restful"
 }
 service2_options = {
-    "server": "localhost:8082",
+    "http": "localhost:8082",
     "router": "restful"
 }
 service3_options = {
-    "server": "localhost:8083",
+    "http": "localhost:8083",
     "router": "restful"
 }
 service4_options = {
-    "server": "localhost:8084",
+    "http": "localhost:8084",
     "router": "restful"
 }
 service5_options = {
-    "server": "localhost:8085",
+    "http": "localhost:8085",
     "router": "restful"
 }
 service6_options = {
-    "server": "localhost:8086",
+    "http": "localhost:8086",
     "router": "restful"
 }
 
@@ -49,13 +49,13 @@ service5_app = edge.from_options(service5_options,mani_app.event_loop)
 service6_app = edge.from_options(service6_options,mani_app.event_loop)
 
 
-@service1_app.restful_action(service1_app.url(":service_name"))
-@service2_app.restful_action(service1_app.url(":service_name"))
-@service3_app.restful_action(service1_app.url(":service_name"))
-@service4_app.restful_action(service1_app.url(":service_name"))
-@service5_app.restful_action(service1_app.url(":service_name"))
-@service6_app.restful_action(service1_app.url(":service_name"))
-async def process_restful_action_async(context: edge.RequestContext):
+@service1_app.restful_handler(service1_app.url(":service_name"))
+@service2_app.restful_handler(service1_app.url(":service_name"))
+@service3_app.restful_handler(service1_app.url(":service_name"))
+@service4_app.restful_handler(service1_app.url(":service_name"))
+@service5_app.restful_handler(service1_app.url(":service_name"))
+@service6_app.restful_handler(service1_app.url(":service_name"))
+async def process_restful_handler_async(context: edge.RequestContext):
     delay=random.randint(1,2)
     await asyncio.sleep(delay)
     return [ {
@@ -67,8 +67,8 @@ async def process_restful_action_async(context: edge.RequestContext):
     } for i in range(1000)]
 
 
-@mani_app.restful_action(mani_app.get("stream"))
-async def process_restful_action_async(context: edge.RESTfulContext ):
+@mani_app.restful_handler(mani_app.get("stream"))
+async def process_restful_handler_async(context: edge.RESTfulContext ):
     print("start")
     await context.start_stream_response_async(headers={'Content-Type': 'text/html; charset=utf-8'})
     await context.write_and_drain_async(b"start of data<br/>")
@@ -82,8 +82,8 @@ async def process_restful_action_async(context: edge.RESTfulContext ):
     print("end")
     return True
 
-@mani_app.restful_action(mani_app.get("stream-1"))
-async def process_restful_action_async(context: edge.RESTfulContext):
+@mani_app.restful_handler(mani_app.get("stream-1"))
+async def process_restful_handler_async(context: edge.RESTfulContext):
     print("start")
     await context.start_stream_response_async( headers={'Content-Type': 'application/json; charset=utf-8'})
     await context.write_and_drain_async("[".encode())
@@ -115,8 +115,8 @@ async def process_restful_action_async(context: edge.RESTfulContext):
         await context.write_and_drain_async(f"'{ex}']".encode())
         return False
     
-@mani_app.restful_action()
-async def process_restful_action_async(context: edge.RESTfulContext):
+@mani_app.restful_handler()
+async def process_restful_handler_async(context: edge.RESTfulContext):
     return "Hi from simple web server"
 
 service1_app.listening(with_block=False)

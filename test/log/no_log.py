@@ -2,7 +2,7 @@ from bclib import edge
 
 
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "router": "restful",
 }
 
@@ -10,7 +10,7 @@ options = {
 app = edge.from_options(options)
 
 
-@app.restful_action()
+@app.restful_handler()
 async def process_restful_request(context: edge.RESTfulContext):
     print("process_restful_request")
     data_1 = 12

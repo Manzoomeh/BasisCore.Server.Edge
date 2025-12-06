@@ -4,10 +4,7 @@ from pathlib import Path
 from bclib import edge
 
 options = {
-    "server": "localhost:8080",
-    "router": {
-        "web": ["*"]
-    },
+    "http": "localhost:8080",
     "log_request": True,
     "log_error": True
 }
@@ -21,7 +18,7 @@ app = edge.from_options(options)
 app.add_static_handler(static_handler)
 
 
-@app.websocket_action()
+@app.handler()
 async def handle_websocket(context: edge.WebSocketContext):
     """Handle WebSocket messages"""
     print(
@@ -71,12 +68,6 @@ async def handle_websocket(context: edge.WebSocketContext):
     # Close message
     elif context.message.is_close:
         print(f"✓ Close message received")
-
-    # Ping/Pong
-    elif context.message.is_ping:
-        print(f"✓ Ping received")
-    elif context.message.is_pong:
-        print(f"✓ Pong received")
 
     # Error
     elif context.message.is_error:

@@ -1,8 +1,8 @@
-import json
 import datetime
+import json
 import xml.etree.ElementTree
-from bclib import edge
 
+from bclib import edge
 
 options = {
     "sender": "127.0.0.1:1025",
@@ -28,7 +28,7 @@ class Client:
         command = xml.etree.ElementTree.fromstring(data["command"])
         if self.UserName == None:
             self.UserName = command.get('user-name')
-            if(self.UserName == "."):
+            if (self.UserName == "."):
                 self.close(True)
             else:
                 ChatRoom.send_to_all_message(
@@ -72,7 +72,7 @@ class ChatRoom:
 
     @staticmethod
     def process_message(message: edge.Message, cms: edge.DictEx):
-        if(message.type == edge.MessageType.CONNECT):
+        if (message.type == edge.MessageType.CONNECT):
             ChatRoom.__sessions[message.session_id] = Client(
                 message.session_id, cms)
         elif message.type == edge.MessageType.DISCONNECT:
@@ -96,14 +96,14 @@ def process_not_exist_message(context: edge.SocketContext):
     ChatRoom.process_message(context.message, None)
 
 
-@ app.socket_action(app.url("chat"))
+@app.socket_action(app.url("chat"))
 def process_all_other_message(context: edge.SocketContext):
     print("process_all_other_message")
     ChatRoom.process_message(context.message, context.cms)
 
 
-@ app.web_action()
-def process_web_message(context: edge.WebContext):
+@app.web_handler()
+def process_web_message(context: edge.HttpContext):
     print("process_web_message")
     return "<h1>hi</h1>"
 

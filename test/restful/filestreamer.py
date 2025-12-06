@@ -3,7 +3,7 @@ import base64
 
 
 options = {
-    "endpoint": "127.0.0.1:1026",
+    "tcp": "127.0.0.1:1026",
     "router": "restful",
     "log_request": True
 }
@@ -11,7 +11,7 @@ options = {
 app = edge.from_options(options)
 
 
-@app.restful_action()
+@app.restful_handler()
 def process_restful_request(context: edge.RESTfulContext):
     print("process_restful_request")
     try:
@@ -38,7 +38,7 @@ def process_restful_request(context: edge.RESTfulContext):
         raise ex
 
 
-# @app.restful_action()
+# @app.restful_handler()
 def process_restful_request(context: edge.RESTfulContext):
     print("process_restful_request")
     # remove blob from cms

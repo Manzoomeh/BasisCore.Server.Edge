@@ -1,14 +1,14 @@
 import asyncio
-import string
-import random
-import os
-import time
-from bclib import edge
 import datetime
+import os
+import random
+import string
+import time
 
+from bclib import edge
 
 options = {
-    "endpoint": "127.0.0.1:1025",
+    "tcp": "127.0.0.1:1025",
     "defaultRouter": "server_source",
     "router": "web",
     "log_error": True
@@ -98,8 +98,8 @@ async def process_message_async(context: edge.SocketContext):
 #####
 # Web
 #####
-@app.web_action()
-def process_web_message(_: edge.WebContext):
+@app.web_handler()
+def process_web_message(_: edge.HttpContext):
     path = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), "list-data.html")
     with open(path, "r", encoding="utf-8") as file:

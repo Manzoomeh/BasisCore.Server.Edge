@@ -2,7 +2,7 @@ from bclib import edge
 
 if "options" not in dir():
     options = {
-        "server": "localhost:8080",
+        "http": "localhost:8080",
         "router": {
             "restful": ["*"],
         },
@@ -34,7 +34,7 @@ def generate_data() -> list:
 ###########################################
 
 
-@app.restful_action(
+@app.restful_handler(
     app.url("/:id"))
 def process_restful_1(context: edge.RESTfulContext):
     print("process_restful_1")
@@ -42,7 +42,7 @@ def process_restful_1(context: edge.RESTfulContext):
     return [row for row in generate_data() if row["id"] == id]
 
 
-@app.restful_action(
+@app.restful_handler(
     app.url(":id"))
 def process_restful_2(context: edge.RESTfulContext):
     print("process_restful_2")
@@ -50,7 +50,7 @@ def process_restful_2(context: edge.RESTfulContext):
     return [row for row in generate_data() if row["id"] == id]
 
 
-@app.restful_action(
+@app.restful_handler(
     app.url(""))
 def process_restful_3(context: edge.RESTfulContext):
     print("process_restful_3")
@@ -58,28 +58,28 @@ def process_restful_3(context: edge.RESTfulContext):
     return generate_data()
 
 
-@app.restful_action(
+@app.restful_handler(
     app.url("alI/:p/m/:l"))
 def process_restful_5(context: edge.RESTfulContext):
     print("process_restful_5")
     return generate_data()
 
 
-@app.restful_action(
+@app.restful_handler(
     app.url("ali/:p/m"))
 def process_restful_4(context: edge.RESTfulContext):
     print("process_restful_4")
     return generate_data()
 
 
-@app.restful_action(
+@app.restful_handler(
     app.url("ali/:p/M/:*l"))
 def process_restful_6(context: edge.RESTfulContext):
     print("process_restful_6")
     return generate_data()
 
 
-@app.restful_action()
+@app.restful_handler()
 def process_restful_else(context: edge.RESTfulContext):
     print("process_restful_else")
     return generate_data()

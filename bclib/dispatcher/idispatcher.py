@@ -1,45 +1,25 @@
 """Dispatcher base class module"""
 import asyncio
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Optional
+from collections.abc import Coroutine
+from typing import TYPE_CHECKING, Any, Callable
 
-from bclib.cache import CacheManager
-from bclib.db_manager import DbManager
-from bclib.listener import Message
-from bclib.logger import LogObject
-from bclib.service_provider import ServiceProvider
-from bclib.utility import DictEx
+from bclib.cache.manager import CacheManager
+from bclib.options.app_options import AppOptions
+from bclib.predicate.predicate_helper import PredicateHelper
+from bclib.utility.static_file_handler import StaticFileHandler
 
 if TYPE_CHECKING:
-    from context import Context
+    from bclib.context.context import Context
+    from bclib.service_provider.iservice_provider import IServiceProvider
 
 
-class IDispatcher(ABC):
+class IDispatcher(PredicateHelper, ABC):
     """Dispatcher base class with core functionality for manage cache and background process"""
 
     @property
     @abstractmethod
-    def log_error(self) -> bool:
-        pass
-
-    @property
-    @abstractmethod
-    def log_request(self) -> bool:
-        pass
-
-    @property
-    @abstractmethod
-    def event_loop(self) -> asyncio.AbstractEventLoop:
-        pass
-
-    @property
-    @abstractmethod
-    def db_manager(self) -> DbManager:
-        pass
-
-    @property
-    @abstractmethod
-    def options(self) -> DictEx:
+    def options(self) -> AppOptions:
         pass
 
     @property
@@ -47,9 +27,10 @@ class IDispatcher(ABC):
     def cache_manager(self) -> CacheManager:
         pass
 
+    @property
     @abstractmethod
-    def create_scope(self) -> ServiceProvider:
-        """Create a new scope for scoped services (per-request)"""
+    def service_provider(self) -> 'IServiceProvider':
+        """Get the root service provider (DI container)"""
         pass
 
     @abstractmethod
@@ -59,19 +40,19 @@ class IDispatcher(ABC):
     @abstractmethod
     def dispatch_in_background(self, context: 'Context') -> asyncio.Future:
         """Dispatch context in background"""
+        pass
 
     @abstractmethod
-    async def send_message_async(self, message: Message) -> None:
-        """Send message to endpoint"""
-
     def run_in_background(self, callback: Callable, *args: Any) -> asyncio.Future:
         """helper for run function in background thread"""
+        pass
 
-    def new_object_log(self, schema_name: str, routing_key: Optional[str] = None, **kwargs) -> LogObject:
-        """Create new log object"""
+    @abstractmethod
+    def listening(self, before_start: Coroutine = None, after_end: Coroutine = None, with_block: bool = True):
+        """Start listening to request for process"""
+        pass
 
-    async def log_async(self, log_object: LogObject = None, **kwargs):
-        """log params"""
-
-    def log_in_background(self, log_object: LogObject = None, **kwargs) -> Coroutine:
-        """log params in background precess"""
+    @abstractmethod
+    def add_static_handler(self, handler: StaticFileHandler) -> None:
+        """Add static file handler to dispatcher"""
+        pass

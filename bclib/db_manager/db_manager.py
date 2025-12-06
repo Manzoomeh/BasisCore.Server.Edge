@@ -1,6 +1,7 @@
 import asyncio
 
-from bclib.utility import DictEx
+from bclib.db_manager.idb_manager import IDbManager
+from bclib.options.app_options import AppOptions
 
 from ..db_manager.db import Db
 from ..db_manager.mongo_db import MongoDb
@@ -10,13 +11,26 @@ from ..db_manager.sql_db import SqlDb
 from ..db_manager.sqlite_db import SQLiteDb
 
 
-class DbManager:
+class DbManager(IDbManager):
+    """
+    Database connection manager implementation
 
-    def __init__(self, options: DictEx, loop: asyncio.AbstractEventLoop) -> None:
+    Manages database connections based on application configuration.
+    Supports SQL, SQLite, MongoDB, RESTful, and RabbitMQ connections.
+    """
+
+    def __init__(self, options: AppOptions, loop: asyncio.AbstractEventLoop) -> None:
+        """
+        Initialize database manager
+
+        Args:
+            options: Application configuration (AppOptions type alias for dict)
+            loop: The asyncio event loop for async operations
+        """
         self._options = options
         self._event_loop = loop
         self._connections: dict(str, list) = dict()
-        settings = options.settings if "settings" in options else None
+        settings = options.get('settings') if "settings" in options else None
         if settings:
             for k, setting in [(k.split(".", 2)[1:], v) for k, v in settings.items() if k.find("connections.") == 0]:
                 db_type = k[0].lower()
@@ -43,7 +57,7 @@ class DbManager:
         elif db_type == "rabbit":
             ret_val = RabbitConnection(setting)
         else:
-            print(
+            raise Exception(
                 f"Data base of type '{db_type}' not supported in this version")
         return ret_val
 

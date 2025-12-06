@@ -4,9 +4,10 @@ Injection Strategy - Strategy pattern for parameter resolution
 Defines different strategies for resolving handler parameters:
 - ValueStrategy: Extract value with optional type conversion (for URL segments)
 - ServiceStrategy: Resolve from DI container
+- GenericServiceStrategy: Resolve generic types from DI container
 """
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Optional, Type
+from typing import TYPE_CHECKING, Any, Optional, Type, get_args, get_origin
 
 if TYPE_CHECKING:
     from .service_provider import ServiceProvider
@@ -22,7 +23,13 @@ class InjectionStrategy(ABC):
 
 
 class ValueStrategy(InjectionStrategy):
-    """Inject value with optional type conversion (typically from URL segments)"""
+    """Inject value with optional type conversion (typically from URL segments)
+
+    First checks kwargs for the parameter value, then applies optional type conversion.
+    Base class for other strategies that need kwargs lookup.
+
+    Supports conversion for: str, int, float, list, tuple, set
+    """
 
     def __init__(self, param_name: str, target_type: Type = str) -> None:
         self.param_name: str = param_name
@@ -42,17 +49,55 @@ class ValueStrategy(InjectionStrategy):
             except (ValueError, TypeError):
                 return None
 
+        # Handle list type conversion
+        elif self.target_type == list:
+            if isinstance(value, list):
+                return value
+            elif isinstance(value, (tuple, set)):
+                return list(value)
+            else:
+                return [value]
+
+        # Handle tuple type conversion
+        elif self.target_type == tuple:
+            if isinstance(value, tuple):
+                return value
+            elif isinstance(value, (list, set)):
+                return tuple(value)
+            else:
+                return (value,)
+
+        # Handle set type conversion
+        elif self.target_type == set:
+            if isinstance(value, set):
+                return value
+            elif isinstance(value, (list, tuple)):
+                return set(value)
+            else:
+                return {value}
+
         return value
 
 
-class ServiceStrategy(InjectionStrategy):
-    """Inject from DI container"""
+class ServiceStrategy(ValueStrategy):
+    """Inject from DI container or kwargs
 
-    def __init__(self, service_type: Type) -> None:
-        self.service_type: Type = service_type
+    First checks if the parameter is provided in kwargs (via parent ValueStrategy),
+    then falls back to DI container. This allows explicit parameter overrides while 
+    still supporting dependency injection.
+    """
+
+    def __init__(self, param_name: str, service_type: Type) -> None:
+        # target_type not used, set to object
+        super().__init__(param_name, target_type=service_type)
 
     def resolve(self, services: 'ServiceProvider', **kwargs: Any) -> Optional[any]:
+        # First, check if value is explicitly provided in kwargs
+        if self.param_name in kwargs:
+            return kwargs[self.param_name]
+
+        # Fall back to DI container
         if services is None:
             return None
 
-        return services.get_service(self.service_type, **kwargs)
+        return services.get_service(self.target_type, **kwargs)

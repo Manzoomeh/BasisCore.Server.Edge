@@ -4,7 +4,7 @@ from bclib import edge
 
 
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "router": "restful",
     "log_request": True,
     "settings": {
@@ -17,7 +17,7 @@ app = edge.from_options(options)
 
 
 
-@app.restful_action(app.url("sample1"))
+@app.restful_handler(app.url("sample1"))
 def process_user_permissions_request(context: edge.RESTfulContext):
     print("process_user_permissions_request")
     db = context.open_sql_connection('simple')
@@ -27,7 +27,7 @@ def process_user_permissions_request(context: edge.RESTfulContext):
             return [row.age for row in rows]
 
 
-@app.restful_action()
+@app.restful_handler()
 async def process_user_permissions_request_async(context: edge.RESTfulContext):
     print("process_user_permissions_request")
     tasks= [get_data_async() for _ in range(10)]

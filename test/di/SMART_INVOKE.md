@@ -48,7 +48,7 @@ result = await services.invoke(save_data, data={...})  # با await
 ### در Handlers
 
 ```python
-@app.restful_action()
+@app.restful_handler()
 async def handler(context: RESTfulContext):
     # یک خط برای هر دو نوع تابع!
     result = await context.services.invoke(some_function, param="value")

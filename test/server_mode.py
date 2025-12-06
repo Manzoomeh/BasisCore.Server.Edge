@@ -1,9 +1,10 @@
-from bclib import edge
-from bclib.listener.http_listener.http_listener import HttpListener
 import json
 
+from bclib import edge
+from bclib.listener.http.http_listener import HttpListener
+
 options = {
-    "server": "localhost:8080",
+    "http": "localhost:8080",
     "configuration": {
         HttpListener.CLIENT_MAX_SIZE: 1024**4
     },
@@ -13,7 +14,8 @@ options = {
 
 app = edge.from_options(options)
 
-@app.restful_action()
+
+@app.restful_handler()
 def process_post(context: edge.RESTfulContext):
     body = context.body
     if body is None:
@@ -26,5 +28,6 @@ def process_post(context: edge.RESTfulContext):
     return {
         "result": len(json.dumps(body, ensure_ascii=False))
     }
+
 
 app.listening()

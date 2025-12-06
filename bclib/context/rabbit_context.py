@@ -1,19 +1,19 @@
 import json
-from typing import Any, TYPE_CHECKING
-from ..context.context import Context
+from typing import TYPE_CHECKING, Any
+
+from bclib.context.context import Context
+from bclib.listener.rabbit.rabbit_message import RabbitMessage
+
 if TYPE_CHECKING:
-    from .. import dispatcher
-from bclib.utility import DictEx
+    from bclib.dispatcher.idispatcher import IDispatcher
 
 
 class RabbitContext(Context):
     """Context for rabbit-mq request"""
 
-    def __init__(self, rabbit_message: DictEx,  dispatcher: 'dispatcher.IDispatcher'):
-        super().__init__(dispatcher)
-        self.__rabbit_message: DictEx = rabbit_message
-        self.__message = DictEx(json.loads(
-            rabbit_message.message)) if rabbit_message.message else None
+    def __init__(self, _: dict,  dispatcher: 'IDispatcher', message_object: RabbitMessage) -> None:
+        super().__init__(dispatcher, True)
+        self.__rabbit_message = message_object
         self.url = self.__rabbit_message.host
 
     @property
@@ -26,8 +26,8 @@ class RabbitContext(Context):
 
     @property
     def raw_message(self) -> 'str':
-        return self.__rabbit_message.message
+        return self.__rabbit_message.message_text
 
     @property
-    def message(self) -> 'DictEx':
-        return self.__message
+    def message(self) -> 'RabbitMessage':
+        return self.__rabbit_message
