@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, List, Optional, Set
 from bclib.utility.response_types import ResponseTypes
 
 if TYPE_CHECKING:
-    from context.cms_base_context import CmsBaseContext
+    from bclib.context.cms_base_context import CmsBaseContext
 
     from bclib.exception import ForbiddenErr
 
