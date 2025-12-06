@@ -27,15 +27,15 @@ app.add_static_handler(static_handler)
 
 
 # Register WebSocket handler
-@app.handler()
-async def websocket_handler(context: WebSocketContext):
+@app.handler('chat/:rkey')
+async def websocket_handler(context: WebSocketContext, rkey: str):
     """Handle WebSocket chat messages"""
     # Get session and manager from context
     session = context.session
     session_id = session.session_id
     manager = context.session_manager
     print(
-        f"[SESSION] Session ID: {session_id[:8]} (messageType={context.message.type.name})")
+        f"[SESSION] Session ID: {session_id[:8]} (messageType={context.message.type.name},rkey={rkey})")
     if context.message.is_connect:
         # Connection established
         print(f"[CONNECT] Session {session_id[:8]} connected")

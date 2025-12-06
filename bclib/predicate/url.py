@@ -29,8 +29,8 @@ if TYPE_CHECKING:
     from bclib.context import Context
 
 from bclib.context.cms_base_context import CmsBaseContext
-from bclib.predicate.predicate import Predicate
-from bclib.utility import DictEx
+
+from .predicate import Predicate
 
 
 class Url(Predicate):

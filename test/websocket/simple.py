@@ -18,11 +18,11 @@ app = edge.from_options(options)
 app.add_static_handler(static_handler)
 
 
-@app.handler()
-async def handle_websocket(context: edge.WebSocketContext):
+@app.handler('chat/:rkey')
+async def handle_websocket(context: edge.WebSocketContext, rkey: str):
     """Handle WebSocket messages"""
     print(
-        f"[SESSION] Session ID: {context.session.session_id[:8]} (messageType={context.message.type.name})")
+        f"[SESSION] Session ID: {context.session.session_id[:8]} (messageType={context.message.type.name}, rkey={rkey})")
     # Connection established
     if context.message.is_connect:
         print(

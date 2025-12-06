@@ -35,12 +35,11 @@ Example:
 """
 from typing import TYPE_CHECKING
 
-from bclib.context.cms_base_context import CmsBaseContext
+from bclib.dispatcher.idispatcher import IDispatcher
+from bclib.listener import (WebSocketMessage, WebSocketSession,
+                            WebSocketSessionManager)
 
-if TYPE_CHECKING:
-    from bclib.dispatcher.idispatcher import IDispatcher
-    from bclib.listener.http.websocket_message import WebSocketMessage
-    from bclib.websocket import WebSocketSession, WebSocketSessionManager
+from .cms_base_context import CmsBaseContext
 
 
 class WebSocketContext(CmsBaseContext):
@@ -81,8 +80,8 @@ class WebSocketContext(CmsBaseContext):
 
     def __init__(self,
                  cms_object: dict,
-                 dispatcher: 'IDispatcher',
-                 ws_message: 'WebSocketMessage') -> None:
+                 dispatcher: IDispatcher,
+                 ws_message: WebSocketMessage) -> None:
         """
         Initialize WebSocket context
 
@@ -92,9 +91,9 @@ class WebSocketContext(CmsBaseContext):
             ws_message: WebSocket message instance containing session and payload data
         """
         super().__init__(cms_object, dispatcher, True)
-        self.message: 'WebSocketMessage' = ws_message
-        self.session: 'WebSocketSession' = ws_message.session
-        self.session_manager: 'WebSocketSessionManager' = self.session.session_manager
+        self.message: WebSocketMessage = ws_message
+        self.session: WebSocketSession = ws_message.session
+        self.session_manager: WebSocketSessionManager = self.session.session_manager
 
     def __repr__(self) -> str:
         """

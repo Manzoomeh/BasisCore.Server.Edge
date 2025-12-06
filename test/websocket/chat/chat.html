@@ -249,7 +249,7 @@
         let currentRooms = [];
 
         function connect() {
-            ws = new WebSocket('ws://localhost:8080');
+            ws = new WebSocket('ws://localhost:8080/chat/user-rkey');
 
             ws.onopen = () => {
                 console.log('Connected to chat server');
