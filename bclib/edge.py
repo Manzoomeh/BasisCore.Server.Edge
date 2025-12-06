@@ -47,8 +47,11 @@ from bclib.dispatcher import IDispatcher, adding_dispatcher_services
 from bclib.exception import *
 from bclib.listener import (HttpBaseDataName, HttpBaseDataType, Message,
                             MessageType)
-from bclib.logger import ConsoleLogger, ILogger
+from bclib.log_service import ILogService, add_log_service
+from bclib.logger import ILogger, add_default_logger
+from bclib.options import IOptions, add_options_service
 from bclib.predicate import Predicate, PredicateHelper
+from bclib.service_provider import IServiceProvider, create_service_provider
 from bclib.utility import (DictEx, HttpHeaders, HttpMimeTypes, HttpStatusCodes,
                            ResponseTypes, StaticFileHandler)
 
@@ -210,30 +213,14 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDisp
         __print_splash(False)
 
     # Create ServiceProvider and set up event loop
-    from bclib.service_provider import IServiceProvider, ServiceProvider
-    service_provider = ServiceProvider()
-    service_provider.add_transient(ILogger, implementation=ConsoleLogger)
-    service_provider.add_singleton(IServiceProvider, instance=service_provider)
-
-    # Create or get event loop
-    if loop is None and sys.platform == 'win32':
-        # By default Windows can use only 64 sockets in asyncio loop. This is a limitation of underlying select() API call.
-        # Use Windows version of proactor event loop using IOCP
-        loop = asyncio.ProactorEventLoop()
-        asyncio.set_event_loop(loop)
-    event_loop = asyncio.get_event_loop() if loop is None else loop
-
-    # Register event loop in DI container
-    service_provider.add_singleton(
-        asyncio.AbstractEventLoop, instance=event_loop)
+    service_provider = create_service_provider(loop)
+    add_default_logger(service_provider)
 
     # Register IOptions factory for configuration access
-    from bclib.options import add_options_service
     add_options_service(service_provider, options)
 
     # Register log service in DI container
-    from bclib.log_service import ILogService, LogService
-    service_provider.add_singleton(ILogService, LogService)
+    add_log_service(service_provider)
 
     # Register database manager in DI container
     from bclib.db_manager import DbManager, IDbManager

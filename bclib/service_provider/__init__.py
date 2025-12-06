@@ -37,6 +37,10 @@ Example:
 """
 
 # Hosted service interface
+import asyncio
+import sys
+from typing import Optional
+
 from .ihosted_service import IHostedService
 # Performance optimization
 from .injection_plan import InjectionPlan
@@ -69,3 +73,50 @@ __all__ = [
     'ValueStrategy',
     'ServiceStrategy',
 ]
+
+
+def create_service_provider(loop: Optional[asyncio.AbstractEventLoop] = None) -> IServiceProvider:
+    """
+    Create and configure the main ServiceProvider (DI Container)
+
+    This function initializes the ServiceProvider with default services
+    required for BasisCore.Edge applications, including logging, database
+    management, listener factories, and dispatcher services.
+
+    Args:
+        options (AppOptions): Application configuration options
+        loop (Optional[asyncio.AbstractEventLoop]): Optional event loop to use
+
+    Returns:
+        IDispatcher: Configured dispatcher instance for routing requests
+
+    Example:
+        ```python
+        from bclib import edge
+        from bclib.service_provider import create_service_provider
+
+        # Load app options (e.g., from config file)
+        app_options = edge.load_app_options("config/host.json")
+
+        # Create DI container and get dispatcher
+        dispatcher = create_service_provider(app_options)
+
+        # Use dispatcher in application
+        app = edge.EdgeApp(dispatcher)
+        ```
+    """
+    from bclib.service_provider import IServiceProvider, ServiceProvider
+    service_provider = ServiceProvider()
+    service_provider.add_singleton(IServiceProvider, instance=service_provider)
+
+    # Create or get event loop
+    if loop is None and sys.platform == 'win32':
+        # By default Windows can use only 64 sockets in asyncio loop. This is a limitation of underlying select() API call.
+        # Use Windows version of proactor event loop using IOCP
+        loop = asyncio.ProactorEventLoop()
+        asyncio.set_event_loop(loop)
+    event_loop = asyncio.get_event_loop() if loop is None else loop
+
+    # Register event loop in DI container
+    return service_provider.add_singleton(
+        asyncio.AbstractEventLoop, instance=event_loop)
