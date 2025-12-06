@@ -39,12 +39,10 @@ from weakref import WeakValueDictionary
 
 from aiohttp import web
 
-from bclib.websocket.iwebsocket_session_manager import \
-    IWebSocketSessionManager
-from bclib.websocket.websocket_session import WebSocketSession
+from bclib.dispatcher.imessage_handler import IMessageHandler
 
-if TYPE_CHECKING:
-    from bclib.dispatcher import IMessageHandler
+from .iwebsocket_session_manager import IWebSocketSessionManager
+from .websocket_session import WebSocketSession
 
 
 class WebSocketSessionManager(IWebSocketSessionManager):
@@ -88,7 +86,7 @@ class WebSocketSessionManager(IWebSocketSessionManager):
     """
 
     def __init__(self,
-                 message_handler: 'IMessageHandler',
+                 message_handler: IMessageHandler,
                  heartbeat_interval: Optional[float] = 30.0):
         """
         Initialize session manager

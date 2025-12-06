@@ -19,7 +19,7 @@ Example:
     # Create HTTP listener
     listener = HttpListener(
         endpoint=Endpoint("localhost:8080"),
-        async_callback=dispatcher.on_message_receive_async,
+        message_handler=dispatcher,
         ssl_options=None,
         configuration=None,
         ws_manager=ws_manager
@@ -34,13 +34,14 @@ import os
 import pathlib
 import ssl
 import tempfile
-from typing import TYPE_CHECKING, Awaitable, Callable, Optional
+from typing import TYPE_CHECKING, Optional
 
 from cryptography.hazmat.primitives.serialization import (Encoding,
                                                           NoEncryption,
                                                           PrivateFormat,
                                                           pkcs12)
 
+from bclib.dispatcher.imessage_handler import IMessageHandler
 from bclib.listener.ilistener import IListener
 from bclib.logger.ilogger import ILogger
 from bclib.utility import DictEx, ResponseTypes
@@ -48,13 +49,12 @@ from bclib.utility.http_base_data_name import HttpBaseDataName
 from bclib.utility.http_base_data_type import HttpBaseDataType
 
 from ..endpoint import Endpoint
-from ..message import Message
 from .http_message import HttpMessage
+from .iwebsocket_session_manager import IWebSocketSessionManager
 from .web_request_helper import WebRequestHelper
 
 if TYPE_CHECKING:
     from aiohttp import web
-    from bclib.websocket import WebSocketSessionManager
 
 from aiohttp.log import web_logger
 
@@ -81,7 +81,7 @@ class HttpListener(IListener):
 
     Args:
         endpoint (Endpoint): Server endpoint (host:port)
-        async_callback (Callable): Async message handler from dispatcher
+        message_handler (IMessageHandler): Message handler instance
         ssl_options (dict): SSL/TLS configuration (certfile/keyfile or pfxfile/password)
         configuration (Optional[DictEx]): Additional server configuration
         ws_manager (WebSocketSessionManager): WebSocket session manager
@@ -91,7 +91,7 @@ class HttpListener(IListener):
         # HTTP server
         listener = HttpListener(
             Endpoint("localhost:8080"),
-            dispatcher.on_message_receive_async,
+            dispatcher,
             ssl_options=None,
             configuration=None,
             ws_manager=ws_manager
@@ -100,7 +100,7 @@ class HttpListener(IListener):
         # HTTPS server with cert files
         listener = HttpListener(
             Endpoint("0.0.0.0:443"),
-            dispatcher.on_message_receive_async,
+            dispatcher,
             ssl_options={
                 "certfile": "/path/to/cert.pem",
                 "keyfile": "/path/to/key.pem"
@@ -112,7 +112,7 @@ class HttpListener(IListener):
         # HTTPS with PFX
         listener = HttpListener(
             Endpoint("0.0.0.0:443"),
-            dispatcher.on_message_receive_async,
+            dispatcher,
             ssl_options={
                 "pfxfile": "/path/to/cert.pfx",
                 "password": "secret"
@@ -138,27 +138,27 @@ class HttpListener(IListener):
     def __init__(
         self,
         endpoint: Endpoint,
-        async_callback: 'Callable[[Message], Awaitable[Message]]',
+        message_handler: IMessageHandler,
         logger: ILogger['HttpListener'],
+        ws_manager: IWebSocketSessionManager,
         ssl_options: Optional[dict] = None,
-        configuration: Optional[dict] = None,
-        ws_manager: Optional['WebSocketSessionManager'] = None,
+        configuration: Optional[dict] = None
     ):
         """Initialize HTTP listener with endpoint and configuration
 
         Args:
             endpoint (Endpoint): Server binding (host:port)
-            async_callback (Callable): Async message handler from dispatcher
+            message_handler (IMessageHandler): Message handler instance
             ssl_options (Optional[dict]): SSL/TLS config with certfile/keyfile or pfxfile/password
             configuration (Optional[DictEx]): Server config (logger, middlewares, etc.)
             ws_manager (Optional[WebSocketSessionManager]): WebSocket session manager instance
             logger (Optional[ILogger]): Logger instance (will be injected by DI if not provided)
         """
+        self._message_handler = message_handler
+        self._logger = logger
         self.__endpoint = endpoint
         self.__ssl_options = ssl_options
         self.__config = configuration if configuration is not None else DictEx()
-
-        super().__init__(async_callback, logger)
         self.__router = self.__config.get(
             HttpListener.ROUTER, HttpListener._DEFAULT_ROUTER)
         self.__middlewares = self.__config.get(
@@ -277,7 +277,7 @@ class HttpListener(IListener):
 
         # Pass cms object directly without serialization overhead.
         msg = HttpMessage(cms_object, request)
-        await self._on_message_receive(msg)
+        await self._message_handler.on_message_receive_async(msg)
 
         # Check if handler used streaming response
         if msg.Response is not None:

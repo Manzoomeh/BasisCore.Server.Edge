@@ -2,10 +2,10 @@
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Awaitable, Callable, Optional
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from bclib.listener import Message
+    from bclib.dispatcher import IMessageHandler
 
 
 class IListener(ABC):
@@ -18,11 +18,16 @@ class IListener(ABC):
     The dispatcher calls initialize_task to start the listener's async tasks
     on the event loop.
 
+    Properties:
+        _message_handler: IMessageHandler instance (set by child classes)
+        _logger: Logger instance (set by child classes)
+
     Example:
         ```python
         class MyCustomListener(IListener):
-            def __init__(self, endpoint, on_message_receive_async, logger=None):
-                super().__init__(on_message_receive_async, logger)
+            def __init__(self, endpoint, message_handler, logger=None):
+                self._message_handler = message_handler
+                self._logger = logger
                 self.__endpoint = endpoint
 
             def initialize_task(self, event_loop: asyncio.AbstractEventLoop):
@@ -34,20 +39,8 @@ class IListener(ABC):
         ```
     """
 
-    def __init__(
-        self,
-        on_message_receive_async: Callable[['Message'], Awaitable[None]],
-        logger: logging.Logger
-    ):
-        """
-        Initialize base listener
-
-        Args:
-            on_message_receive_async: Async callback to process received messages
-            logger: Logger instance
-        """
-        self._on_message_receive = on_message_receive_async
-        self._logger = logger
+    _message_handler: 'IMessageHandler'
+    _logger: logging.Logger
 
     @abstractmethod
     def initialize_task(self, event_loop: asyncio.AbstractEventLoop) -> None:

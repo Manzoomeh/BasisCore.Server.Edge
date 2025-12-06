@@ -1,7 +1,8 @@
 import asyncio
 from struct import error
-from typing import TYPE_CHECKING, Awaitable, Callable, Optional
+from typing import TYPE_CHECKING, Optional
 
+from bclib.dispatcher.imessage_handler import IMessageHandler
 from bclib.listener.ilistener import IListener
 from bclib.listener.message import Message
 from bclib.listener.rabbit.rabbit_message import RabbitMessage
@@ -9,8 +10,9 @@ from bclib.logger.ilogger import ILogger
 
 
 class RabbitListener(IListener):
-    def __init__(self, connection_options: dict, async_callback: Callable[[Message], Awaitable[Message]], loop: asyncio.AbstractEventLoop, logger: ILogger['RabbitListener']) -> None:
-        super().__init__(async_callback, logger)
+    def __init__(self, connection_options: dict, message_handler: IMessageHandler, loop: asyncio.AbstractEventLoop, logger: ILogger['RabbitListener']) -> None:
+        self._message_handler = message_handler
+        self._logger = logger
         import pika
         from pika.adapters.blocking_connection import BlockingChannel
         try:
@@ -161,7 +163,7 @@ class RabbitListener(IListener):
                 routing_key=self._routing_key if hasattr(
                     self, '_routing_key') else None
             )
-            await self._on_message_receive(message)
+            await self._message_handler.on_message_receive_async(message)
         except error as ex:
             if self._logger:
                 self._logger.error(

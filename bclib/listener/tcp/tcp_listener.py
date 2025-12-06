@@ -1,14 +1,12 @@
 """TCP Listener - handles TCP socket connections"""
 import asyncio
-from typing import TYPE_CHECKING, Awaitable, Callable
+from typing import TYPE_CHECKING
 
+from bclib.dispatcher.imessage_handler import IMessageHandler
 from bclib.listener import Endpoint
 from bclib.listener.ilistener import IListener
 from bclib.listener.tcp.tcp_message import TcpMessage
 from bclib.logger.ilogger import ILogger
-
-if TYPE_CHECKING:
-    from bclib.listener import Message
 
 
 class TcpListener(IListener):
@@ -17,17 +15,18 @@ class TcpListener(IListener):
     def __init__(
         self,
         endpoint: Endpoint,
-        on_message_receive_async: Callable[['Message'], Awaitable[None]],
+        message_handler: IMessageHandler,
         logger: ILogger['TcpListener']
     ):
         """Initialize TcpListener.
 
         Args:
             endpoint: TCP endpoint (host:port)
-            on_message_receive_async: Message handler callback
+            message_handler: Message handler instance
             logger: Logger instance (will be injected by DI if not provided)
         """
-        super().__init__(on_message_receive_async, logger)
+        self._message_handler = message_handler
+        self._logger = logger
         self.__endpoint = endpoint
         self.__server: asyncio.Server = None
 
@@ -60,7 +59,7 @@ class TcpListener(IListener):
         try:
             message = await TcpMessage.read_from_stream_async(reader, writer)
             if message:
-                await self._on_message_receive(message)
+                await self._message_handler.on_message_receive_async(message)
         except Exception as ex:
             if self._logger:
                 self._logger.error(f"Error handling endpoint connection: {ex}")

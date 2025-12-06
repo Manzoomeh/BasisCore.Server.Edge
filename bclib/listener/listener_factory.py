@@ -3,14 +3,17 @@ import asyncio
 from typing import TYPE_CHECKING
 
 from bclib.app_options import AppOptions
-from bclib.listener import Endpoint, HttpListener, TcpListener
-from bclib.listener.rabbit.rabbit_listener import RabbitListener
-from bclib.listener_factory.ilistener_factory import IListenerFactory
-from bclib.utility import DictEx
+from bclib.dispatcher.imessage_handler import IMessageHandler
+from bclib.service_provider.iservice_provider import IServiceProvider
+
+from .endpoint import Endpoint
+from .http.http_listener import HttpListener
+from .ilistener_factory import IListenerFactory
+from .rabbit.rabbit_listener import RabbitListener
+from .tcp.tcp_listener import TcpListener
 
 if TYPE_CHECKING:
-    from bclib.dispatcher import IDispatcher
-    from bclib.listener import IListener
+    from .ilistener import IListener
 
 
 class ListenerFactory(IListenerFactory):
@@ -34,23 +37,27 @@ class ListenerFactory(IListenerFactory):
             }
         }
 
-        factory = ListenerFactory(options)
-        listeners = factory.load_listeners(dispatcher)
+        factory = ListenerFactory(options, loop, message_handler)
+        listeners = factory.load_listeners()
         # Returns: [HttpListener, TcpListener, RabbitBusListener]
         ```
     """
 
-    def __init__(self, options: AppOptions, loop: asyncio.AbstractEventLoop):
+    def __init__(self, service_provider: IServiceProvider,  options: AppOptions, loop: asyncio.AbstractEventLoop, message_handler: IMessageHandler):
         """
         Initialize listener factory
 
         Args:
             options: Application configuration (AppOptions type alias for dict)
+            loop: Event loop for async operations
+            message_handler: Message handler instance for processing messages
         """
         self.__options = options
         self.__loop = loop
+        self.__message_handler = message_handler
+        self.__service_provider = service_provider
 
-    def load_listeners(self, dispatcher: 'IDispatcher') -> 'list[IListener]':
+    def load_listeners(self) -> 'list[IListener]':
         """
         Create and return list of listeners based on configuration
 
@@ -61,16 +68,13 @@ class ListenerFactory(IListenerFactory):
         - 'tcp' key → TcpListener (TCP socket)
         - 'router.rabbit' key → RabbitBusListener (one per queue config)
 
-        Args:
-            dispatcher: Dispatcher instance for message handling
-
         Returns:
             list[IListener]: List of configured listener instances
 
         Example:
             ```python
-            factory = ListenerFactory(options)
-            listeners = factory.load_listeners(dispatcher)
+            factory = ListenerFactory(options, loop, message_handler)
+            listeners = factory.load_listeners()
 
             for listener in listeners:
                 listener.initialize_task(event_loop)
@@ -80,34 +84,29 @@ class ListenerFactory(IListenerFactory):
 
         # Add HTTP/HTTPS listener if http configured
         if "http" in self.__options:
-            listener = dispatcher.service_provider.create_instance(HttpListener,
-                                                                   endpoint=Endpoint(
-                                                                       self.__options.get('http')),
-                                                                   async_callback=dispatcher.on_message_receive_async,
-                                                                   ssl_options=self.__options.get(
-                                                                       'ssl'),
-                                                                   configuration=self.__options.get(
-                                                                       'configuration'),
-                                                                   ws_manager=dispatcher.ws_manager
-                                                                   )
+            listener = self.__service_provider.create_instance(HttpListener,
+                                                               endpoint=Endpoint(
+                                                                   self.__options.get('http')),
+                                                               ssl_options=self.__options.get(
+                                                                   'ssl'),
+                                                               configuration=self.__options.get(
+                                                                   'configuration')
+                                                               )
             listeners.append(listener)
 
         # Add TCP listener if tcp configured
         if "tcp" in self.__options:
-            listener = dispatcher.service_provider.create_instance(
+            listener = self.__service_provider.create_instance(
                 TcpListener,
                 endpoint=Endpoint(self.__options.get('tcp')),
-                on_message_receive_async=dispatcher.on_message_receive_async
             )
             listeners.append(listener)
 
         # Add RabbitMQ listeners if configured
         if "rabbit" in self.__options:
-            listener = dispatcher.service_provider.create_instance(
+            listener = self.__service_provider.create_instance(
                 RabbitListener,
-                connection_options=self.__options.get("rabbit"),
-                async_callback=dispatcher.on_message_receive_async,
-                loop=self.__loop
+                connection_options=self.__options.get("rabbit")
             )
             listeners.append(listener)
 

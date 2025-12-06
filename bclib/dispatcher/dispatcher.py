@@ -44,7 +44,6 @@ import asyncio
 import inspect
 import signal
 import traceback
-from ast import Tuple
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, Optional, Type
 
@@ -55,20 +54,19 @@ from bclib.context.context import Context
 if TYPE_CHECKING:
     from bclib.context.context_factory import ContextFactory
 
-from bclib.dispatcher.callback_info import CallbackInfo
-from bclib.dispatcher.idispatcher import IDispatcher
 from bclib.exception import HandlerNotFoundErr
-from bclib.listener import IListener, Message
-from bclib.listener.iresponse_base_message import IResponseBaseMessage
-from bclib.listener_factory import IListenerFactory
+from bclib.listener import IListener, IResponseBaseMessage, Message
 from bclib.logger.ilogger import ILogger
 from bclib.predicate import Predicate
 from bclib.service_provider import InjectionPlan, IServiceProvider
 from bclib.utility.static_file_handler import StaticFileHandler
-from bclib.websocket import WebSocketSessionManager
+
+from .callback_info import CallbackInfo
+from .idispatcher import IDispatcher
+from .imessage_handler import IMessageHandler
 
 
-class Dispatcher(IDispatcher):
+class Dispatcher(IDispatcher, IMessageHandler):
     """Unified dispatcher for request handling with dependency injection
 
     Provides flexible routing for different context types with automatic service
@@ -95,7 +93,7 @@ class Dispatcher(IDispatcher):
         ```
     """
 
-    def __init__(self, service_provider: IServiceProvider, logger: ILogger['Dispatcher'], options: AppOptions, loop: asyncio.AbstractEventLoop, listener_factory: IListenerFactory):
+    def __init__(self, service_provider: IServiceProvider, logger: ILogger['Dispatcher'], options: AppOptions, loop: asyncio.AbstractEventLoop):
         """Initialize dispatcher with injected dependencies
 
         Args:
@@ -120,14 +118,7 @@ class Dispatcher(IDispatcher):
 
         self.name = self.__options.get('name')
 
-        # Initialize WebSocket session manager
-        self.__ws_manager = WebSocketSessionManager(
-            on_message_receive_async=self.on_message_receive_async,
-            heartbeat_interval=30.0
-        )
-
         # Store listener factory for lazy loading in initialize_task
-        self.__listener_factory = listener_factory
         self.__listeners: list[IListener] = []
 
         # Initialize ContextFactory - it handles all routing logic
@@ -870,15 +861,6 @@ class Dispatcher(IDispatcher):
                 f"Error in process received message {ex}", exc_info=True)
             raise ex
 
-    @property
-    def ws_manager(self) -> WebSocketSessionManager:
-        """Get WebSocket session manager instance
-
-        Returns:
-            WebSocketSessionManager: Manager for WebSocket session lifecycle and messaging
-        """
-        return self.__ws_manager
-
     def run_in_background(self, callback: 'Callable|Coroutine', *args: Any) -> asyncio.Future:
         """Execute function or coroutine in background
 
@@ -929,8 +911,11 @@ class Dispatcher(IDispatcher):
         await self.__service_provider.initialize_hosted_services_async()
 
         # Load listeners from factory if not already loaded
+        from bclib.listener.listener_factory import IListenerFactory
+        listener_factory = self.__service_provider.get_service(
+            IListenerFactory)
         if not self.__listeners:
-            self.__listeners = self.__listener_factory.load_listeners(self)
+            self.__listeners = listener_factory.load_listeners()
 
         # Initialize all listeners (HTTP, Socket, Rabbit, etc.)
         for listener in self.__listeners:

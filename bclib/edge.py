@@ -43,7 +43,7 @@ import asyncio
 from bclib import __version__
 from bclib.context import *
 from bclib.db_manager import *
-from bclib.dispatcher import Dispatcher, IDispatcher
+from bclib.dispatcher import IDispatcher, adding_dispatcher_services
 from bclib.exception import *
 from bclib.listener import (HttpBaseDataName, HttpBaseDataType, Message,
                             MessageType)
@@ -51,7 +51,6 @@ from bclib.logger import ConsoleLogger, ILogger
 from bclib.predicate import Predicate, PredicateHelper
 from bclib.utility import (DictEx, HttpHeaders, HttpMimeTypes, HttpStatusCodes,
                            ResponseTypes, StaticFileHandler)
-from bclib.websocket import WebSocketSession
 
 
 def from_config(option_file_path: str, file_name: str = "host.json") -> IDispatcher:
@@ -241,14 +240,10 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDisp
     service_provider.add_singleton(IDbManager, DbManager)
 
     # Register listener factory in DI container
-    from bclib.listener_factory import IListenerFactory, ListenerFactory
-    service_provider.add_singleton(
-        IListenerFactory, ListenerFactory)
+    from bclib.listener import adding_listener_services
+    adding_listener_services(service_provider)
 
-    # Register dispatcher itself in DI container
-    service_provider.add_singleton(Dispatcher, Dispatcher)
-    service_provider.add_singleton(
-        IDispatcher, factory=lambda sp: sp.get_service(Dispatcher))
+    adding_dispatcher_services(service_provider)
 
     # Create Dispatcher instance
     return service_provider.get_service(IDispatcher)
