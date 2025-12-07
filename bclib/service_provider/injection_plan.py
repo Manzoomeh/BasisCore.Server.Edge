@@ -48,6 +48,7 @@ class InjectionPlan:
         self.is_async: bool = False if self.is_class else inspect.iscoroutinefunction(
             target)
         self.param_strategies: Dict[str, InjectionStrategy] = {}
+        self.has_value_parameters: bool = False  # Optimization flag
         self._analyze()
 
     def _analyze(self) -> None:
@@ -129,10 +130,12 @@ class InjectionPlan:
                 if actual_type in (str, int, float, list, tuple, set):
                     self.param_strategies[param_name] = ValueStrategy(
                         param_name, actual_type)
+                    self.has_value_parameters = True  # Mark that we need kwargs
                 # Check if origin is a primitive collection type (List, Tuple, Set)
                 elif origin in (list, tuple, set):
                     self.param_strategies[param_name] = ValueStrategy(
                         param_name, origin)
+                    self.has_value_parameters = True  # Mark that we need kwargs
                 else:
                     # Assume it's a service type (both regular and generic types)
                     # get_service() handles generic type resolution automatically

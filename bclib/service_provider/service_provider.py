@@ -24,6 +24,11 @@ from .service_lifetime import ServiceLifetime
 
 T = TypeVar('T')
 
+# Pre-compiled regex for parsing generic string annotations (performance optimization)
+_GENERIC_ANNOTATION_PATTERN = re.compile(
+    r"^(\w+)\[(?:ForwardRef\()?['\"]([^'\"]+)['\"](?:\))?\]$"
+)
+
 
 class ServiceProvider(IServiceProvider):
     """
@@ -58,6 +63,8 @@ class ServiceProvider(IServiceProvider):
         """Initialize service provider with empty registrations"""
         self._descriptors: Dict[Type, ServiceDescriptor] = {}
         self._scoped_instances: Dict[Type, Any] = {}
+        # Cache for generic singleton instances: (base_type, generic_args_tuple) -> instance
+        self._generic_singleton_instances: Dict[tuple, Any] = {}
 
     def add_singleton(
         self,
@@ -250,10 +257,8 @@ class ServiceProvider(IServiceProvider):
         # Handle string annotations (from __future__ annotations)
         # These can be simple ("MyClass") or complex ("IOptions['database']")
         if isinstance(service_type, str):
-            # Try to parse generic type from string annotation
-            # Pattern: "BaseType['arg']" or "BaseType[ForwardRef('arg')]"
-            generic_match = re.match(
-                r"^(\w+)\[(?:ForwardRef\()?['\"]([^'\"]+)['\"](?:\))?\]$", service_type)
+            # Try to parse generic type from string annotation using pre-compiled pattern
+            generic_match = _GENERIC_ANNOTATION_PATTERN.match(service_type)
 
             if generic_match:
                 # Extract base type name and generic argument
@@ -266,6 +271,7 @@ class ServiceProvider(IServiceProvider):
                     if hasattr(registered_type, '__name__') and registered_type.__name__ == base_type_name:
                         # Found the base type, pass generic arg via kwargs
                         descriptor = self._descriptors[registered_type]
+                        base_type_for_cache = registered_type
                         kwargs = {
                             **kwargs, 'generic_type_args': (ForwardRef(generic_arg),)}
                         break
@@ -279,6 +285,7 @@ class ServiceProvider(IServiceProvider):
             # Try exact match first
             if service_type in self._descriptors:
                 descriptor = self._descriptors[service_type]
+                base_type_for_cache = service_type
             else:
                 # If not found and it's a generic type, try base type
                 from typing import get_args, get_origin
@@ -286,6 +293,7 @@ class ServiceProvider(IServiceProvider):
                 if origin is not None and origin in self._descriptors:
                     # Found base generic type (e.g., ILogger when requesting ILogger['App'])
                     descriptor = self._descriptors[origin]
+                    base_type_for_cache = origin
                     # Pass generic type arguments via kwargs
                     type_args = get_args(service_type)
                     if type_args:
@@ -295,26 +303,88 @@ class ServiceProvider(IServiceProvider):
                     return None
 
         # Singleton: return cached or create once
+        # For generic types, cache per (base_type, generic_args) combination
         if descriptor.lifetime == ServiceLifetime.SINGLETON:
-            if descriptor.instance is not None:
-                return descriptor.instance
-            instance = self._create_instance(descriptor, **kwargs)
-            if instance is not None:
-                descriptor.instance = instance
-            return instance
+            # Check if this is a generic singleton with type arguments
+            generic_type_args = kwargs.get('generic_type_args')
+
+            if generic_type_args:
+                # Create cache key and check generic singleton cache
+                cache_key = self._make_generic_cache_key(
+                    base_type_for_cache, generic_type_args)
+
+                if cache_key in self._generic_singleton_instances:
+                    return self._generic_singleton_instances[cache_key]
+
+                # Create new instance and cache it
+                instance = self._create_instance(descriptor, **kwargs)
+                if instance is not None:
+                    self._generic_singleton_instances[cache_key] = instance
+                return instance
+            else:
+                # Non-generic singleton - use descriptor's instance cache
+                if descriptor.instance is not None:
+                    return descriptor.instance
+                instance = self._create_instance(descriptor, **kwargs)
+                if instance is not None:
+                    descriptor.instance = instance
+                return instance
 
         # Scoped: return scoped or create for this scope
         elif descriptor.lifetime == ServiceLifetime.SCOPED:
-            if service_type in self._scoped_instances:
-                return self._scoped_instances[service_type]
-            instance = self._create_instance(descriptor, **kwargs)
-            if instance is not None:
-                self._scoped_instances[service_type] = instance
-            return instance
+            # Check if this is a generic scoped service with type arguments
+            generic_type_args = kwargs.get('generic_type_args')
+
+            if generic_type_args:
+                # Create cache key and check scoped cache
+                cache_key = self._make_generic_cache_key(
+                    base_type_for_cache, generic_type_args)
+
+                if cache_key in self._scoped_instances:
+                    return self._scoped_instances[cache_key]
+
+                # Create new instance and cache it
+                instance = self._create_instance(descriptor, **kwargs)
+                if instance is not None:
+                    self._scoped_instances[cache_key] = instance
+                return instance
+            else:
+                # Non-generic scoped service
+                if service_type in self._scoped_instances:
+                    return self._scoped_instances[service_type]
+                instance = self._create_instance(descriptor, **kwargs)
+                if instance is not None:
+                    self._scoped_instances[service_type] = instance
+                return instance
 
         # Transient: always create new
         else:
             return self._create_instance(descriptor, **kwargs)
+
+    @staticmethod
+    def _make_generic_cache_key(base_type: Type, generic_args: tuple) -> tuple:
+        """
+        Create hashable cache key for generic service instances
+
+        Converts generic type arguments to strings for use as dictionary keys.
+        ForwardRef objects are converted to their forward argument string.
+
+        Args:
+            base_type: The base service type (e.g., IOptions)
+            generic_args: Tuple of generic type arguments (e.g., (ForwardRef('database'),))
+
+        Returns:
+            Tuple of (base_type, tuple of string arguments) suitable for dict key
+
+        Example:
+            >>> _make_generic_cache_key(IOptions, (ForwardRef('database'),))
+            (IOptions, ('database',))
+        """
+        cache_key_args = tuple(
+            arg.__forward_arg__ if isinstance(arg, ForwardRef) else str(arg)
+            for arg in generic_args
+        )
+        return (base_type, cache_key_args)
 
     def _create_instance(self, descriptor: ServiceDescriptor, **kwargs: Any) -> Any:
         """

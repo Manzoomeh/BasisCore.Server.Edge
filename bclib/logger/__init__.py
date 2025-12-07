@@ -43,4 +43,4 @@ def add_default_logger(service_provider: IServiceProvider) -> None:
         ```
     """
 
-    service_provider.add_transient(ILogger, implementation=ConsoleLogger)
+    service_provider.add_singleton(ILogger, implementation=ConsoleLogger)

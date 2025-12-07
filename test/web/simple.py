@@ -24,6 +24,10 @@ class myApp:
     pass
 
 
+class myApp1:
+    pass
+
+
 @app.handler()
 async def rabbit_handler(con: edge.RabbitContext, dis: edge.IDispatcher):
     print("RabbitMQ message received", con)
@@ -59,8 +63,9 @@ async def test_handler_3(context: edge.RESTfulContext):
     }
 
 
-@app.restful_handler("test2")
-async def test_handler_2(context: edge.RESTfulContext, id: Optional[int] = None):
+@app.restful_handler("test2/:id")
+async def test_handler_2(context: edge.RESTfulContext, id: int, logger: edge.ILogger[myApp1]):
+    logger.info(f"Processing test_handler_2 with id={id}")
     return {
         "message": "Test endpoint 2",
         "id": id,
@@ -69,7 +74,7 @@ async def test_handler_2(context: edge.RESTfulContext, id: Optional[int] = None)
 
 
 @app.web_handler()
-async def process_web_remain_request(logger: edge.ILogger[myApp]):
+async def process_web_remain_request(logger: edge.ILogger['myApp']):
     # await asyncio.sleep(1)
     # def f(n):
     #     time.sleep(n)

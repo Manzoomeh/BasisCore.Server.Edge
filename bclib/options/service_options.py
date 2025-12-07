@@ -22,9 +22,14 @@ class ServiceOptions(IOptions[T]):
             key: Configuration key (supports dot notation for nested access)
             app_options: Application options dictionary (AppOptions)
         """
-        self._key = key
-        self._app_options = app_options
-        self._value = self._resolve_value(key, app_options)
+        # Resolve value
+        value = self._resolve_value(key, app_options)
+
+        # Initialize dict with resolved value if it's a dict
+        if isinstance(value, dict):
+            super().__init__(value)
+        else:
+            super().__init__()
 
     @staticmethod
     def _resolve_value(key: str, options: dict) -> Any:
@@ -68,56 +73,3 @@ class ServiceOptions(IOptions[T]):
                 return None
 
         return value
-
-    @property
-    def value(self) -> Any:
-        """
-        Get configuration value
-
-        Returns:
-            Configuration value (can be dict, list, string, int, etc.)
-        """
-        return self._value
-
-    @property
-    def key(self) -> str:
-        """Get configuration key"""
-        return self._key
-
-    def get(self, nested_key: str, default: Any = None) -> Any:
-        """
-        Get nested value from configuration
-        Case-sensitive first, then case-insensitive fallback for performance
-
-        Args:
-            nested_key: Nested key within this configuration section
-            default: Default value if key not found
-
-        Returns:
-            Nested value or default
-
-        Example:
-            ```python
-            # If options.value = {'host': 'localhost', 'port': 5432}
-            host = options.get('host')  # 'localhost'
-            host = options.get('HOST')  # 'localhost' (case-insensitive)
-            timeout = options.get('timeout', 30)  # 30 (default)
-            ```
-        """
-        if not isinstance(self._value, dict):
-            return default
-
-        # Try case-sensitive lookup first (fast path)
-        if nested_key in self._value:
-            return self._value[nested_key]
-
-        # Fallback to case-insensitive lookup
-        nested_key_lower = nested_key.lower()
-        for key in self._value.keys():
-            if key.lower() == nested_key_lower:
-                return self._value[key]
-
-        return default
-
-    def __repr__(self) -> str:
-        return f"Options['{self._key}'](value={self._value})"

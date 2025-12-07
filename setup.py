@@ -1,6 +1,6 @@
 import setuptools
 
-from bclib.options.app_options import __version__
+from bclib import __version__
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()

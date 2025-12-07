@@ -15,7 +15,7 @@ class DatabaseService:
         Args:
             db_options: Database configuration from AppOptions
         """
-        self.db_config = db_options.value
+        self.db_config = dict(db_options)
         self.db_options = db_options
 
     def connect(self):
@@ -36,7 +36,7 @@ class CacheService:
         Args:
             cache_options: Redis cache configuration from AppOptions['cache']['redis']
         """
-        self.cache_config = cache_options.value
+        self.cache_config = dict(cache_options)
         self.cache_options = cache_options
 
     def connect(self):
@@ -56,7 +56,7 @@ class ConfigMonitor:
         Args:
             all_options: All application configuration
         """
-        self.config = all_options.value
+        self.config = dict(all_options)
         self.options = all_options
 
     def show_config(self):

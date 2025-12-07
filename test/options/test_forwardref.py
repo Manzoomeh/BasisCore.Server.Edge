@@ -45,8 +45,8 @@ def test_string_annotations():
     sp.add_transient(MyService)
     service = sp.get_service(MyService)
 
-    print(f"Database config: {service.db_options.value}")
-    print(f"Cache config: {service.cache_options.value}")
+    print(f"Database config: {dict(service.db_options)}")
+    print(f"Cache config: {dict(service.cache_options)}")
 
     print("\n✅ String annotations test passed!\n")
 
@@ -66,7 +66,7 @@ def test_forward_ref_explicit():
     print("Resolving IOptions['api']...")
     api_options = sp.get_service(IOptions['api'])
 
-    print(f"API config: {api_options.value}")
+    print(f"API config: {dict(api_options)}")
     print(f"API key: {api_options.get('key')}")
 
     print("\n✅ ForwardRef test passed!\n")
@@ -108,7 +108,7 @@ def test_mixed_annotations():
     server = sp.create_instance(WebServer, name="MyServer")
 
     print(f"Server name: {server.name}")
-    print(f"Server config: {server.config.value}")
+    print(f"Server config: {dict(server.config)}")
     print(f"Server host: {server.config.get('host')}")
 
     print("\n✅ Mixed annotations test passed!\n")
