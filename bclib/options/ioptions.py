@@ -3,6 +3,7 @@
 Generic options interface for dependency injection to access application configuration.
 Similar to ILogger pattern, provides type-safe access to specific configuration sections.
 """
+from abc import abstractmethod, abstractproperty
 from typing import Any, Generic, TypeVar
 
 T = TypeVar('T')
@@ -42,6 +43,7 @@ class IOptions(Generic[T]):
     """
 
     @property
+    @abstractmethod
     def value(self) -> Any:
         """
         Get configuration value
@@ -49,5 +51,44 @@ class IOptions(Generic[T]):
         Returns:
             Configuration value (can be dict, list, string, int, etc.)
         """
-        raise NotImplementedError(
-            "IOptions is an interface. Use Options class instead.")
+        pass
+
+    @property
+    @abstractmethod
+    def value(self) -> Any:
+        """
+        Get configuration value
+
+        Returns:
+            Configuration value (can be dict, list, string, int, etc.)
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def key(self) -> str:
+        """Get configuration key"""
+        pass
+
+    @abstractmethod
+    def get(self, nested_key: str, default: Any = None) -> Any:
+        """
+        Get nested value from configuration
+        Case-sensitive first, then case-insensitive fallback for performance
+
+        Args:
+            nested_key: Nested key within this configuration section
+            default: Default value if key not found
+
+        Returns:
+            Nested value or default
+
+        Example:
+            ```python
+            # If options.value = {'host': 'localhost', 'port': 5432}
+            host = options.get('host')  # 'localhost'
+            host = options.get('HOST')  # 'localhost' (case-insensitive)
+            timeout = options.get('timeout', 30)  # 30 (default)
+            ```
+        """
+        pass

@@ -13,6 +13,7 @@ Can be used for:
 """
 import asyncio
 import inspect
+import traceback
 from typing import (TYPE_CHECKING, Any, Callable, Coroutine, Dict, ForwardRef,
                     Type, Union, get_args, get_origin, get_type_hints)
 
@@ -162,9 +163,10 @@ class InjectionPlan:
                 value = strategy.resolve(services, **kwargs)
                 if value is not None:
                     result[param_name] = value
-            except Exception:
-                # Skip parameter if resolution fails
-                continue
+            except Exception as ex:
+                print(
+                    f"Failed to resolve parameter '{param_name}' for {self.target}: {ex}")
+                traceback.print_exc()
 
         return result
 

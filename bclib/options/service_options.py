@@ -30,6 +30,7 @@ class ServiceOptions(IOptions[T]):
     def _resolve_value(key: str, options: dict) -> Any:
         """
         Resolve value from options dictionary using key (supports dot notation)
+        Case-sensitive first, then case-insensitive fallback for performance
 
         Args:
             key: Configuration key (e.g., 'database' or 'cache.redis')
@@ -38,7 +39,7 @@ class ServiceOptions(IOptions[T]):
         Returns:
             Configuration value or None if not found
         """
-        if key == 'root':
+        if key == '':
             return options
 
         # Support dot notation for nested keys
@@ -46,8 +47,23 @@ class ServiceOptions(IOptions[T]):
         value = options
 
         for k in keys:
-            if isinstance(value, dict) and k in value:
-                value = value[k]
+            if isinstance(value, dict):
+                # Try case-sensitive lookup first (fast path)
+                if k in value:
+                    value = value[k]
+                else:
+                    # Fallback to case-insensitive lookup
+                    matched_key = None
+                    k_lower = k.lower()
+                    for dict_key in value.keys():
+                        if dict_key.lower() == k_lower:
+                            matched_key = dict_key
+                            break
+
+                    if matched_key:
+                        value = value[matched_key]
+                    else:
+                        return None
             else:
                 return None
 
@@ -71,6 +87,7 @@ class ServiceOptions(IOptions[T]):
     def get(self, nested_key: str, default: Any = None) -> Any:
         """
         Get nested value from configuration
+        Case-sensitive first, then case-insensitive fallback for performance
 
         Args:
             nested_key: Nested key within this configuration section
@@ -83,13 +100,24 @@ class ServiceOptions(IOptions[T]):
             ```python
             # If options.value = {'host': 'localhost', 'port': 5432}
             host = options.get('host')  # 'localhost'
+            host = options.get('HOST')  # 'localhost' (case-insensitive)
             timeout = options.get('timeout', 30)  # 30 (default)
             ```
         """
         if not isinstance(self._value, dict):
             return default
 
-        return self._value.get(nested_key, default)
+        # Try case-sensitive lookup first (fast path)
+        if nested_key in self._value:
+            return self._value[nested_key]
+
+        # Fallback to case-insensitive lookup
+        nested_key_lower = nested_key.lower()
+        for key in self._value.keys():
+            if key.lower() == nested_key_lower:
+                return self._value[key]
+
+        return default
 
     def __repr__(self) -> str:
         return f"Options['{self._key}'](value={self._value})"
