@@ -856,7 +856,8 @@ class Dispatcher(IDispatcher, IMessageHandler):
             else:
                 raise HandlerNotFoundErr(context_type.__name__)
         except Exception as ex:
-            traceback.print_exc()
+            self.__logger.error(
+                f"Handler not found for {context_type.__name__}")
             result = context.generate_error_response(ex)
         return result
 

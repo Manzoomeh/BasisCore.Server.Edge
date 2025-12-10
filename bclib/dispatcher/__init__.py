@@ -19,9 +19,9 @@ def adding_dispatcher_services(service_provider: IServiceProvider) -> None:
     # Register dispatcher itself in DI container
     service_provider.add_singleton(Dispatcher, Dispatcher)
     service_provider.add_singleton(
-        IDispatcher, factory=lambda sp: sp.get_service(Dispatcher))
+        IDispatcher, factory=lambda sp, **kwargs: sp.get_service(Dispatcher))
     service_provider.add_singleton(
-        IMessageHandler, factory=lambda sp: sp.get_service(Dispatcher))
+        IMessageHandler, factory=lambda sp, **kwargs: sp.get_service(Dispatcher))
 
 
 __all__ = [

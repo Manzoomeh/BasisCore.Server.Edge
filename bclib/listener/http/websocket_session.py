@@ -95,7 +95,7 @@ class WebSocketSession:
         )
 
         # Access session properties
-        print(f"Session: {session.session_id}")
+        print(f"Session: {session.id}")
         print(f"URL: {session.url}")
         print(f"Closed: {session.closed}")
 
@@ -128,7 +128,7 @@ class WebSocketSession:
             session_manager (Optional[WebSocketSessionManager]): Manager reference
         """
         self.ws = ws
-        self.session_id = session_id
+        self.id = session_id
         self.request = request
         self.cms_object = cms_object
         self.url = self.cms_object.get('request', {}).get('url')
@@ -241,7 +241,7 @@ class WebSocketSession:
 
         # Heartbeat task as local variable
         heartbeat_task: Optional[asyncio.Task] = None
-
+        exit_code = None
         try:
             # Send CONNECT message
             connect_msg = WebSocketMessage.connect(self, MessageType.CONNECT)
@@ -253,7 +253,7 @@ class WebSocketSession:
             )
 
             # Infinite message receiving loop - continues until connection closes
-            exit_code = None
+
             while not self.ws.closed:
                 try:
                     msg = await self.ws.receive()
@@ -381,4 +381,4 @@ class WebSocketSession:
 
     def __repr__(self) -> str:
         status = "closed" if self.closed else "open"
-        return f"WebSocketSession(session_id={self.session_id[:8]}..., status={status}, url={self.url})"
+        return f"WebSocketSession(session_id={self.id[:8]}..., status={status}, url={self.url})"

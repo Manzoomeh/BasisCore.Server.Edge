@@ -234,7 +234,7 @@ class WebSocketSessionManager(IWebSocketSessionManager):
         Example:
             ```python
             for session in ws_manager.get_active_sessions():
-                print(f"Session {session.session_id}: {session.remote_address}")
+                print(f"Session {session.id}: {session.remote_address}")
             ```
         """
         return list(self._sessions.values())
@@ -385,7 +385,7 @@ class WebSocketSessionManager(IWebSocketSessionManager):
         return [group_name for group_name, session_ids in self._groups.items()
                 if session_id in session_ids]
 
-    async def send_to_group(self, group_name: str, message: Any, message_type: str = 'text') -> int:
+    async def send_to_group_async(self, group_name: str, message: Any, message_type: str = 'text') -> int:
         """Send message to all sessions in a group
 
         Sends message to all active sessions in group. Continues on individual
@@ -433,7 +433,7 @@ class WebSocketSessionManager(IWebSocketSessionManager):
 
         return success_count
 
-    async def broadcast_to_all(self, message: Any, message_type: str = 'text') -> int:
+    async def broadcast_to_all_async(self, message: Any, message_type: str = 'text') -> int:
         """Broadcast message to all active sessions
 
         Sends message to every active WebSocket session. Continues on individual

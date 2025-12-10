@@ -7,10 +7,10 @@ import atexit
 import logging
 import logging.handlers
 import queue
-from typing import Generic, Optional, Type, TypeVar
+from typing import Optional, Type, TypeVar
 
 from bclib.logger.ilogger import ILogger
-from bclib.options.app_options import AppOptions
+from bclib.options.ioptions import IOptions
 
 from .colored_formatter import ColoredFormatter
 
@@ -89,7 +89,7 @@ class ConsoleLogger(ILogger[T]):
     _DEFAULT_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     _DEFAULT_LEVEL = logging.INFO
 
-    def __init__(self, options: AppOptions, generic_type_args: tuple[Type, ...] = None):
+    def __init__(self, options: IOptions['logger'], generic_type_args: tuple[Type, ...] = None):
         """
         Initialize generic application logger with color support and async logging
 
@@ -98,13 +98,20 @@ class ConsoleLogger(ILogger[T]):
             generic_type_args: Optional type arguments for the logger (used for naming)
         """
         # Determine logger name
-        logger_config = options.get('logger', {})
-        if 'name' in logger_config:
-            logger_name = logger_config['name']
-        elif generic_type_args is not None and len(generic_type_args) > 0:
-            logger_name = generic_type_args[0].__name__
+        if generic_type_args is not None and len(generic_type_args) > 0:
+            # Extract logger name from generic type argument
+            type_arg = generic_type_args[0]
+            if hasattr(type_arg, '__name__'):
+                # Regular type (class)
+                logger_name = type_arg.__name__
+            elif hasattr(type_arg, '__forward_arg__'):
+                # ForwardRef from string literal like ILogger['myApp']
+                logger_name = type_arg.__forward_arg__
+            else:
+                # Fallback: convert to string
+                logger_name = str(type_arg)
         else:
-            logger_name = 'ConsoleLogger'
+            logger_name = options.get('name', 'ConsoleLogger')
 
         # Initialize base logger
         super().__init__(logger_name)
@@ -114,17 +121,16 @@ class ConsoleLogger(ILogger[T]):
         self.__queue_listener: Optional[logging.handlers.QueueListener] = None
         self._configure_logger(options)
 
-    def _configure_logger(self, options: AppOptions) -> None:
+    def _configure_logger(self, config: dict) -> None:
         """
         Configure logger with colored console handler and async logging support
 
         Args:
             options: Application configuration
         """
-        logger_config = options.get('logger', {})
 
         # Set logging level
-        level_name = logger_config.get('level', 'INFO').upper()
+        level_name = config.get('level', 'INFO').upper()
         level = getattr(logging, level_name, self._DEFAULT_LEVEL)
         self.setLevel(level)
 
@@ -135,17 +141,17 @@ class ConsoleLogger(ILogger[T]):
             console_handler.setLevel(level)
 
             # Create colored formatter
-            log_format = logger_config.get('format', self._DEFAULT_FORMAT)
-            use_colors = logger_config.get('use_colors', True)
+            log_format = config.get('format', self._DEFAULT_FORMAT)
+            use_colors = config.get('use_colors', True)
             formatter = ColoredFormatter(log_format, use_colors=use_colors)
             console_handler.setFormatter(formatter)
 
             # Check if async logging is enabled (default: True)
-            async_logging = logger_config.get('async_logging', True)
+            async_logging = config.get('async_logging', True)
 
             if async_logging:
                 # Create queue for async logging
-                queue_size = logger_config.get(
+                queue_size = config.get(
                     'queue_size', -1)  # -1 = unlimited
                 log_queue = queue.Queue(maxsize=queue_size)
 

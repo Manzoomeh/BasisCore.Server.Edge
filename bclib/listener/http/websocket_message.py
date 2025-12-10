@@ -109,7 +109,7 @@ class WebSocketMessage(Message, ICmsBaseMessage):
             direct instantiation for better type safety and clarity.
         """
         # WebSocketMessage needs session_id and type for dispatcher
-        self.session_id = session.session_id
+        self.session_id = session.id
         self._type = message_type
         self.session = session
         self.ws_type = ws_message_type

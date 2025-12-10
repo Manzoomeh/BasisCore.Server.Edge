@@ -124,7 +124,7 @@ class IWebSocketSessionManager(ABC):
         pass
 
     @abstractmethod
-    async def send_to_group(self, group_name: str, message: Any, message_type: str = 'text') -> int:
+    async def send_to_group_async(self, group_name: str, message: Any, message_type: str = 'text') -> int:
         """Send message to all sessions in a group
 
         Args:
@@ -138,7 +138,7 @@ class IWebSocketSessionManager(ABC):
         pass
 
     @abstractmethod
-    async def broadcast_to_all(self, message: Any, message_type: str = 'text') -> int:
+    async def broadcast_to_all_async(self, message: Any, message_type: str = 'text') -> int:
         """Broadcast message to all active sessions
 
         Args:

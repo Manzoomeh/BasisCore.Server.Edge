@@ -68,7 +68,7 @@ async def websocket_handler(context: WebSocketContext, rkey: str):
                 groups = manager.get_session_groups(session_id)
                 if groups:
                     for group in groups:
-                        await manager.send_to_group(group, {
+                        await manager.send_to_group_async(group, {
                             "type": "message",
                             "room": group,
                             "sender": session_id[:8],

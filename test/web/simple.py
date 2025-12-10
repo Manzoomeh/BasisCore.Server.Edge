@@ -14,7 +14,10 @@ options = {
     #     "exchange": "orders_exchange",
     #     "durable": True
     # },
-    "error_log": True
+    "error_log": True,
+    "logger": {
+        "use_colors": True
+    }
 }
 
 app = edge.from_options(options)

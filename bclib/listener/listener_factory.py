@@ -2,11 +2,9 @@
 import asyncio
 from typing import TYPE_CHECKING
 
-from bclib.dispatcher.imessage_handler import IMessageHandler
 from bclib.options.app_options import AppOptions
 from bclib.service_provider.iservice_provider import IServiceProvider
 
-from .endpoint import Endpoint
 from .http.http_listener import HttpListener
 from .ilistener_factory import IListenerFactory
 from .rabbit.rabbit_listener import RabbitListener
@@ -43,7 +41,7 @@ class ListenerFactory(IListenerFactory):
         ```
     """
 
-    def __init__(self, service_provider: IServiceProvider,  options: AppOptions, loop: asyncio.AbstractEventLoop, message_handler: IMessageHandler):
+    def __init__(self, service_provider: IServiceProvider,  options: AppOptions):
         """
         Initialize listener factory
 
@@ -53,8 +51,6 @@ class ListenerFactory(IListenerFactory):
             message_handler: Message handler instance for processing messages
         """
         self.__options = options
-        self.__loop = loop
-        self.__message_handler = message_handler
         self.__service_provider = service_provider
 
     def load_listeners(self) -> 'list[IListener]':
@@ -82,32 +78,61 @@ class ListenerFactory(IListenerFactory):
         """
         listeners: list[IListener] = []
 
-        # Add HTTP/HTTPS listener if http configured
+        # Add HTTP/HTTPS listener(s) if http configured
         if "http" in self.__options:
-            listener = self.__service_provider.create_instance(HttpListener,
-                                                               endpoint=Endpoint(
-                                                                   self.__options.get('http')),
-                                                               ssl_options=self.__options.get(
-                                                                   'ssl'),
-                                                               configuration=self.__options.get(
-                                                                   'configuration')
-                                                               )
-            listeners.append(listener)
+            http_config = self.__options.get('http')
 
-        # Add TCP listener if tcp configured
+            # Normalize to list - only handle array vs single item
+            if isinstance(http_config, list):
+                http_configs = http_config
+            else:
+                # Single item (string or dict)
+                http_configs = [http_config]
+
+            # Create listener for each config
+            for config in http_configs:
+                listener = self.__service_provider.create_instance(
+                    HttpListener,
+                    options=config
+                )
+                listeners.append(listener)
+
+        # Add TCP listener(s) if tcp configured
         if "tcp" in self.__options:
-            listener = self.__service_provider.create_instance(
-                TcpListener,
-                endpoint=Endpoint(self.__options.get('tcp')),
-            )
-            listeners.append(listener)
+            tcp_config = self.__options.get('tcp')
 
-        # Add RabbitMQ listeners if configured
+            # Normalize to list - only handle array vs single item
+            if isinstance(tcp_config, list):
+                tcp_configs = tcp_config
+            else:
+                # Single item (string or dict)
+                tcp_configs = [tcp_config]
+
+            # Create listener for each config
+            for config in tcp_configs:
+                listener = self.__service_provider.create_instance(
+                    TcpListener,
+                    options=config
+                )
+                listeners.append(listener)
+
+        # Add RabbitMQ listener(s) if configured
         if "rabbit" in self.__options:
-            listener = self.__service_provider.create_instance(
-                RabbitListener,
-                connection_options=self.__options.get("rabbit")
-            )
-            listeners.append(listener)
+            rabbit_config = self.__options.get('rabbit')
+
+            # Normalize to list - only handle array vs single item
+            if isinstance(rabbit_config, list):
+                rabbit_configs = rabbit_config
+            else:
+                # Single dict config
+                rabbit_configs = [rabbit_config]
+
+            # Create listener for each config
+            for config in rabbit_configs:
+                listener = self.__service_provider.create_instance(
+                    RabbitListener,
+                    options=config
+                )
+                listeners.append(listener)
 
         return listeners
