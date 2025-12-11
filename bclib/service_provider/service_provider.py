@@ -38,19 +38,49 @@ class ServiceProvider(IServiceProvider):
     Supports three lifetimes: singleton, scoped, and transient.
     Also supports hosted services that are automatically instantiated at startup.
 
+    NEW: Multiple Implementations per Interface
+    -------------------------------------------
+    Now supports registering multiple implementations for a single interface.
+    Use get_service(Type) to get the first implementation, or get_service(list[Type])
+    to get all implementations.
+
+    Features:
+        - Constructor injection based on type hints
+        - Method injection for handlers
+        - Multiple implementations per interface
+        - Automatic list injection for multiple services
+        - Three lifetimes: singleton, scoped, transient
+        - Hosted services with initialization priority
+        - Generic type support (e.g., ILogger['App'])
+
     Example:
         ```python
         # Create container
         services = ServiceProvider()
 
-        # Register services
+        # Register single implementation
         services.add_singleton(ILogger, ConsoleLogger)
         services.add_scoped(IDatabase, PostgresDatabase)
-        services.add_transient(IEmailService, factory=lambda: SmtpEmailService("smtp.gmail.com"))
 
-        # Resolve services
+        # Register multiple implementations for same interface
+        services.add_singleton(IListener, HttpListener)
+        services.add_singleton(IListener, TcpListener)
+        services.add_singleton(IListener, RabbitListener)
+
+        # Resolve first implementation
         logger = services.get_service(ILogger)
-        db = services.get_service(IDatabase)
+        first_listener = services.get_service(IListener)  # Returns HttpListener
+
+        # Resolve all implementations as list
+        all_listeners = services.get_service(list[IListener])  # Returns [HttpListener, TcpListener, RabbitListener]
+
+        # Automatic injection of multiple services
+        class ListenerFactory:
+            def __init__(self, listeners: list[IListener]):  # Auto-injected!
+                self.listeners = listeners
+
+        services.add_singleton(ListenerFactory)
+        factory = services.get_service(ListenerFactory)  # Receives all listeners
 
         # Create scope for request
         request_services = services.create_scope()
@@ -61,10 +91,14 @@ class ServiceProvider(IServiceProvider):
 
     def __init__(self) -> None:
         """Initialize service provider with empty registrations"""
-        self._descriptors: Dict[Type, ServiceDescriptor] = {}
+        # Changed: Now stores list of descriptors per service type to support multiple implementations
+        self._descriptors: Dict[Type, list[ServiceDescriptor]] = {}
         self._scoped_instances: Dict[Type, Any] = {}
         # Cache for generic singleton instances: (base_type, generic_args_tuple) -> instance
         self._generic_singleton_instances: Dict[tuple, Any] = {}
+        # Cache for multiple instances: service_type -> list[instances]
+        self._scoped_instances_list: Dict[Type, list[Any]] = {}
+        self._generic_singleton_instances_list: Dict[tuple, list[Any]] = {}
 
     def add_singleton(
         self,
@@ -75,6 +109,10 @@ class ServiceProvider(IServiceProvider):
     ) -> 'IServiceProvider':
         """
         Register a singleton service (one instance for entire application)
+
+        Supports multiple implementations: calling this multiple times with the same
+        service_type will register additional implementations. Use get_service(Type)
+        to get the first one, or get_service(list[Type]) to get all.
 
         Args:
             service_type: The service interface/type
@@ -89,6 +127,11 @@ class ServiceProvider(IServiceProvider):
             ```python
             # Register by implementation type
             services.add_singleton(ILogger, ConsoleLogger)
+
+            # Register multiple implementations for same interface
+            services.add_singleton(IListener, HttpListener)
+            services.add_singleton(IListener, TcpListener)
+            services.add_singleton(IListener, RabbitListener)
 
             # Register by factory (with ServiceProvider and **kwargs access)
             services.add_singleton(ILogger, factory=lambda sp, **kwargs: ConsoleLogger())
@@ -111,7 +154,10 @@ class ServiceProvider(IServiceProvider):
             instance=instance,
             lifetime=ServiceLifetime.SINGLETON
         )
-        self._descriptors[service_type] = descriptor
+        # Support multiple implementations: append to list instead of replacing
+        if service_type not in self._descriptors:
+            self._descriptors[service_type] = []
+        self._descriptors[service_type].append(descriptor)
         return self
 
     def add_hosted(
@@ -161,7 +207,10 @@ class ServiceProvider(IServiceProvider):
             is_hosted=True,
             priority=priority
         )
-        self._descriptors[service_type] = descriptor
+        # Support multiple implementations: append to list instead of replacing
+        if service_type not in self._descriptors:
+            self._descriptors[service_type] = []
+        self._descriptors[service_type].append(descriptor)
         return self
 
     def add_scoped(
@@ -172,6 +221,9 @@ class ServiceProvider(IServiceProvider):
     ) -> 'IServiceProvider':
         """
         Register a scoped service (one instance per scope/request)
+
+        Supports multiple implementations: calling this multiple times with the same
+        service_type will register additional implementations.
 
         Args:
             service_type: The service interface/type
@@ -186,6 +238,10 @@ class ServiceProvider(IServiceProvider):
             # Register by implementation type
             services.add_scoped(IDatabase, PostgresDatabase)
 
+            # Register multiple implementations
+            services.add_scoped(IMiddleware, AuthMiddleware)
+            services.add_scoped(IMiddleware, LoggingMiddleware)
+
             # Register by factory (receives ServiceProvider and **kwargs)
             services.add_scoped(IDatabase, factory=lambda sp, **kwargs: PostgresDatabase("connection_string"))
             services.add_scoped(ICache, factory=lambda sp, **kwargs: RedisCache(sp.get_service(ILogger)))
@@ -197,7 +253,10 @@ class ServiceProvider(IServiceProvider):
             factory=factory,
             lifetime=ServiceLifetime.SCOPED
         )
-        self._descriptors[service_type] = descriptor
+        # Support multiple implementations: append to list instead of replacing
+        if service_type not in self._descriptors:
+            self._descriptors[service_type] = []
+        self._descriptors[service_type].append(descriptor)
         return self
 
     def add_transient(
@@ -208,6 +267,10 @@ class ServiceProvider(IServiceProvider):
     ) -> 'IServiceProvider':
         """
         Register a transient service (new instance every time)
+
+        Supports multiple implementations: calling this multiple times with the same
+        service_type will register additional implementations. Each resolution creates
+        new instances.
 
         Args:
             service_type: The service interface/type
@@ -222,6 +285,11 @@ class ServiceProvider(IServiceProvider):
             # Register by implementation type
             services.add_transient(IEmailService, SmtpEmailService)
 
+            # Register multiple implementations (each call creates new instances)
+            services.add_transient(INotification, EmailNotification)
+            services.add_transient(INotification, SmsNotification)
+            services.add_transient(INotification, PushNotification)
+
             # Register by factory (receives ServiceProvider and **kwargs)
             services.add_transient(IEmailService, factory=lambda sp, **kwargs: SmtpEmailService("smtp.gmail.com"))
             services.add_transient(INotifier, factory=lambda sp, **kwargs: Notifier(sp.get_service(ILogger), sp.get_service(IEmailService)))
@@ -233,25 +301,151 @@ class ServiceProvider(IServiceProvider):
             factory=factory,
             lifetime=ServiceLifetime.TRANSIENT
         )
-        self._descriptors[service_type] = descriptor
+        # Support multiple implementations: append to list instead of replacing
+        if service_type not in self._descriptors:
+            self._descriptors[service_type] = []
+        self._descriptors[service_type].append(descriptor)
         return self
 
     def get_service(self, service_type: Type[T], **kwargs: Any) -> Optional[T]:
         """
         Resolve and return a service instance
 
+        Supports both single and multiple implementations:
+        - For Type[T]: Returns first registered implementation
+        - For list[Type[T]]: Returns all registered implementations as list
+
+        Args:
+            service_type: The service type to resolve (can be list[Type] for multiple)
+            **kwargs: Additional parameters for constructor injection
+
+        Returns:
+            Service instance(s) or None if not registered
+
+        Example:
+            ```python
+            # Get first logger
+            logger = services.get_service(ILogger)
+
+            # Get all loggers
+            all_loggers = services.get_service(list[ILogger])
+
+            # Register multiple implementations
+            services.add_singleton(IListener, HttpListener)
+            services.add_singleton(IListener, TcpListener)
+            services.add_singleton(IListener, RabbitListener)
+
+            # Get first listener
+            listener = services.get_service(IListener)  # Returns HttpListener
+
+            # Get all listeners
+            listeners = services.get_service(list[IListener])  # Returns [HttpListener, TcpListener, RabbitListener]
+            ```
+        """
+        from typing import get_args, get_origin
+
+        # Check if requesting list of services
+        origin = get_origin(service_type)
+        if origin is list:
+            # Requesting list[SomeType] - return all implementations
+            type_args = get_args(service_type)
+            if type_args:
+                inner_type = type_args[0]
+                return self._get_all_services(inner_type, **kwargs)
+            return None
+
+        # Single service request - return first implementation
+        return self._get_single_service(service_type, **kwargs)
+
+    def _get_all_services(self, service_type: Type[T], **kwargs: Any) -> list[T]:
+        """
+        Get all registered implementations for a service type
+
+        This method resolves all implementations registered for a given service type.
+        Each implementation respects its lifetime:
+        - Singleton: Returns same instance across calls
+        - Scoped: Returns same instance within scope
+        - Transient: Creates new instance each time
+
         Args:
             service_type: The service type to resolve
             **kwargs: Additional parameters for constructor injection
 
         Returns:
-            Service instance or None if not registered
+            List of all service instances (empty list if not registered)
 
         Example:
             ```python
-            logger = services.get_service(ILogger)
-            if logger:
-                logger.log("Service resolved")
+            # Register multiple implementations
+            services.add_singleton(IListener, HttpListener)
+            services.add_singleton(IListener, TcpListener)
+            services.add_transient(IListener, RabbitListener)
+
+            # Get all - HttpListener and TcpListener are singletons, RabbitListener is new each time
+            listeners_1 = services._get_all_services(IListener)
+            listeners_2 = services._get_all_services(IListener)
+
+            # listeners_1[0] is listeners_2[0]  # True (singleton)
+            # listeners_1[1] is listeners_2[1]  # True (singleton)
+            # listeners_1[2] is listeners_2[2]  # False (transient)
+            ```
+        """
+        from typing import get_args, get_origin
+
+        # Find descriptors for this type
+        descriptors = None
+        base_type_for_cache = None
+
+        if service_type in self._descriptors:
+            descriptors = self._descriptors[service_type]
+            base_type_for_cache = service_type
+        else:
+            # Try base type for generics
+            origin = get_origin(service_type)
+            if origin is not None and origin in self._descriptors:
+                descriptors = self._descriptors[origin]
+                base_type_for_cache = origin
+                type_args = get_args(service_type)
+                if type_args:
+                    kwargs = {**kwargs, 'generic_type_args': type_args}
+
+        if not descriptors:
+            return []
+
+        # Create instances for all descriptors
+        instances = []
+        for descriptor in descriptors:
+            instance = self._resolve_descriptor(
+                descriptor, base_type_for_cache, service_type, **kwargs)
+            if instance is not None:
+                instances.append(instance)
+
+        return instances
+
+    def _get_single_service(self, service_type: Type[T], **kwargs: Any) -> Optional[T]:
+        """
+        Get first registered implementation for a service type
+
+        When multiple implementations are registered for the same interface,
+        this method returns the first one (registered first). This provides
+        backward compatibility while supporting the multiple implementations feature.
+
+        Args:
+            service_type: The service type to resolve
+            **kwargs: Additional parameters for constructor injection
+
+        Returns:
+            First service instance or None if not registered
+
+        Example:
+            ```python
+            # Register multiple implementations
+            services.add_singleton(IListener, HttpListener)   # First
+            services.add_singleton(IListener, TcpListener)    # Second
+            services.add_singleton(IListener, RabbitListener) # Third
+
+            # Get first implementation
+            listener = services.get_service(IListener)  # Returns HttpListener
             ```
         """
         # Handle string annotations (from __future__ annotations)
@@ -270,7 +464,7 @@ class ServiceProvider(IServiceProvider):
                 for registered_type in self._descriptors:
                     if hasattr(registered_type, '__name__') and registered_type.__name__ == base_type_name:
                         # Found the base type, pass generic arg via kwargs
-                        descriptor = self._descriptors[registered_type]
+                        descriptors = self._descriptors[registered_type]
                         base_type_for_cache = registered_type
                         kwargs = {
                             **kwargs, 'generic_type_args': (ForwardRef(generic_arg),)}
@@ -284,7 +478,7 @@ class ServiceProvider(IServiceProvider):
         else:
             # Try exact match first
             if service_type in self._descriptors:
-                descriptor = self._descriptors[service_type]
+                descriptors = self._descriptors[service_type]
                 base_type_for_cache = service_type
             else:
                 # If not found and it's a generic type, try base type
@@ -292,7 +486,7 @@ class ServiceProvider(IServiceProvider):
                 origin = get_origin(service_type)
                 if origin is not None and origin in self._descriptors:
                     # Found base generic type (e.g., ILogger when requesting ILogger['App'])
-                    descriptor = self._descriptors[origin]
+                    descriptors = self._descriptors[origin]
                     base_type_for_cache = origin
                     # Pass generic type arguments via kwargs
                     type_args = get_args(service_type)
@@ -302,6 +496,28 @@ class ServiceProvider(IServiceProvider):
                     # Not found at all
                     return None
 
+        # Get first descriptor (for backward compatibility)
+        if not descriptors:
+            return None
+        descriptor = descriptors[0]
+
+        return self._resolve_descriptor(descriptor, base_type_for_cache, service_type, **kwargs)
+
+    def _resolve_descriptor(self, descriptor: ServiceDescriptor, base_type_for_cache: Type, service_type: Type, **kwargs: Any) -> Optional[Any]:
+        """
+        Resolve a single descriptor to an instance
+
+        Handles caching for singleton/scoped lifetimes.
+
+        Args:
+            descriptor: Service descriptor to resolve
+            base_type_for_cache: Base type for cache key
+            service_type: Original requested service type
+            **kwargs: Additional parameters for constructor injection
+
+        Returns:
+            Service instance or None
+        """
         # Singleton: return cached or create once
         # For generic types, cache per (base_type, generic_args) combination
         if descriptor.lifetime == ServiceLifetime.SINGLETON:
@@ -837,11 +1053,12 @@ class ServiceProvider(IServiceProvider):
                 # ... rest of initialization
             ```
         """
-        # Get all hosted services that need initialization
-        hosted_descriptors = [
-            descriptor for descriptor in self._descriptors.values()
-            if descriptor.is_hosted and descriptor.instance is None
-        ]
+        # Get all hosted descriptors from all service types (now lists)
+        hosted_descriptors = []
+        for descriptor_list in self._descriptors.values():
+            for descriptor in descriptor_list:
+                if descriptor.is_hosted and descriptor.instance is None:
+                    hosted_descriptors.append(descriptor)
 
         # Separate into priority and non-priority services
         priority_services = [d for d in hosted_descriptors if d.priority > 0]
@@ -877,13 +1094,15 @@ class ServiceProvider(IServiceProvider):
             dispatcher.listening(after_end=shutdown())
             ```
         """
-        for descriptor in self._descriptors.values():
-            if descriptor.is_hosted and descriptor.instance is not None:
-                instance = descriptor.instance
+        # Iterate over all descriptor lists and their individual descriptors
+        for descriptor_list in self._descriptors.values():
+            for descriptor in descriptor_list:
+                if descriptor.is_hosted and descriptor.instance is not None:
+                    instance = descriptor.instance
 
-                # Call stop_async if service implements IHostedService
-                if isinstance(instance, IHostedService):
-                    await instance.stop_async()
+                    # Call stop_async if service implements IHostedService
+                    if isinstance(instance, IHostedService):
+                        await instance.stop_async()
 
     def __repr__(self) -> str:
         """String representation of service provider"""
