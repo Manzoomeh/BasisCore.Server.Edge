@@ -34,7 +34,9 @@ class IServiceProvider(ABC):
         service_type: Type[T],
         implementation: Optional[Type[T]] = None,
         factory: Optional[Callable[['IServiceProvider'], T]] = None,
-        instance: Optional[T] = None
+        instance: Optional[T] = None,
+        is_hosted: bool = False,
+        priority: int = 0
     ) -> 'IServiceProvider':
         """
         Register a singleton service (one instance for entire application)
@@ -44,32 +46,8 @@ class IServiceProvider(ABC):
             implementation: Concrete implementation class
             factory: Factory function that receives IServiceProvider and creates the service
             instance: Pre-created instance
-
-        Returns:
-            Self for chaining
-        """
-        pass
-
-    @abstractmethod
-    def add_hosted(
-        self,
-        service_type: Type[T],
-        implementation: Optional[Type[T]] = None,
-        factory: Optional[Callable[['IServiceProvider'], T]] = None,
-        priority: int = 0
-    ) -> 'IServiceProvider':
-        """
-        Register a hosted service (singleton instantiated at application startup)
-
-        Hosted services are like singletons but are automatically instantiated
-        when the listener starts, rather than lazily on first injection.
-        Useful for background services, initializers, and startup tasks.
-
-        Args:
-            service_type: The service interface/type
-            implementation: Concrete implementation class
-            factory: Factory function that receives IServiceProvider and creates the service
-            priority: Initialization priority (higher = initialized first, default=0)
+            is_hosted: If True, service is instantiated at startup and start_async is called
+            priority: Initialization priority for hosted services (higher = initialized first, default=0)
 
         Returns:
             Self for chaining
@@ -283,23 +261,41 @@ class IServiceProvider(ABC):
         """
         pass
 
-    @abstractmethod
-    async def initialize_hosted_services_async(self) -> None:
-        """
-        Initialize all hosted services by instantiating them and calling start_async
 
-        This should be called at application startup (typically in dispatcher.initialize_task_async)
-        to instantiate all services registered with add_hosted and call their start_async method
-        if they implement IHostedService.
+class IServiceContainer(ABC):
+    @abstractmethod
+    async def build_async(self) -> None:
+        """
+        Build the service provider asynchronously
+
+        This method should be called at application startup to ensure all services
+        are properly initialized, especially those that require async initialization.
+
+        Example:
+            ```python
+            # In dispatcher's initialize_task_async
+            async def initialize_task_async(self):
+                await self._service_provider.build_async()
+                # ... rest of initialization
+            ```
         """
         pass
 
     @abstractmethod
-    async def stop_hosted_services_async(self) -> None:
+    async def dispose_async(self) -> None:
         """
-        Stop all hosted services by calling stop_async for graceful shutdown
+        Dispose of all services asynchronously
 
-        This should be called during application shutdown to call stop_async on all
-        hosted services that implement IHostedService.
+        This method should be called at application shutdown to ensure all services
+        are properly disposed, especially those that require async disposal.
+
+        Example:
+            ```python
+            # In dispatcher's shutdown_task_async
+            async def shutdown_task_async(self):
+                await self._service_provider.dispose_async()
+                # ... rest of cleanup
+            ```
         """
+        # Dispose all hosted services
         pass

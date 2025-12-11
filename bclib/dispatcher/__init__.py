@@ -1,6 +1,5 @@
 from bclib.service_provider.iservice_provider import IServiceProvider
 
-from .dispatcher import Dispatcher
 from .idispatcher import IDispatcher
 from .imessage_handler import IMessageHandler
 
@@ -16,6 +15,8 @@ def adding_dispatcher_services(service_provider: IServiceProvider) -> None:
     Args:
         service_provider: The IServiceProvider instance to register services with
     """
+    from .dispatcher import Dispatcher
+
     # Register dispatcher itself in DI container
     service_provider.add_singleton(Dispatcher, Dispatcher)
     service_provider.add_singleton(
@@ -25,7 +26,6 @@ def adding_dispatcher_services(service_provider: IServiceProvider) -> None:
 
 
 __all__ = [
-    'Dispatcher',
     'IDispatcher',
     'adding_dispatcher_services',
 ]

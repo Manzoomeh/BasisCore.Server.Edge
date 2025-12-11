@@ -74,7 +74,7 @@ class IWebSocketSessionManager(ABC):
     # ==================== Group Management ====================
 
     @abstractmethod
-    def add_to_group(self, session_id: str, group_name: str) -> bool:
+    def try_add_to_group(self, session_id: str, group_name: str) -> bool:
         """Add session to a named group
 
         Args:
@@ -87,7 +87,7 @@ class IWebSocketSessionManager(ABC):
         pass
 
     @abstractmethod
-    def remove_from_group(self, session_id: str, group_name: str) -> bool:
+    def try_remove_from_group(self, session_id: str, group_name: str) -> bool:
         """Remove session from a named group
 
         Args:

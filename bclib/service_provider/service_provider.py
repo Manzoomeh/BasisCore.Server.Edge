@@ -16,9 +16,11 @@ import re
 from typing import (Any, Callable, Dict, ForwardRef, Optional, Type, TypeVar,
                     get_type_hints)
 
+from bclib.logger.ilogger import ILogger
+
 from .ihosted_service import IHostedService
 from .injection_plan import InjectionPlan
-from .iservice_provider import IServiceProvider
+from .iservice_provider import IServiceContainer, IServiceProvider
 from .service_descriptor import ServiceDescriptor
 from .service_lifetime import ServiceLifetime
 
@@ -99,13 +101,22 @@ class ServiceProvider(IServiceProvider):
         # Cache for multiple instances: service_type -> list[instances]
         self._scoped_instances_list: Dict[Type, list[Any]] = {}
         self._generic_singleton_instances_list: Dict[tuple, list[Any]] = {}
+        self.__logger: ILogger = None
+
+    @property
+    def logger(self) -> ILogger:
+        if self.__logger is None:
+            self.__logger = self.get_service(ILogger['ServiceProvider'])
+        return self.__logger
 
     def add_singleton(
         self,
         service_type: Type[T],
         implementation: Optional[Type[T]] = None,
         factory: Optional[Callable[['IServiceProvider', Any], T]] = None,
-        instance: Optional[T] = None
+        instance: Optional[T] = None,
+        is_hosted: bool = False,
+        priority: int = 0
     ) -> 'IServiceProvider':
         """
         Register a singleton service (one instance for entire application)
@@ -119,6 +130,8 @@ class ServiceProvider(IServiceProvider):
             implementation: Concrete implementation class
             factory: Factory function that receives ServiceProvider and **kwargs, creates the service
             instance: Pre-created instance
+            is_hosted: If True, service is instantiated at startup and start_async is called
+            priority: Initialization priority for hosted services (higher = initialized first, default=0)
 
         Returns:
             Self for chaining
@@ -137,6 +150,10 @@ class ServiceProvider(IServiceProvider):
             services.add_singleton(ILogger, factory=lambda sp, **kwargs: ConsoleLogger())
             services.add_singleton(IDatabase, factory=lambda sp, **kwargs: PostgresDB(sp.get_service(ILogger)))
 
+            # Register hosted service (initialized at startup)
+            services.add_singleton(IBackgroundService, BackgroundWorker, is_hosted=True)
+            services.add_singleton(IDatabase, DatabaseService, is_hosted=True, priority=100)
+
             # Factory can use generic_type_args from kwargs
             services.add_singleton(ILogger, factory=lambda sp, **kwargs: ConsoleLogger.create_logger(
                 kwargs.get('generic_type_args', ('App',))[0], options
@@ -152,59 +169,8 @@ class ServiceProvider(IServiceProvider):
             implementation=implementation,
             factory=factory,
             instance=instance,
-            lifetime=ServiceLifetime.SINGLETON
-        )
-        # Support multiple implementations: append to list instead of replacing
-        if service_type not in self._descriptors:
-            self._descriptors[service_type] = []
-        self._descriptors[service_type].append(descriptor)
-        return self
-
-    def add_hosted(
-        self,
-        service_type: Type[T],
-        implementation: Optional[Type[T]] = None,
-        factory: Optional[Callable[['IServiceProvider', Any], T]] = None,
-        priority: int = 0
-    ) -> 'IServiceProvider':
-        """
-        Register a hosted service (singleton instantiated at application startup)
-
-        Hosted services are like singletons but are automatically instantiated
-        when initialize_hosted_services_async() is called (typically at listener startup).
-        Useful for background services, initializers, and startup tasks.
-
-        Args:
-            service_type: The service interface/type
-            implementation: Concrete implementation class
-            factory: Factory function that receives ServiceProvider and **kwargs, creates the service
-            priority: Initialization priority (higher = initialized first, default=0)
-
-        Returns:
-            Self for chaining
-
-        Example:
-            ```python
-            # Register background service
-            services.add_hosted(IBackgroundService, BackgroundWorker)
-
-            # Register with priority (database initialized before background worker)
-            services.add_hosted(IDatabase, DatabaseService, priority=100)
-            services.add_hosted(IBackgroundWorker, BackgroundWorker, priority=50)
-
-            # Register with factory (receives ServiceProvider and **kwargs)
-            services.add_hosted(IStartupTask, factory=lambda sp, **kwargs: StartupTask(sp.get_service(ILogger)))
-
-            # Initialize all hosted services at startup (sorted by priority)
-            await services.initialize_hosted_services_async()
-            ```
-        """
-        descriptor = ServiceDescriptor(
-            service_type=service_type,
-            implementation=implementation,
-            factory=factory,
             lifetime=ServiceLifetime.SINGLETON,
-            is_hosted=True,
+            is_hosted=is_hosted,
             priority=priority
         )
         # Support multiple implementations: append to list instead of replacing
@@ -917,15 +883,12 @@ class ServiceProvider(IServiceProvider):
             return plan.create_instance(self, **kwargs)
         except Exception as ex:
             # Fallback to direct instantiation
-            from bclib.logger.ilogger import ILogger
-            logger = self.get_service(ILogger['ServiceProvider'])
-            if logger:
-                logger.error(
-                    "ServiceProvider.create_instance: Failed to create instance of %s: %s",
-                    class_type.__name__,
-                    str(ex),
-                    exc_info=True
-                )
+            self.logger.error(
+                "ServiceProvider.create_instance: Failed to create instance of %s: %s",
+                class_type.__name__,
+                str(ex),
+                exc_info=True
+            )
             return class_type(**kwargs)
 
     def is_registered(self, service_type: Type) -> bool:
@@ -1033,12 +996,48 @@ class ServiceProvider(IServiceProvider):
                 return await event_loop.run_in_executor(
                     None, lambda: method(**kwargs))
 
+    async def build_async(self) -> None:
+        """
+        Build the service provider asynchronously
+
+        This method should be called at application startup to ensure all services
+        are properly initialized, especially those that require async initialization.
+
+        Example:
+            ```python
+            # In dispatcher's initialize_task_async
+            async def initialize_task_async(self):
+                await self._service_provider.build_async()
+                # ... rest of initialization
+            ```
+        """
+        # Initialize all hosted services
+        await self.initialize_hosted_services_async()
+
+    async def dispose_async(self) -> None:
+        """
+        Dispose of all services asynchronously
+
+        This method should be called at application shutdown to ensure all services
+        are properly disposed, especially those that require async disposal.
+
+        Example:
+            ```python
+            # In dispatcher's shutdown_task_async
+            async def shutdown_task_async(self):
+                await self._service_provider.dispose_async()
+                # ... rest of cleanup
+            ```
+        """
+        # Dispose all hosted services
+        await self.stop_hosted_services_async()
+
     async def initialize_hosted_services_async(self) -> None:
         """
         Initialize all hosted services by instantiating them and calling start_async
 
         This should be called at application startup (typically in dispatcher.initialize_task_async)
-        to instantiate all services registered with add_hosted and call their start_async method
+        to instantiate all services registered with add_singleton(is_hosted=True) and call their start_async method
         if they implement IHostedService.
 
         Services are initialized in two phases:
@@ -1054,29 +1053,35 @@ class ServiceProvider(IServiceProvider):
             ```
         """
         # Get all hosted descriptors from all service types (now lists)
-        hosted_descriptors = []
+        hosted_descriptors: list[ServiceDescriptor] = []
         for descriptor_list in self._descriptors.values():
             for descriptor in descriptor_list:
                 if descriptor.is_hosted and descriptor.instance is None:
                     hosted_descriptors.append(descriptor)
+        if len(hosted_descriptors) != 0:
+            # log start services
+            self.logger.info("Initializing hosted services...")
+            # Separate into priority and non-priority services
+            priority_services = [
+                d for d in hosted_descriptors if d.priority > 0]
+            default_services = [
+                d for d in hosted_descriptors if d.priority == 0]
 
-        # Separate into priority and non-priority services
-        priority_services = [d for d in hosted_descriptors if d.priority > 0]
-        default_services = [d for d in hosted_descriptors if d.priority == 0]
+            # Sort priority services by priority (higher first)
+            priority_services.sort(key=lambda d: d.priority, reverse=True)
 
-        # Sort priority services by priority (higher first)
-        priority_services.sort(key=lambda d: d.priority, reverse=True)
+            # Combine: priority services first, then default services in registration order
+            sorted_descriptors = priority_services + default_services
 
-        # Combine: priority services first, then default services in registration order
-        sorted_descriptors = priority_services + default_services
+            for descriptor in sorted_descriptors:
+                # Instantiate the hosted service
+                instance = self.get_service(descriptor.service_type)
 
-        for descriptor in sorted_descriptors:
-            # Instantiate the hosted service
-            instance = self.get_service(descriptor.service_type)
-
-            # Call start_async if service implements IHostedService
-            if isinstance(instance, IHostedService):
-                await instance.start_async()
+                # Call start_async if service implements IHostedService
+                if isinstance(instance, IHostedService):
+                    await instance.start_async()
+            self.logger.info(
+                "%s Hosted service(s) initialized successfully.", len(hosted_descriptors))
 
     async def stop_hosted_services_async(self) -> None:
         """
@@ -1084,6 +1089,10 @@ class ServiceProvider(IServiceProvider):
 
         This should be called during application shutdown (in dispatcher.listening's after_end)
         to call stop_async on all hosted services that implement IHostedService.
+
+        Services are stopped in reverse order of initialization:
+        1. Priority = 0: Stopped in reverse registration order
+        2. Priority > 0: Sorted by priority (lower first - reverse of initialization)
 
         Example:
             ```python
@@ -1094,15 +1103,37 @@ class ServiceProvider(IServiceProvider):
             dispatcher.listening(after_end=shutdown())
             ```
         """
-        # Iterate over all descriptor lists and their individual descriptors
+        # Collect all hosted descriptors with instances
+        hosted_descriptors: list[ServiceDescriptor] = []
         for descriptor_list in self._descriptors.values():
             for descriptor in descriptor_list:
                 if descriptor.is_hosted and descriptor.instance is not None:
-                    instance = descriptor.instance
+                    hosted_descriptors.append(descriptor)
 
-                    # Call stop_async if service implements IHostedService
-                    if isinstance(instance, IHostedService):
-                        await instance.stop_async()
+        if len(hosted_descriptors) != 0:
+            self.logger.info("Stopping hosted services...")
+
+            # Separate into priority and non-priority services
+            priority_services = [
+                d for d in hosted_descriptors if d.priority > 0]
+            default_services = [
+                d for d in hosted_descriptors if d.priority == 0]
+
+            # Sort priority services by priority (lower first - reverse of init)
+            priority_services.sort(key=lambda d: d.priority)
+
+            # Combine in reverse order: default services first (reversed), then priority services
+            sorted_descriptors = list(
+                reversed(default_services)) + priority_services
+
+            for descriptor in sorted_descriptors:
+                instance = descriptor.instance
+                # Call stop_async if service implements IHostedService
+                if isinstance(instance, IHostedService):
+                    await instance.stop_async()
+
+            self.logger.info(
+                "%s Hosted service(s) stopped successfully.", len(hosted_descriptors))
 
     def __repr__(self) -> str:
         """String representation of service provider"""

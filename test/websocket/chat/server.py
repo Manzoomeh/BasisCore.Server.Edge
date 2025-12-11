@@ -51,7 +51,7 @@ async def websocket_handler(context: WebSocketContext, rkey: str):
         if manager:
             groups = manager.get_session_groups(session_id)
             for group in groups:
-                manager.remove_from_group(session_id, group)
+                manager.try_remove_from_group(session_id, group)
                 await notify_room(manager, group, f"User left the room", "system")
 
     elif context.message.is_text:

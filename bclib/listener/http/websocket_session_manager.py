@@ -246,7 +246,7 @@ class WebSocketSessionManager(IWebSocketSessionManager):
 
     # ==================== Group Management ====================
 
-    def add_to_group(self, session_id: str, group_name: str) -> bool:
+    def try_add_to_group(self, session_id: str, group_name: str) -> bool:
         """Add session to a named group
 
         Adds session to group for group-based messaging. Creates group
@@ -278,11 +278,15 @@ class WebSocketSessionManager(IWebSocketSessionManager):
         if group_name not in self._groups:
             self._groups[group_name] = set()
 
+        if session_id in self._groups[group_name]:
+            # Already in group, no-op
+            return False
+
         # Add session to group
         self._groups[group_name].add(session_id)
         return True
 
-    def remove_from_group(self, session_id: str, group_name: str) -> bool:
+    def try_remove_from_group(self, session_id: str, group_name: str) -> bool:
         """Remove session from a named group
 
         Removes session from group. Automatically deletes group if it becomes empty.

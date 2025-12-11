@@ -30,11 +30,10 @@ class IHostedService(ABC):
                 # Close connections, cancel tasks, cleanup, etc.
 
         # Register as hosted service
-        dispatcher.services.add_hosted(IHostedService, BackgroundWorker)
+        dispatcher.services.add_singleton(IHostedService, BackgroundWorker, is_hosted=True)
         ```
     """
 
-    @abstractmethod
     async def start_async(self) -> None:
         """
         Initialize service when application starts
@@ -52,7 +51,6 @@ class IHostedService(ABC):
         """
         pass
 
-    @abstractmethod
     async def stop_async(self) -> None:
         """
         Cleanup service when application stops
