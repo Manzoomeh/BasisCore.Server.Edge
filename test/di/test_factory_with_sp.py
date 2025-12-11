@@ -6,7 +6,7 @@ This allows factories to resolve other services from the DI container.
 """
 import unittest
 
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 
 # Interfaces

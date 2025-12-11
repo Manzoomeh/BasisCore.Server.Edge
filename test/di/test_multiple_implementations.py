@@ -6,7 +6,7 @@ for a single interface using the ServiceProvider.
 """
 from abc import ABC, abstractmethod
 
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 
 # Define interface

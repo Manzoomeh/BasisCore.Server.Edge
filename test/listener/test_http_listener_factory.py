@@ -3,7 +3,7 @@
 from bclib.listener.http.http_listener import HttpListener
 from bclib.listener.listener_factory import ListenerFactory
 from bclib.options.app_options import AppOptions
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 
 def test_single_string_endpoint():

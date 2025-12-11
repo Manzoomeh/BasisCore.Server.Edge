@@ -3,7 +3,7 @@
 Provides logging service for application-wide logging functionality.
 """
 
-from bclib.service_provider.iservice_provider import IServiceProvider
+from bclib.di.iservice_provider import IServiceProvider
 
 from .ilog_service import ILogService
 from .log_object import LogObject
@@ -25,7 +25,7 @@ def add_log_service(service_provider: IServiceProvider) -> None:
         ```python
         from bclib import edge
         from bclib.log_service import add_log_service
-        from bclib.service_provider import ServiceProvider
+        from bclib.di import ServiceProvider
 
         # Create DI container
         services = ServiceProvider()

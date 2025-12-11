@@ -19,7 +19,7 @@ Main Components:
 
 Example:
     ```python
-    from bclib.service_provider import IServiceProvider, ServiceProvider, ServiceLifetime
+    from bclib.di import IServiceProvider, ServiceProvider, ServiceLifetime
     
     # Create and configure container
     services = ServiceProvider()
@@ -95,7 +95,7 @@ def create_service_provider(loop: Optional[asyncio.AbstractEventLoop] = None) ->
     Example:
         ```python
         from bclib import edge
-        from bclib.service_provider import create_service_provider
+        from bclib.di import create_service_provider
 
         # Load app options (e.g., from config file)
         app_options = edge.load_app_options("config/host.json")

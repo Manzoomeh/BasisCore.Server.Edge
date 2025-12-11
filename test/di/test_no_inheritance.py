@@ -4,7 +4,7 @@ Test DI configuration without inheritance
 from abc import ABC, abstractmethod
 
 from bclib import edge
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 
 class ILogger(ABC):

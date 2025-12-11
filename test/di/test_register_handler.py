@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, Mock
 
 from bclib.context import HttpContext, RESTfulContext, SocketContext
 from bclib.dispatcher import Dispatcher
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 
 # Test services

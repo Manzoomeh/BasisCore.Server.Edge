@@ -5,11 +5,11 @@ import inspect
 from typing import get_type_hints
 
 from bclib.context import Context  # Import Context for type hints evaluation
-from bclib.service_provider import (InjectionPlan, InjectionStrategy,
+from bclib.di import (InjectionPlan, InjectionStrategy,
                                     ServiceDescriptor, ServiceLifetime)
-from bclib.service_provider import ServiceProvider
-from bclib.service_provider import ServiceProvider as SPFromUtility
-from bclib.service_provider import ServiceStrategy, ValueStrategy
+from bclib.di import ServiceProvider
+from bclib.di import ServiceProvider as SPFromUtility
+from bclib.di import ServiceStrategy, ValueStrategy
 
 print("=" * 70)
 print("Testing Service Provider Module Location & Type Hints")

@@ -54,11 +54,11 @@ from bclib.options.app_options import AppOptions
 if TYPE_CHECKING:
     from bclib.context.context_factory import ContextFactory
 
+from bclib.di import InjectionPlan, IServiceProvider
 from bclib.exception import HandlerNotFoundErr
 from bclib.listener import IListener, IResponseBaseMessage, Message
 from bclib.logger.ilogger import ILogger
 from bclib.predicate import Predicate
-from bclib.service_provider import InjectionPlan, IServiceProvider
 from bclib.utility.static_file_handler import StaticFileHandler
 
 from .callback_info import CallbackInfo

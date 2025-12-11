@@ -13,7 +13,7 @@ from bclib.utility.static_file_handler import StaticFileHandler
 if TYPE_CHECKING:
 
     from bclib.context.context import Context
-    from bclib.service_provider.iservice_provider import IServiceProvider
+    from bclib.di.iservice_provider import IServiceProvider
 
 
 class IDispatcher(PredicateHelper, ABC):

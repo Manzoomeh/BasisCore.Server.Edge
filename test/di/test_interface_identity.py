@@ -22,7 +22,7 @@ def test_ioptions_identity():
 
     # Test in DI container
     from bclib.options import add_options_service
-    from bclib.service_provider import ServiceProvider
+    from bclib.di import ServiceProvider
 
     sp = ServiceProvider()
     config = {"test": "value"}
@@ -70,7 +70,7 @@ def test_ilogservice_identity():
 
     from bclib.log_service import LogService, add_log_service
     from bclib.options import add_options_service
-    from bclib.service_provider import ServiceProvider
+    from bclib.di import ServiceProvider
 
     sp = ServiceProvider()
 
@@ -120,7 +120,7 @@ def test_idbmanager_identity():
 
     from bclib.db_manager import DbManager
     from bclib.options import add_options_service
-    from bclib.service_provider import ServiceProvider
+    from bclib.di import ServiceProvider
 
     sp = ServiceProvider()
 
@@ -158,7 +158,7 @@ def test_mixed_imports_in_constructor():
 
     from bclib.log_service import add_log_service
     from bclib.options import add_options_service
-    from bclib.service_provider import ServiceProvider
+    from bclib.di import ServiceProvider
 
     # Setup DI
     sp = ServiceProvider()

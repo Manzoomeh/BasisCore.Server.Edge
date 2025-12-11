@@ -1,7 +1,7 @@
 """Test to verify value parameter optimization in InjectionPlan"""
 
 from bclib.options import IOptions
-from bclib.service_provider import InjectionPlan, ServiceProvider
+from bclib.di import InjectionPlan, ServiceProvider
 
 
 def test_has_value_parameters_flag():

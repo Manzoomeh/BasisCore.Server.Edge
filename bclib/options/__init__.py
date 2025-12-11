@@ -1,7 +1,7 @@
 """Options module - Configuration access for dependency injection"""
 from typing import ForwardRef
 
-from bclib.service_provider.iservice_provider import IServiceProvider
+from bclib.di.iservice_provider import IServiceProvider
 
 from .app_options import AppOptions
 from .ioptions import IOptions

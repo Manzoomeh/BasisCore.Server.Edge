@@ -2,7 +2,7 @@
 Final comprehensive test for simplified service_provider API
 Tests that all strategy classes work with **kwargs parameter
 """
-from bclib.service_provider import (InjectionPlan, InjectionStrategy,
+from bclib.di import (InjectionPlan, InjectionStrategy,
                                     ServiceProvider, ServiceStrategy,
                                     ValueStrategy)
 

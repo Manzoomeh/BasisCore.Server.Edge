@@ -23,7 +23,7 @@ The BasisCore ServiceProvider now supports registering and resolving multiple im
 ### Basic Usage
 
 ```python
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 # Create container
 services = ServiceProvider()
@@ -379,7 +379,7 @@ factory = services.get_service(ListenerFactory)
 
 ```python
 from abc import ABC, abstractmethod
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 # Define interface
 class INotificationService(ABC):

@@ -1,5 +1,5 @@
 """Comprehensive test for ServiceOptions with dict inheritance"""
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 from bclib.options import ServiceOptions, add_options_service
 import sys
 

@@ -1,4 +1,4 @@
-from bclib.service_provider.iservice_provider import IServiceProvider
+from bclib.di.iservice_provider import IServiceProvider
 
 from .idispatcher import IDispatcher
 from .imessage_handler import IMessageHandler

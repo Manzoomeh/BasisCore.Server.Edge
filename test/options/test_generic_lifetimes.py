@@ -1,7 +1,7 @@
 """Comprehensive test for generic singleton/scoped services"""
 
 from bclib.options import AppOptions, IOptions, add_options_service
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 
 def test_generic_singleton_caching():

@@ -37,8 +37,8 @@ from abc import ABC
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from bclib.di.iservice_provider import IServiceProvider
     from bclib.dispatcher.idispatcher import IDispatcher
-    from bclib.service_provider.iservice_provider import IServiceProvider
 
 
 class Context(ABC):

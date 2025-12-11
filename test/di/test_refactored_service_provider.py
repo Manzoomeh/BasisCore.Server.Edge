@@ -4,7 +4,7 @@ Test refactored ServiceProvider using InjectionPlan
 import asyncio
 from abc import ABC, abstractmethod
 
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 from bclib.utility import DictEx
 
 

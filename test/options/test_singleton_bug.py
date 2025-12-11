@@ -1,7 +1,7 @@
 """Test to reproduce singleton bug with IOptions['key']"""
 
 from bclib.options import AppOptions, IOptions, add_options_service
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 
 def test_singleton_registration():

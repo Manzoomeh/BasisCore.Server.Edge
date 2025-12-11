@@ -3,7 +3,7 @@
 import time
 
 from bclib.options import AppOptions, IOptions
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 
 def benchmark_singleton_caching():

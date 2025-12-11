@@ -1,7 +1,7 @@
 """Simple test to debug IOptions content"""
 
 from bclib.options import AppOptions, IOptions, add_options_service
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 
 def test_direct_creation():

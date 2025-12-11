@@ -6,7 +6,7 @@ for managing multiple listener instances instead of manual creation.
 """
 from abc import ABC, abstractmethod
 
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 
 # Listener Interface

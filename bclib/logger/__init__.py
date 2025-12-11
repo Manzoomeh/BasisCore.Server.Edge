@@ -2,7 +2,7 @@
 
 Provides independent generic logger functionality based on Python's standard logging.
 """
-from bclib.service_provider import IServiceProvider
+from bclib.di import IServiceProvider
 
 from .console_logger import ConsoleLogger
 from .ilogger import ILogger
@@ -28,7 +28,7 @@ def add_default_logger(service_provider: IServiceProvider) -> None:
         ```python
         from bclib import edge
         from bclib.logger import add_logger_services
-        from bclib.service_provider import ServiceProvider
+        from bclib.di import ServiceProvider
 
         # Create DI container
         services = ServiceProvider()

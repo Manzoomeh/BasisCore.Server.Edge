@@ -6,7 +6,7 @@ import sys
 from typing import ForwardRef
 
 from bclib.options import IOptions, add_options_service
-from bclib.service_provider import InjectionPlan, ServiceProvider
+from bclib.di import InjectionPlan, ServiceProvider
 
 sys.path.insert(
     0, 'd:/Programming/Falsafi/BasisCore/Server/BasisCore.Server.Edge')

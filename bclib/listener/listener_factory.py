@@ -2,8 +2,8 @@
 import asyncio
 from typing import TYPE_CHECKING
 
+from bclib.di.iservice_provider import IServiceProvider
 from bclib.options.app_options import AppOptions
-from bclib.service_provider.iservice_provider import IServiceProvider
 
 from .http.http_listener import HttpListener
 from .ilistener_factory import IListenerFactory
