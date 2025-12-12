@@ -36,6 +36,8 @@ Note:
 from abc import ABC
 from typing import TYPE_CHECKING
 
+from bclib.di.iservice_container import IServiceContainer
+
 if TYPE_CHECKING:
     from bclib.di.iservice_provider import IServiceProvider
     from bclib.dispatcher.idispatcher import IDispatcher
@@ -93,8 +95,10 @@ class Context(ABC):
         # Create scoped service provider for this request
         if create_scope:
             self.__service_provider = dispatcher.service_provider.create_scope()
+            # service_container = self.__service_provider.get_service(
+            #     IServiceContainer)
             # Register current context as singleton in the scoped service provider
-            self.__service_provider.add_singleton(type(self), instance=self)
+            self.__service_provider.add_scoped(type(self), instance=self)
         else:
             self.__service_provider = dispatcher.service_provider
 

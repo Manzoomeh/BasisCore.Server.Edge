@@ -50,7 +50,7 @@ class IDispatcher(PredicateHelper, ABC):
         pass
 
     @abstractmethod
-    def listening(self, before_start: Coroutine = None, after_end: Coroutine = None, with_block: bool = True):
+    def listening(self):
         """Start listening to request for process"""
         pass
 

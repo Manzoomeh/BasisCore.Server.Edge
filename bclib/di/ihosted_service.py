@@ -4,7 +4,7 @@ Hosted Service Interface - Contract for services with startup and shutdown lifec
 Defines the contract for services that need to perform initialization
 and cleanup operations during application startup and shutdown.
 """
-from abc import ABC, abstractmethod
+from abc import ABC
 
 
 class IHostedService(ABC):

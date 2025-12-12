@@ -1,10 +1,10 @@
-from bclib.di.iservice_provider import IServiceProvider
+from bclib.di import IServiceContainer
 
 from .idispatcher import IDispatcher
 from .imessage_handler import IMessageHandler
 
 
-def adding_dispatcher_services(service_provider: IServiceProvider) -> None:
+def adding_dispatcher_services(service_container: IServiceContainer) -> None:
     """
     Add Dispatcher services to the service provider
 
@@ -18,14 +18,15 @@ def adding_dispatcher_services(service_provider: IServiceProvider) -> None:
     from .dispatcher import Dispatcher
 
     # Register dispatcher itself in DI container
-    service_provider.add_singleton(Dispatcher, Dispatcher)
-    service_provider.add_singleton(
+    service_container.add_singleton(Dispatcher, Dispatcher, is_hosted=True)
+    service_container.add_singleton(
         IDispatcher, factory=lambda sp, **kwargs: sp.get_service(Dispatcher))
-    service_provider.add_singleton(
+    service_container.add_singleton(
         IMessageHandler, factory=lambda sp, **kwargs: sp.get_service(Dispatcher))
 
 
 __all__ = [
     'IDispatcher',
+    'IMessageHandler',
     'adding_dispatcher_services',
 ]

@@ -44,9 +44,9 @@ if TYPE_CHECKING:
     from aiohttp import web
 
     from bclib.dispatcher import IMessageHandler
-    from bclib.listener.http.websocket_message import WebSocketMessage
-    from bclib.websocket.websocket_session_manager import \
-        WebSocketSessionManager
+
+    from .websocket_message import WebSocketMessage
+    from .websocket_session_manager import WebSocketSessionManager
 
 
 class WebSocketSession:

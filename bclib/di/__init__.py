@@ -43,41 +43,23 @@ import sys
 from typing import Optional
 
 from .ihosted_service import IHostedService
-# Performance optimization
 from .injection_plan import InjectionPlan
-from .injection_strategy import (InjectionStrategy, ServiceStrategy,
-                                 ValueStrategy)
 # Core DI container
 from .iservice_container import IServiceContainer
 from .iservice_provider import IServiceProvider
-from .service_descriptor import ServiceDescriptor
-# Service configuration
-from .service_lifetime import ServiceLifetime
 
 __all__ = [
     # Main DI container
     'IServiceContainer',
     'IServiceProvider',
-    'ServiceProvider',
-
-    # Configuration
-    'ServiceLifetime',
-    'ServiceDescriptor',
 
     # Hosted services
     'IHostedService',
-
-    # Performance optimization
     'InjectionPlan',
-
-    # Strategy pattern (advanced usage)
-    'InjectionStrategy',
-    'ValueStrategy',
-    'ServiceStrategy',
 ]
 
 
-def create_service_provider(loop: Optional[asyncio.AbstractEventLoop] = None) -> IServiceContainer:
+def create_service_container(loop: Optional[asyncio.AbstractEventLoop] = None) -> IServiceContainer:
     """
     Create and configure the main ServiceProvider (DI Container)
 
@@ -126,3 +108,17 @@ def create_service_provider(loop: Optional[asyncio.AbstractEventLoop] = None) ->
     # Register event loop in DI container
     return io_c_container.add_singleton(
         asyncio.AbstractEventLoop, instance=event_loop)
+
+
+def convert_to_service_provider(service_container: IServiceContainer) -> IServiceProvider:
+    """
+    Convert a service container to a service provider
+
+    This function ensures that the provided service container is
+    also an instance of IServiceProvider, which includes methods for
+    resolving services and managing the DI container.
+
+    Args:
+        service_container (IServiceContainer): The service container to convert
+    """
+    return service_container  # Assuming IServiceContainer is a subclass of IServiceProvider

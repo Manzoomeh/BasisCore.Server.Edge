@@ -92,16 +92,18 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
         ```
     """
 
-    def __init__(self) -> None:
-        """Initialize service provider with empty registrations"""
+    def __init__(self, parent: Optional['ServiceProvider'] = None) -> None:
+        """Initialize service provider with optional parent for scope hierarchy
+
+        Args:
+            parent: Parent service provider (None for root container)
+        """
+        self._parent: Optional['ServiceProvider'] = parent
         # Changed: Now stores list of descriptors per service type to support multiple implementations
         self._descriptors: Dict[Type, list[ServiceDescriptor]] = {}
         self._scoped_instances: Dict[Type, Any] = {}
         # Cache for generic singleton instances: (base_type, generic_args_tuple) -> instance
         self._generic_singleton_instances: Dict[tuple, Any] = {}
-        # Cache for multiple instances: service_type -> list[instances]
-        self._scoped_instances_list: Dict[Type, list[Any]] = {}
-        self._generic_singleton_instances_list: Dict[tuple, list[Any]] = {}
         self.__logger: ILogger = None
 
     @property
@@ -118,7 +120,7 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
         instance: Optional[T] = None,
         is_hosted: bool = False,
         priority: int = 0
-    ) -> 'IServiceProvider':
+    ) -> 'IServiceContainer':
         """
         Register a singleton service (one instance for entire application)
 
@@ -184,8 +186,9 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
         self,
         service_type: Type[T],
         implementation: Optional[Type[T]] = None,
-        factory: Optional[Callable[['IServiceProvider', Any], T]] = None
-    ) -> 'IServiceProvider':
+        factory: Optional[Callable[['IServiceProvider', Any], T]] = None,
+        instance: Optional[T] = None,
+    ) -> 'IServiceContainer':
         """
         Register a scoped service (one instance per scope/request)
 
@@ -196,6 +199,7 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
             service_type: The service interface/type
             implementation: Concrete implementation class
             factory: Factory function that receives ServiceProvider and **kwargs, creates the service
+            instance: Pre-created instance (stored in current scope only, not shared with child scopes)
 
         Returns:
             Self for chaining
@@ -212,8 +216,18 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
             # Register by factory (receives ServiceProvider and **kwargs)
             services.add_scoped(IDatabase, factory=lambda sp, **kwargs: PostgresDatabase("connection_string"))
             services.add_scoped(ICache, factory=lambda sp, **kwargs: RedisCache(sp.get_service(ILogger)))
+
+            # Register with instance (only in current scope)
+            db_instance = PostgresDatabase("conn_string")
+            services.add_scoped(IDatabase, instance=db_instance)
             ```
         """
+        # If instance provided, store it in current scope's cache
+        if instance is not None:
+            if service_type not in self._scoped_instances:
+                self._scoped_instances[service_type] = instance
+            # Don't store instance in descriptor (would be shared across scopes)
+
         descriptor = ServiceDescriptor(
             service_type=service_type,
             implementation=implementation,
@@ -231,7 +245,7 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
         service_type: Type[T],
         implementation: Optional[Type[T]] = None,
         factory: Optional[Callable[['IServiceProvider', Any], T]] = None
-    ) -> 'IServiceProvider':
+    ) -> 'IServiceContainer':
         """
         Register a transient service (new instance every time)
 
@@ -523,18 +537,36 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
                 cache_key = self._make_generic_cache_key(
                     base_type_for_cache, generic_type_args)
 
+                # Check current scope
                 if cache_key in self._scoped_instances:
                     return self._scoped_instances[cache_key]
 
-                # Create new instance and cache it
+                # Check parent scope chain
+                if self._parent is not None:
+                    parent_instance = self._parent._get_scoped_from_chain(
+                        cache_key)
+                    if parent_instance is not None:
+                        return parent_instance
+
+                # Create new instance and cache it in current scope
                 instance = self._create_instance(descriptor, **kwargs)
                 if instance is not None:
                     self._scoped_instances[cache_key] = instance
                 return instance
             else:
                 # Non-generic scoped service
+                # Check current scope
                 if service_type in self._scoped_instances:
                     return self._scoped_instances[service_type]
+
+                # Check parent scope chain
+                if self._parent is not None:
+                    parent_instance = self._parent._get_scoped_from_chain(
+                        service_type)
+                    if parent_instance is not None:
+                        return parent_instance
+
+                # Create new instance and cache it in current scope
                 instance = self._create_instance(descriptor, **kwargs)
                 if instance is not None:
                     self._scoped_instances[service_type] = instance
@@ -543,6 +575,24 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
         # Transient: always create new
         else:
             return self._create_instance(descriptor, **kwargs)
+
+    def _get_scoped_from_chain(self, key: Any) -> Optional[Any]:
+        """
+        Recursively search parent scope chain for scoped instance
+
+        Args:
+            key: Cache key (service_type or generic cache tuple)
+
+        Returns:
+            Scoped instance from parent chain or None
+        """
+        if key in self._scoped_instances:
+            return self._scoped_instances[key]
+
+        if self._parent is not None:
+            return self._parent._get_scoped_from_chain(key)
+
+        return None
 
     @staticmethod
     def _make_generic_cache_key(base_type: Type, generic_args: tuple) -> tuple:
@@ -692,26 +742,43 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
 
     def create_scope(self) -> 'IServiceProvider':
         """
-        Create a new scope for scoped services (per-request)
+        Create a new child scope for scoped services (per-request)
+
+        Creates hierarchical scope structure where:
+        - Child has its own scoped instances cache
+        - Child shares descriptors with parent (service registrations)
+        - Child shares singleton cache with root (singleton = global)
+        - Child can access parent's scoped instances via scope chain
 
         Returns:
-            New IServiceProvider with same registrations but fresh scoped instances
+            New IServiceProvider with parent reference for scope chain
 
         Example:
             ```python
             # Create scope for each request
             request_services = app.services.create_scope()
 
-            # Use scoped services
+            # Use scoped services (checks this scope, then parent chain)
             db = request_services.get_service(IDatabase)
+
+            # Nested scopes
+            nested_scope = request_services.create_scope()
+            nested_db = nested_scope.get_service(IDatabase)  # Can access parent scoped
 
             # Clean up after request
             request_services.clear_scope()
             ```
         """
-        scoped_provider = ServiceProvider()
-        scoped_provider._descriptors = self._descriptors
-        # New scoped_instances for this scope
+        # Find root to share singleton cache
+        root = self
+        while root._parent is not None:
+            root = root._parent
+
+        # Create child scope
+        scoped_provider = ServiceProvider(parent=self)
+        scoped_provider._descriptors = self._descriptors  # Share registrations
+        # Share singleton cache with root
+        scoped_provider._generic_singleton_instances = root._generic_singleton_instances
         return scoped_provider
 
     def clear_scope(self) -> None:

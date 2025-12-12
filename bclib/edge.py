@@ -43,7 +43,8 @@ import asyncio
 from bclib import __version__
 from bclib.context import *
 from bclib.db_manager import *
-from bclib.di import IServiceProvider, create_service_provider
+from bclib.di import (IServiceProvider, convert_to_service_provider,
+                      create_service_container)
 from bclib.dispatcher import IDispatcher, adding_dispatcher_services
 from bclib.exception import *
 from bclib.listener import (HttpBaseDataName, HttpBaseDataType, Message,
@@ -213,26 +214,28 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDisp
         __print_splash(False)
 
     # Create ServiceProvider and set up event loop
-    service_provider = create_service_provider(loop)
-    add_default_logger(service_provider)
+    service_container = create_service_container(loop)
+    add_default_logger(service_container)
 
     # Register IOptions factory for configuration access
-    add_options_service(service_provider, options)
+    add_options_service(service_container, options)
 
     # Register log service in DI container
-    add_log_service(service_provider)
+    add_log_service(service_container)
 
     # Register database manager in DI container
     from bclib.db_manager import DbManager, IDbManager
-    service_provider.add_singleton(IDbManager, DbManager)
+    service_container.add_singleton(IDbManager, DbManager)
 
     # Register listener factory in DI container
     from bclib.listener import adding_listener_services
-    adding_listener_services(service_provider)
+    adding_listener_services(service_container)
 
-    adding_dispatcher_services(service_provider)
+    adding_dispatcher_services(service_container)
 
     # Create Dispatcher instance
+    service_provider = convert_to_service_provider(service_container)
+
     return service_provider.get_service(IDispatcher)
 
 

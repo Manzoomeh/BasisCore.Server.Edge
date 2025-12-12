@@ -8,6 +8,7 @@ and service resolution (runtime).
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, Type, TypeVar
 
+from .iservice_provider import IServiceProvider
 from .service_lifetime import ServiceLifetime
 
 T = TypeVar('T')
@@ -59,7 +60,8 @@ class IServiceContainer(ABC):
         self,
         service_type: Type[T],
         implementation: Optional[Type[T]] = None,
-        factory: Optional[Callable[['IServiceProvider'], T]] = None
+        factory: Optional[Callable[['IServiceProvider'], T]] = None,
+        instance: Optional[T] = None
     ) -> 'IServiceContainer':
         """
         Register a scoped service (one instance per scope/request)
