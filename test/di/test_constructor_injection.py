@@ -3,7 +3,7 @@ Quick test for Constructor Injection
 """
 from abc import ABC, abstractmethod
 
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 
 # Mock minimal Context for testing

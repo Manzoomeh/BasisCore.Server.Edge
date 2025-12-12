@@ -10,9 +10,15 @@ from bclib.logger.ilogger import ILogger
 
 
 class RabbitListener(IListener):
-    def __init__(self, connection_options: dict, message_handler: IMessageHandler, loop: asyncio.AbstractEventLoop, logger: ILogger['RabbitListener']) -> None:
+    def __init__(self, message_handler: IMessageHandler, logger: ILogger['RabbitListener'], options: dict) -> None:
         self._message_handler = message_handler
         self._logger = logger
+        self.__options = options
+
+        # Extract connection options from options dict
+        connection_options = options.get(
+            'connection_options') or options.get('rabbit') or options
+
         import pika
         from pika.adapters.blocking_connection import BlockingChannel
         try:
@@ -69,7 +75,7 @@ class RabbitListener(IListener):
             self.__connection: Optional[pika.BlockingConnection] = None
             self.__channel: Optional[BlockingChannel] = None
             # Store event loop reference for cross-thread task scheduling
-            self.__event_loop: asyncio.AbstractEventLoop = loop
+            self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
 
         except Exception as ex:
             if self._logger:
@@ -170,6 +176,7 @@ class RabbitListener(IListener):
                     f"error in dispatcher received message from rabbit in {self._host}:{self._queue_name} ({ex})")
 
     def initialize_task(self, loop: asyncio.AbstractEventLoop) -> asyncio.Future:
+        self.__event_loop = loop
         return loop.create_task(self.__consuming_task())
 
     async def __consuming_task(self):

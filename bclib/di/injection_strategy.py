@@ -85,6 +85,9 @@ class ServiceStrategy(ValueStrategy):
     First checks if the parameter is provided in kwargs (via parent ValueStrategy),
     then falls back to DI container. This allows explicit parameter overrides while 
     still supporting dependency injection.
+
+    IMPORTANT: kwargs are NOT passed to nested dependencies to avoid parameter name conflicts.
+    Only the root-level injection receives kwargs.
     """
 
     def __init__(self, param_name: str, service_type: Type) -> None:
@@ -96,8 +99,10 @@ class ServiceStrategy(ValueStrategy):
         if self.param_name in kwargs:
             return kwargs[self.param_name]
 
-        # Fall back to DI container
+        # Fall back to DI container - DO NOT pass kwargs to avoid nested parameter conflicts
+        # Example: HttpListener has 'options' for HTTP config, ILogger also has 'options' for app config
+        # We don't want HttpListener's options to interfere with ILogger's options
         if services is None:
             return None
 
-        return services.get_service(self.target_type, **kwargs)
+        return services.get_service(self.target_type)

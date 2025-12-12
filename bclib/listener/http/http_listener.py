@@ -137,37 +137,66 @@ class HttpListener(IListener):
 
     def __init__(
         self,
-        endpoint: Endpoint,
         message_handler: IMessageHandler,
         logger: ILogger['HttpListener'],
         ws_manager: IWebSocketSessionManager,
-        ssl_options: Optional[dict] = None,
-        configuration: Optional[dict] = None
+        options: dict
     ):
-        """Initialize HTTP listener with endpoint and configuration
+        """Initialize HTTP listener from options dictionary
 
         Args:
-            endpoint (Endpoint): Server binding (host:port)
             message_handler (IMessageHandler): Message handler instance
-            ssl_options (Optional[dict]): SSL/TLS config with certfile/keyfile or pfxfile/password
-            configuration (Optional[DictEx]): Server config (logger, middlewares, etc.)
-            ws_manager (Optional[WebSocketSessionManager]): WebSocket session manager instance
-            logger (Optional[ILogger]): Logger instance (will be injected by DI if not provided)
+            logger (ILogger): Logger instance (injected by DI)
+            ws_manager (IWebSocketSessionManager): WebSocket session manager instance
+            options (dict): HTTP listener configuration containing:
+                - endpoint (str|dict): Server endpoint (e.g., "localhost:8080" or {"url": "localhost", "port": 8080})
+                - ssl (Optional[dict]): SSL/TLS config with certfile/keyfile or pfxfile/password
+                - config (Optional[dict]): Server config (router, middlewares, etc.)
+
+        Example options:
+            ```python
+            # Simple string endpoint
+            options = {"endpoint": "localhost:8080"}
+
+            # With SSL
+            options = {
+                "endpoint": "0.0.0.0:443",
+                "ssl": {"certfile": "cert.pem", "keyfile": "key.pem"}
+            }
+
+            # Full configuration
+            options = {
+                "endpoint": "localhost:8080",
+                "ssl": {...},
+                "config": {"router": "restful", "middlewares": [...]}
+            }
+            ```
         """
         self._message_handler = message_handler
         self._logger = logger
-        self.__endpoint = endpoint
-        self.__ssl_options = ssl_options
-        self.__config = configuration if configuration is not None else DictEx()
-        self.__router = self.__config.get(
-            HttpListener.ROUTER, HttpListener._DEFAULT_ROUTER)
-        self.__middlewares = self.__config.get(
-            HttpListener.MIDDLEWARES, HttpListener._DEFAULT_MIDDLEWARES)
-        self.__handler_args = self.__config.get(
-            HttpListener.HANDLER_ARGS, HttpListener._DEFAULT_HANDLER_ARGS)
-        self.__client_max_size = self.__config.get(
-            HttpListener.CLIENT_MAX_SIZE, HttpListener._DEFAULT_CLIENT_MAX_SIZE)
         self.__ws_manager = ws_manager
+
+        # Normalize options to dict format
+        if isinstance(options, str):
+            # Simple string: "localhost:8080"
+            self.__options = {"endpoint": options}
+        elif isinstance(options, dict):
+            # Already a dict
+            self.__options = options
+        else:
+            raise ValueError(
+                f"Invalid options type: {type(options)}. Expected str or dict.")
+
+        # Extract endpoint - can be string or dict
+        endpoint_value = self.__options.get(
+            'endpoint') or self.__options.get('http')
+        if isinstance(endpoint_value, dict):
+            # Dict format: {"url": "localhost", "port": 8080}
+            self.__endpoint = Endpoint(endpoint_value.get(
+                'host', 'localhost'), endpoint_value.get('port', 80))
+        else:
+            # String format: "localhost:8080"
+            self.__endpoint = Endpoint(endpoint_value)
 
     def initialize_task(self, event_loop: asyncio.AbstractEventLoop):
         """Initialize HTTP server task in event loop
@@ -206,28 +235,36 @@ class HttpListener(IListener):
             # Handle regular HTTP request
             return await self.__handle_http_async(request, cms_object)
 
+        # Get config values from options
+        app_config = self.__options.get('config', {})
         app = web.Application(
             logger=self._logger,
-            router=self.__router,
-            middlewares=self.__middlewares,
-            handler_args=self.__handler_args,
-            client_max_size=self.__client_max_size,
+            router=app_config.get(HttpListener.ROUTER,
+                                  HttpListener._DEFAULT_ROUTER),
+            middlewares=app_config.get(
+                HttpListener.MIDDLEWARES, HttpListener._DEFAULT_MIDDLEWARES),
+            handler_args=app_config.get(
+                HttpListener.HANDLER_ARGS, HttpListener._DEFAULT_HANDLER_ARGS),
+            client_max_size=app_config.get(
+                HttpListener.CLIENT_MAX_SIZE, HttpListener._DEFAULT_CLIENT_MAX_SIZE),
             loop=event_loop
         )
         app.add_routes(
             [web.route('*', '/{tail:.*}', on_request_receive_async)])
+
         ssl_context = None
-        if self.__ssl_options:
+        ssl_options = self.__options.get('ssl')
+        if ssl_options:
             ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-            if "certfile" in self.__ssl_options:
+            if "certfile" in ssl_options:
                 ssl_context.load_cert_chain(
-                    certfile=self.__ssl_options["certfile"],
-                    keyfile=self.__ssl_options["keyfile"]
+                    certfile=ssl_options["certfile"],
+                    keyfile=ssl_options["keyfile"]
                 )
-            elif "pfxfile" in self.__ssl_options:
+            elif "pfxfile" in ssl_options:
                 fullchain_path, key_path = HttpListener.convert_pfx_to_temp_files(
-                    self.__ssl_options["pfxfile"],
-                    self.__ssl_options["password"]
+                    ssl_options["pfxfile"],
+                    ssl_options["password"]
                 )
                 try:
                     ssl_context.load_cert_chain(
@@ -245,11 +282,13 @@ class HttpListener(IListener):
 
         runner = web.AppRunner(app, handle_signals=True)
         await runner.setup()
-        site = web.TCPSite(runner, self.__endpoint.url,
+        site = web.TCPSite(runner, self.__endpoint.host,
                            self.__endpoint.port, ssl_context=ssl_context)
         await site.start()
+
+        ssl_options = self.__options.get('ssl')
         self._logger.info(
-            f"Development Edge server started at http{'s' if self.__ssl_options else ''}://{self.__endpoint.url}:{self.__endpoint.port}")
+            f"Development Edge server started at http{'s' if ssl_options else ''}://{self.__endpoint.host}:{self.__endpoint.port}")
         try:
             while True:
                 await asyncio.sleep(1)
@@ -257,7 +296,7 @@ class HttpListener(IListener):
             pass
         finally:
             self._logger.info(
-                f"Development Edge server for http{'s' if self.__ssl_options else ''}://{self.__endpoint.url}:{self.__endpoint.port} stopped.")
+                f"Development Edge server for http{'s' if self.__ssl_options else ''}://{self.__endpoint.host}:{self.__endpoint.port} stopped.")
             await site.stop()
             await runner.cleanup()
             await runner.shutdown()

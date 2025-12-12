@@ -234,7 +234,7 @@ class WebSocketSessionManager(IWebSocketSessionManager):
         Example:
             ```python
             for session in ws_manager.get_active_sessions():
-                print(f"Session {session.session_id}: {session.remote_address}")
+                print(f"Session {session.id}: {session.remote_address}")
             ```
         """
         return list(self._sessions.values())
@@ -246,7 +246,7 @@ class WebSocketSessionManager(IWebSocketSessionManager):
 
     # ==================== Group Management ====================
 
-    def add_to_group(self, session_id: str, group_name: str) -> bool:
+    def try_add_to_group(self, session_id: str, group_name: str) -> bool:
         """Add session to a named group
 
         Adds session to group for group-based messaging. Creates group
@@ -278,11 +278,15 @@ class WebSocketSessionManager(IWebSocketSessionManager):
         if group_name not in self._groups:
             self._groups[group_name] = set()
 
+        if session_id in self._groups[group_name]:
+            # Already in group, no-op
+            return False
+
         # Add session to group
         self._groups[group_name].add(session_id)
         return True
 
-    def remove_from_group(self, session_id: str, group_name: str) -> bool:
+    def try_remove_from_group(self, session_id: str, group_name: str) -> bool:
         """Remove session from a named group
 
         Removes session from group. Automatically deletes group if it becomes empty.
@@ -385,32 +389,26 @@ class WebSocketSessionManager(IWebSocketSessionManager):
         return [group_name for group_name, session_ids in self._groups.items()
                 if session_id in session_ids]
 
-    async def send_to_group(self, group_name: str, message: Any, message_type: str = 'text') -> int:
-        """Send message to all sessions in a group
+    async def send_text_to_group_async(self, group_name: str, message: str) -> int:
+        """Send text message to all sessions in a group
 
-        Sends message to all active sessions in group. Continues on individual
+        Sends text message to all active sessions in group. Continues on individual
         send failures (e.g., closed connections).
 
         Args:
             group_name (str): Target group name
-            message (Any): Message to send (str for text, dict for json, bytes for binary)
-            message_type (str): Message type: 'text', 'json', or 'binary' (default: 'text')
+            message (str): Text message to send
 
         Returns:
             int: Number of sessions message was successfully sent to
 
         Example:
             ```python
-            # Send JSON to chat room
-            sent_count = await ws_manager.send_to_group(
+            sent_count = await ws_manager.send_text_to_group_async(
                 "chat_room_1",
-                {"user": "Alice", "message": "Hello everyone!"},
-                "json"
+                "Hello everyone!"
             )
             print(f"Message sent to {sent_count} users")
-
-            # Send text notification
-            await ws_manager.send_to_group("admins", "Server maintenance in 5 min")
             ```
         """
         sessions = self.get_group_sessions(group_name)
@@ -418,45 +416,102 @@ class WebSocketSessionManager(IWebSocketSessionManager):
 
         for session in sessions:
             try:
-                if message_type == 'text':
-                    await session.send_text_async(str(message))
-                    success_count += 1
-                elif message_type == 'json':
-                    await session.send_json_async(message)
-                    success_count += 1
-                elif message_type == 'binary':
-                    await session.send_bytes_async(message)
-                    success_count += 1
+                await session.send_text_async(str(message))
+                success_count += 1
             except Exception:
                 # Session might be closed, continue with others
                 pass
 
         return success_count
 
-    async def broadcast_to_all(self, message: Any, message_type: str = 'text') -> int:
-        """Broadcast message to all active sessions
+    async def send_json_to_group_async(self, group_name: str, message: Any) -> int:
+        """Send JSON message to all sessions in a group
 
-        Sends message to every active WebSocket session. Continues on individual
+        Sends JSON message to all active sessions in group. Continues on individual
         send failures (e.g., closed connections).
 
         Args:
-            message (Any): Message to send (str for text, dict for json, bytes for binary)
-            message_type (str): Message type: 'text', 'json', or 'binary' (default: 'text')
+            group_name (str): Target group name
+            message (Any): Object to serialize as JSON
 
         Returns:
             int: Number of sessions message was successfully sent to
 
         Example:
             ```python
-            # Broadcast server announcement
-            sent = await ws_manager.broadcast_to_all(
-                {"type": "announcement", "text": "Server restarting"},
-                "json"
+            sent_count = await ws_manager.send_json_to_group_async(
+                "chat_room_1",
+                {"user": "Alice", "message": "Hello everyone!"}
+            )
+            print(f"Message sent to {sent_count} users")
+            ```
+        """
+        sessions = self.get_group_sessions(group_name)
+        success_count = 0
+
+        for session in sessions:
+            try:
+                await session.send_json_async(message)
+                success_count += 1
+            except Exception:
+                # Session might be closed, continue with others
+                pass
+
+        return success_count
+
+    async def send_bytes_to_group_async(self, group_name: str, message: bytes) -> int:
+        """Send binary message to all sessions in a group
+
+        Sends binary message to all active sessions in group. Continues on individual
+        send failures (e.g., closed connections).
+
+        Args:
+            group_name (str): Target group name
+            message (bytes): Binary data to send
+
+        Returns:
+            int: Number of sessions message was successfully sent to
+
+        Example:
+            ```python
+            sent_count = await ws_manager.send_bytes_to_group_async(
+                "chat_room_1",
+                b"\x00\x01\x02\x03"
+            )
+            print(f"Binary message sent to {sent_count} users")
+            ```
+        """
+        sessions = self.get_group_sessions(group_name)
+        success_count = 0
+
+        for session in sessions:
+            try:
+                await session.send_bytes_async(message)
+                success_count += 1
+            except Exception:
+                # Session might be closed, continue with others
+                pass
+
+        return success_count
+
+    async def broadcast_text_to_all_async(self, message: str) -> int:
+        """Broadcast text message to all active sessions
+
+        Sends text message to every active WebSocket session. Continues on individual
+        send failures (e.g., closed connections).
+
+        Args:
+            message (str): Text message to send
+
+        Returns:
+            int: Number of sessions message was successfully sent to
+
+        Example:
+            ```python
+            sent = await ws_manager.broadcast_text_to_all_async(
+                "Server maintenance in 5 minutes"
             )
             print(f"Announcement sent to {sent} connected users")
-
-            # Simple text broadcast
-            await ws_manager.broadcast_to_all("System maintenance")
             ```
         """
         sessions = self.get_active_sessions()
@@ -464,15 +519,74 @@ class WebSocketSessionManager(IWebSocketSessionManager):
 
         for session in sessions:
             try:
-                if message_type == 'text':
-                    await session.send_text_async(str(message))
-                    success_count += 1
-                elif message_type == 'json':
-                    await session.send_json_async(message)
-                    success_count += 1
-                elif message_type == 'binary':
-                    await session.send_bytes_async(message)
-                    success_count += 1
+                await session.send_text_async(str(message))
+                success_count += 1
+            except Exception:
+                # Session might be closed, continue with others
+                pass
+
+        return success_count
+
+    async def broadcast_json_to_all_async(self, message: Any) -> int:
+        """Broadcast JSON message to all active sessions
+
+        Sends JSON message to every active WebSocket session. Continues on individual
+        send failures (e.g., closed connections).
+
+        Args:
+            message (Any): Object to serialize as JSON
+
+        Returns:
+            int: Number of sessions message was successfully sent to
+
+        Example:
+            ```python
+            sent = await ws_manager.broadcast_json_to_all_async(
+                {"type": "announcement", "text": "Server restarting"}
+            )
+            print(f"Announcement sent to {sent} connected users")
+            ```
+        """
+        sessions = self.get_active_sessions()
+        success_count = 0
+
+        for session in sessions:
+            try:
+                await session.send_json_async(message)
+                success_count += 1
+            except Exception:
+                # Session might be closed, continue with others
+                pass
+
+        return success_count
+
+    async def broadcast_bytes_to_all_async(self, message: bytes) -> int:
+        """Broadcast binary message to all active sessions
+
+        Sends binary message to every active WebSocket session. Continues on individual
+        send failures (e.g., closed connections).
+
+        Args:
+            message (bytes): Binary data to send
+
+        Returns:
+            int: Number of sessions message was successfully sent to
+
+        Example:
+            ```python
+            sent = await ws_manager.broadcast_bytes_to_all_async(
+                b"\x00\x01\x02\x03"
+            )
+            print(f"Binary data sent to {sent} connected users")
+            ```
+        """
+        sessions = self.get_active_sessions()
+        success_count = 0
+
+        for session in sessions:
+            try:
+                await session.send_bytes_async(message)
+                success_count += 1
             except Exception:
                 # Session might be closed, continue with others
                 pass

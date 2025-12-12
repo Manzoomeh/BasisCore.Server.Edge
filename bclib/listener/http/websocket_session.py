@@ -44,9 +44,9 @@ if TYPE_CHECKING:
     from aiohttp import web
 
     from bclib.dispatcher import IMessageHandler
-    from bclib.listener.http.websocket_message import WebSocketMessage
-    from bclib.websocket.websocket_session_manager import \
-        WebSocketSessionManager
+
+    from .websocket_message import WebSocketMessage
+    from .websocket_session_manager import WebSocketSessionManager
 
 
 class WebSocketSession:
@@ -61,6 +61,7 @@ class WebSocketSession:
         request (web.Request): Original HTTP request that upgraded to WebSocket
         cms_object (dict): CMS data from initial connection
         url (str): WebSocket URL from CMS request data
+        data (dict): Custom data dictionary for storing user-defined session data
         session_manager (Optional[WebSocketSessionManager]): Parent session manager
         _message_handler (IMessageHandler): Message handler instance
         _heartbeat_interval (float): Ping interval in seconds
@@ -95,9 +96,14 @@ class WebSocketSession:
         )
 
         # Access session properties
-        print(f"Session: {session.session_id}")
+        print(f"Session: {session.id}")
         print(f"URL: {session.url}")
         print(f"Closed: {session.closed}")
+
+        # Store custom data
+        session.data['user_id'] = 'user_123'
+        session.data['room'] = 'general'
+        session.data['connected_at'] = time.time()
 
         # Send messages
         if not session.closed:
@@ -128,10 +134,11 @@ class WebSocketSession:
             session_manager (Optional[WebSocketSessionManager]): Manager reference
         """
         self.ws = ws
-        self.session_id = session_id
+        self.id = session_id
         self.request = request
         self.cms_object = cms_object
         self.url = self.cms_object.get('request', {}).get('url')
+        self.data: dict = {}  # Custom data storage for user-defined session data
         self._message_handler = message_handler
         self._heartbeat_interval = heartbeat_interval
         self.session_manager = session_manager
@@ -241,7 +248,7 @@ class WebSocketSession:
 
         # Heartbeat task as local variable
         heartbeat_task: Optional[asyncio.Task] = None
-
+        exit_code = None
         try:
             # Send CONNECT message
             connect_msg = WebSocketMessage.connect(self, MessageType.CONNECT)
@@ -253,7 +260,7 @@ class WebSocketSession:
             )
 
             # Infinite message receiving loop - continues until connection closes
-            exit_code = None
+
             while not self.ws.closed:
                 try:
                     msg = await self.ws.receive()
@@ -381,4 +388,4 @@ class WebSocketSession:
 
     def __repr__(self) -> str:
         status = "closed" if self.closed else "open"
-        return f"WebSocketSession(session_id={self.session_id[:8]}..., status={status}, url={self.url})"
+        return f"WebSocketSession(session_id={self.id[:8]}..., status={status}, url={self.url})"

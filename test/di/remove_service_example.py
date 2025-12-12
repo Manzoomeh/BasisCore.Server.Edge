@@ -8,7 +8,7 @@ import logging
 
 from bclib.context import AppOptions
 from bclib.logger import ConsoleLogger, ILogger
-from bclib.service_provider import ServiceLifetime, ServiceProvider
+from bclib.di import ServiceLifetime, ServiceProvider
 
 
 # Example services

@@ -13,6 +13,7 @@ Can be used for:
 """
 import asyncio
 import inspect
+import traceback
 from typing import (TYPE_CHECKING, Any, Callable, Coroutine, Dict, ForwardRef,
                     Type, Union, get_args, get_origin, get_type_hints)
 
@@ -30,9 +31,33 @@ class InjectionPlan:
     Analyzes signature once at creation time and creates
     optimized injection strategies for each parameter.
 
+    NEW: List Type Support for Multiple Implementations
+    ----------------------------------------------------
+    Now automatically detects and injects list[Type] parameters with all
+    registered implementations from the DI container.
+
     Can be used for:
     - Method/function calls with automatic DI
     - Class instantiation with constructor injection
+    - Automatic injection of multiple service implementations
+
+    Example:
+        ```python
+        # Class with list parameter
+        class NotificationManager:
+            def __init__(self, services: list[INotificationService]):
+                self.services = services  # Auto-injected with all implementations
+
+        # Register multiple implementations
+        container.add_singleton(INotificationService, EmailService)
+        container.add_singleton(INotificationService, SmsService)
+        container.add_singleton(INotificationService, PushService)
+
+        # Create instance - automatically injects all three services
+        plan = InjectionPlan(NotificationManager)
+        manager = plan.create_instance(container)
+        # manager.services = [EmailService, SmsService, PushService]
+        ```
     """
 
     def __init__(self, target: Union[Callable, Type]) -> None:
@@ -47,6 +72,7 @@ class InjectionPlan:
         self.is_async: bool = False if self.is_class else inspect.iscoroutinefunction(
             target)
         self.param_strategies: Dict[str, InjectionStrategy] = {}
+        self.has_value_parameters: bool = False  # Optimization flag
         self._analyze()
 
     def _analyze(self) -> None:
@@ -128,10 +154,32 @@ class InjectionPlan:
                 if actual_type in (str, int, float, list, tuple, set):
                     self.param_strategies[param_name] = ValueStrategy(
                         param_name, actual_type)
-                # Check if origin is a primitive collection type (List, Tuple, Set)
+                    self.has_value_parameters = True  # Mark that we need kwargs
+                # Check if origin is a collection type (List, Tuple, Set)
                 elif origin in (list, tuple, set):
-                    self.param_strategies[param_name] = ValueStrategy(
-                        param_name, origin)
+                    # Check if the collection contains service types or primitives
+                    # This enables automatic injection of multiple implementations
+                    args = get_args(param_type)
+                    if args and args[0] not in (str, int, float, bool, bytes):
+                        # Collection of service types - use ServiceStrategy
+                        # This triggers ServiceProvider.get_service(list[Type])
+                        # which returns all registered implementations
+                        # Example: list[INotificationService], list[IListener]
+                        #
+                        # Usage:
+                        #   class Manager:
+                        #       def __init__(self, listeners: list[IListener]):
+                        #           # Auto-injected with all IListener implementations
+                        #           self.listeners = listeners
+                        self.param_strategies[param_name] = ServiceStrategy(
+                            param_name, param_type)
+                    else:
+                        # Collection of primitives - use ValueStrategy for URL segments
+                        # These are passed via kwargs (e.g., from URL path parameters)
+                        # Example: list[str], list[int]
+                        self.param_strategies[param_name] = ValueStrategy(
+                            param_name, origin)
+                        self.has_value_parameters = True  # Mark that we need kwargs
                 else:
                     # Assume it's a service type (both regular and generic types)
                     # get_service() handles generic type resolution automatically
@@ -162,9 +210,10 @@ class InjectionPlan:
                 value = strategy.resolve(services, **kwargs)
                 if value is not None:
                     result[param_name] = value
-            except Exception:
-                # Skip parameter if resolution fails
-                continue
+            except Exception as ex:
+                print(
+                    f"Failed to resolve parameter '{param_name}' for {self.target}: {ex}")
+                traceback.print_exc()
 
         return result
 

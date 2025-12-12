@@ -17,7 +17,7 @@ Example:
     @app.websocket_handler(app.url("ws/chat"))
     async def chat_handler(context: WebSocketContext):
         # Access session information
-        session_id = context.session.session_id
+        session_id = context.session.id
         
         # Send message to current session
         await context.session.send_text({"message": "Hello!"})
@@ -35,12 +35,11 @@ Example:
 """
 from typing import TYPE_CHECKING
 
-from bclib.context.cms_base_context import CmsBaseContext
+from bclib.dispatcher.idispatcher import IDispatcher
+from bclib.listener import (WebSocketMessage, WebSocketSession,
+                            WebSocketSessionManager)
 
-if TYPE_CHECKING:
-    from bclib.dispatcher.idispatcher import IDispatcher
-    from bclib.listener.http.websocket_message import WebSocketMessage
-    from bclib.websocket import WebSocketSession, WebSocketSessionManager
+from .cms_base_context import CmsBaseContext
 
 
 class WebSocketContext(CmsBaseContext):
@@ -74,15 +73,15 @@ class WebSocketContext(CmsBaseContext):
             # Send to this session
             await context.session.send_json({
                 "type": "connected",
-                "session_id": context.session.session_id
+                "session_id": context.session.id
             })
         ```
     """
 
     def __init__(self,
                  cms_object: dict,
-                 dispatcher: 'IDispatcher',
-                 ws_message: 'WebSocketMessage') -> None:
+                 dispatcher: IDispatcher,
+                 ws_message: WebSocketMessage) -> None:
         """
         Initialize WebSocket context
 
@@ -92,9 +91,9 @@ class WebSocketContext(CmsBaseContext):
             ws_message: WebSocket message instance containing session and payload data
         """
         super().__init__(cms_object, dispatcher, True)
-        self.message: 'WebSocketMessage' = ws_message
-        self.session: 'WebSocketSession' = ws_message.session
-        self.session_manager: 'WebSocketSessionManager' = self.session.session_manager
+        self.message: WebSocketMessage = ws_message
+        self.session: WebSocketSession = ws_message.session
+        self.session_manager: WebSocketSessionManager = self.session.session_manager
 
     def __repr__(self) -> str:
         """
@@ -109,4 +108,4 @@ class WebSocketContext(CmsBaseContext):
             # Output: WebSocketContext(session_id=a1b2c3d4..., message_type=text, url=/ws/chat)
             ```
         """
-        return f"WebSocketContext(session_id={self.session.session_id[:8]}..., message_type={self.message_type}, url={self.url})"
+        return f"WebSocketContext(session_id={self.session.id[:8]}..., message_type={self.message_type}, url={self.url})"

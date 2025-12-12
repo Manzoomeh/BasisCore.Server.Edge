@@ -3,16 +3,17 @@
 Generic options interface for dependency injection to access application configuration.
 Similar to ILogger pattern, provides type-safe access to specific configuration sections.
 """
-from typing import Any, Generic, TypeVar
+from typing import Generic, TypeVar
 
 T = TypeVar('T')
 
 
-class IOptions(Generic[T]):
+class IOptions(Generic[T], dict):
     """
     Generic Options Interface
 
     Interface for type-safe configuration injection in constructors.
+    Inherits from dict for direct dictionary access.
     The generic type parameter determines the configuration key to retrieve from AppOptions.
 
     Supports nested keys using dot notation (e.g., 'database.connection')
@@ -22,32 +23,25 @@ class IOptions(Generic[T]):
         # Access specific config key
         class DatabaseService:
             def __init__(self, options: IOptions['database']):
-                self.config = options.value
-                # If AppOptions = {'database': {'host': 'localhost', 'port': 5432}}
-                # Then options.value = {'host': 'localhost', 'port': 5432}
+                # Use as dict
+                host = options['host']
+                port = options.get('port', 5432)
+
+                # Iterate
+                for key, value in options.items():
+                    print(f"{key}: {value}")
 
         # Access nested config
         class RedisCache:
             def __init__(self, options: IOptions['cache.redis']):
-                self.config = options.value
-                # If AppOptions = {'cache': {'redis': {'host': 'localhost'}}}
-                # Then options.value = {'host': 'localhost'}
+                self.host = options['host']
+                self.port = options.get('port', 6379)
 
         # Access entire config
         class ConfigMonitor:
-            def __init__(self, options: IOptions['root']):
-                self.all_config = options.value
-                # Returns entire AppOptions dictionary
+            def __init__(self, options: IOptions['']):
+                for key in options:
+                    print(key)
         ```
     """
-
-    @property
-    def value(self) -> Any:
-        """
-        Get configuration value
-
-        Returns:
-            Configuration value (can be dict, list, string, int, etc.)
-        """
-        raise NotImplementedError(
-            "IOptions is an interface. Use Options class instead.")
+    pass

@@ -1,5 +1,5 @@
 """Debug get_service for IOptions"""
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 from bclib.options import IOptions
 from typing import ForwardRef, get_args, get_origin
 import sys

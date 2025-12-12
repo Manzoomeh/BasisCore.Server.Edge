@@ -74,7 +74,7 @@ class IWebSocketSessionManager(ABC):
     # ==================== Group Management ====================
 
     @abstractmethod
-    def add_to_group(self, session_id: str, group_name: str) -> bool:
+    def try_add_to_group(self, session_id: str, group_name: str) -> bool:
         """Add session to a named group
 
         Args:
@@ -87,7 +87,7 @@ class IWebSocketSessionManager(ABC):
         pass
 
     @abstractmethod
-    def remove_from_group(self, session_id: str, group_name: str) -> bool:
+    def try_remove_from_group(self, session_id: str, group_name: str) -> bool:
         """Remove session from a named group
 
         Args:
@@ -124,13 +124,12 @@ class IWebSocketSessionManager(ABC):
         pass
 
     @abstractmethod
-    async def send_to_group(self, group_name: str, message: Any, message_type: str = 'text') -> int:
-        """Send message to all sessions in a group
+    async def send_text_to_group_async(self, group_name: str, message: str) -> int:
+        """Send text message to all sessions in a group
 
         Args:
             group_name (str): Target group name
-            message (Any): Message to send (str for text, dict for json, bytes for binary)
-            message_type (str): Message type: 'text', 'json', or 'binary' (default: 'text')
+            message (str): Text message to send
 
         Returns:
             int: Number of sessions message was successfully sent to
@@ -138,12 +137,61 @@ class IWebSocketSessionManager(ABC):
         pass
 
     @abstractmethod
-    async def broadcast_to_all(self, message: Any, message_type: str = 'text') -> int:
-        """Broadcast message to all active sessions
+    async def send_json_to_group_async(self, group_name: str, message: Any) -> int:
+        """Send JSON message to all sessions in a group
 
         Args:
-            message (Any): Message to send (str for text, dict for json, bytes for binary)
-            message_type (str): Message type: 'text', 'json', or 'binary' (default: 'text')
+            group_name (str): Target group name
+            message (Any): Object to serialize as JSON
+
+        Returns:
+            int: Number of sessions message was successfully sent to
+        """
+        pass
+
+    @abstractmethod
+    async def send_bytes_to_group_async(self, group_name: str, message: bytes) -> int:
+        """Send binary message to all sessions in a group
+
+        Args:
+            group_name (str): Target group name
+            message (bytes): Binary data to send
+
+        Returns:
+            int: Number of sessions message was successfully sent to
+        """
+        pass
+
+    @abstractmethod
+    async def broadcast_text_to_all_async(self, message: str) -> int:
+        """Broadcast text message to all active sessions
+
+        Args:
+            message (str): Text message to send
+
+        Returns:
+            int: Number of sessions message was successfully sent to
+        """
+        pass
+
+    @abstractmethod
+    async def broadcast_json_to_all_async(self, message: Any) -> int:
+        """Broadcast JSON message to all active sessions
+
+        Args:
+            message (Any): Object to serialize as JSON
+
+        Returns:
+            int: Number of sessions message was successfully sent to
+        """
+        pass
+
+    @abstractmethod
+    async def broadcast_bytes_to_all_async(self, message: bytes) -> int:
+        """Broadcast binary message to all active sessions
+
+        Args:
+            message (bytes): Binary data to send
 
         Returns:
             int: Number of sessions message was successfully sent to

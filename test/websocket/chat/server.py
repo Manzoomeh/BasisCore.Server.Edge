@@ -4,7 +4,8 @@ import sys
 from pathlib import Path
 
 from bclib import edge
-from bclib.context import WebSocketContext
+
+# from bclib.context import WebSocketContext
 
 # Add parent directory to path
 sys.path.insert(0, os.path.abspath(
@@ -27,15 +28,15 @@ app.add_static_handler(static_handler)
 
 
 # Register WebSocket handler
-@app.handler()
-async def websocket_handler(context: WebSocketContext):
+@app.handler('chat/:rkey')
+async def websocket_handler(context: edge.WebSocketContext, rkey: str):
     """Handle WebSocket chat messages"""
     # Get session and manager from context
     session = context.session
-    session_id = session.session_id
+    session_id = session.id
     manager = context.session_manager
     print(
-        f"[SESSION] Session ID: {session_id[:8]} (messageType={context.message.type.name})")
+        f"[SESSION] Session ID: {session_id[:8]} (messageType={context.message.type.name},rkey={rkey})")
     if context.message.is_connect:
         # Connection established
         print(f"[CONNECT] Session {session_id[:8]} connected")
@@ -51,7 +52,7 @@ async def websocket_handler(context: WebSocketContext):
         if manager:
             groups = manager.get_session_groups(session_id)
             for group in groups:
-                manager.remove_from_group(session_id, group)
+                manager.try_remove_from_group(session_id, group)
                 await notify_room(manager, group, f"User left the room", "system")
 
     elif context.message.is_text:
@@ -68,12 +69,12 @@ async def websocket_handler(context: WebSocketContext):
                 groups = manager.get_session_groups(session_id)
                 if groups:
                     for group in groups:
-                        await manager.send_to_group(group, {
+                        await manager.send_json_to_group_async(group, {
                             "type": "message",
                             "room": group,
                             "sender": session_id[:8],
                             "message": text
-                        }, "json")
+                        })
                 else:
                     await session.send_json_async({
                         "type": "error",
@@ -98,7 +99,7 @@ async def handle_command(manager, session, command_text: str):
     cmd = parts[0].lower()
     arg = parts[1] if len(parts) > 1 else ""
 
-    session_id = session.session_id
+    session_id = session.id
 
     if cmd == '/join':
         if not arg:
@@ -106,7 +107,7 @@ async def handle_command(manager, session, command_text: str):
             return
 
         room_name = arg.strip()
-        manager.add_to_group(session_id, room_name)
+        manager.try_add_to_group(session_id, room_name)
 
         await session.send_json_async({
             "type": "system",
@@ -123,7 +124,7 @@ async def handle_command(manager, session, command_text: str):
             return
 
         for group in groups:
-            manager.remove_from_group(session_id, group)
+            manager.try_remove_from_group(session_id, group)
             await notify_room(manager, group, f"User {session_id[:8]} left the room", "system")
 
         await session.send_json_async({
@@ -177,7 +178,7 @@ async def notify_room(manager, room_name: str, message: str, msg_type: str = "sy
     sessions = manager.get_group_sessions(room_name)
 
     for session in sessions:
-        if exclude_session and session.session_id == exclude_session:
+        if exclude_session and session.id == exclude_session:
             continue
 
         try:

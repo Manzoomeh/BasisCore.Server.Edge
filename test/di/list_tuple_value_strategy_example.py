@@ -9,7 +9,7 @@ from typing import List, Set, Tuple
 
 from bclib.context import AppOptions
 from bclib.logger import ILogger
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 
 # Example services

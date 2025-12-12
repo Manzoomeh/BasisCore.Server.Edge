@@ -3,7 +3,7 @@ Simple test to verify InjectionPlan works with simplified API (context only)
 """
 from typing import Any
 
-from bclib.service_provider import InjectionPlan, ServiceProvider
+from bclib.di import InjectionPlan, ServiceProvider
 
 print("=" * 70)
 print("Testing InjectionPlan Simplified API")

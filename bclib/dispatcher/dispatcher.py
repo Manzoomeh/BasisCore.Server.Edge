@@ -43,7 +43,6 @@ Example:
 import asyncio
 import inspect
 import signal
-import traceback
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, Optional, Type
 
@@ -54,11 +53,12 @@ from bclib.options.app_options import AppOptions
 if TYPE_CHECKING:
     from bclib.context.context_factory import ContextFactory
 
+from bclib.di import (IHostedService, InjectionPlan, IServiceContainer,
+                      IServiceProvider)
 from bclib.exception import HandlerNotFoundErr
 from bclib.listener import IListener, IResponseBaseMessage, Message
 from bclib.logger.ilogger import ILogger
 from bclib.predicate import Predicate
-from bclib.service_provider import InjectionPlan, IServiceProvider
 from bclib.utility.static_file_handler import StaticFileHandler
 
 from .callback_info import CallbackInfo
@@ -66,7 +66,7 @@ from .idispatcher import IDispatcher
 from .imessage_handler import IMessageHandler
 
 
-class Dispatcher(IDispatcher, IMessageHandler):
+class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
     """Unified dispatcher for request handling with dependency injection
 
     Provides flexible routing for different context types with automatic service
@@ -93,7 +93,12 @@ class Dispatcher(IDispatcher, IMessageHandler):
         ```
     """
 
-    def __init__(self, service_provider: IServiceProvider, logger: ILogger['Dispatcher'], options: AppOptions, loop: asyncio.AbstractEventLoop):
+    def __init__(self,
+                 service_provider: IServiceProvider,
+                 service_container: IServiceContainer,
+                 logger: ILogger['Dispatcher'],
+                 options: AppOptions,
+                 loop: asyncio.AbstractEventLoop):
         """Initialize dispatcher with injected dependencies
 
         Args:
@@ -111,6 +116,7 @@ class Dispatcher(IDispatcher, IMessageHandler):
         self.__options = options
         self.__look_up: dict[Type, list[CallbackInfo]] = dict()
         self.__service_provider = service_provider
+        self.__service_container = service_container
         cache_options = self.__options.get('cache')
         # Event loop should already be registered in ServiceProvider by edge.from_options
         self.__event_loop = loop
@@ -327,10 +333,15 @@ class Dispatcher(IDispatcher, IMessageHandler):
             @wraps(restful_handler_fn)
             async def wrapper(context: RESTfulContext):
                 # Execute pre-compiled plan (fast - no reflection)
-                kwargs = {**(context.url_segments or {}),
-                          **(context.query or {})}
-                action_result = await injection_plan.execute_async(
-                    self.__service_provider, self.__event_loop, **kwargs)
+                # Only create kwargs dict if handler needs url_segments/query parameters
+                if injection_plan.has_value_parameters:
+                    kwargs = {**(context.url_segments or {}),
+                              **(context.query or {})}
+                    action_result = await injection_plan.execute_async(
+                        self.__service_provider, self.__event_loop, **kwargs)
+                else:
+                    action_result = await injection_plan.execute_async(
+                        self.__service_provider, self.__event_loop)
                 return None if action_result is None else context.generate_response(action_result)
 
             self._get_context_lookup(RESTfulContext)\
@@ -396,8 +407,12 @@ class Dispatcher(IDispatcher, IMessageHandler):
 
             @wraps(web_handler_fn)
             async def wrapper(context: HttpContext):
-                kwargs = context.url_segments if context.url_segments else {}
-                action_result = await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
+                # Only create kwargs dict if handler needs url_segments
+                if injection_plan.has_value_parameters:
+                    kwargs = context.url_segments if context.url_segments else {}
+                    action_result = await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
+                else:
+                    action_result = await injection_plan.execute_async(self.__service_provider, self.__event_loop)
                 return None if action_result is None else context.generate_response(action_result)
 
             self._get_context_lookup(HttpContext)\
@@ -435,8 +450,12 @@ class Dispatcher(IDispatcher, IMessageHandler):
 
             @wraps(websocket_handler_fn)
             async def wrapper(context: WebSocketContext):
-                kwargs = context.url_segments if context.url_segments else {}
-                return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
+                # Only create kwargs dict if handler needs url_segments
+                if injection_plan.has_value_parameters:
+                    kwargs = context.url_segments if context.url_segments else {}
+                    return await injection_plan.execute_async(context.services, self.__event_loop, **kwargs)
+                else:
+                    return await injection_plan.execute_async(context.services, self.__event_loop)
 
             self._get_context_lookup(WebSocketContext)\
                 .append(CallbackInfo(combined_predicates, wrapper))
@@ -474,8 +493,12 @@ class Dispatcher(IDispatcher, IMessageHandler):
 
             @wraps(client_source_handler_fn)
             async def wrapper(context):
-                kwargs = context.url_segments if context.url_segments else {}
-                data = await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
+                # Only create kwargs dict if handler needs url_segments
+                if injection_plan.has_value_parameters:
+                    kwargs = context.url_segments if context.url_segments else {}
+                    data = await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
+                else:
+                    data = await injection_plan.execute_async(self.__service_provider, self.__event_loop)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -539,8 +562,12 @@ class Dispatcher(IDispatcher, IMessageHandler):
 
             @wraps(client_source_member_handler_fn)
             async def wrapper(context: ClientSourceMemberContext):
-                kwargs = context.url_segments if context.url_segments else {}
-                return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
+                # Only create kwargs dict if handler needs url_segments
+                if injection_plan.has_value_parameters:
+                    kwargs = context.url_segments if context.url_segments else {}
+                    return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
+                else:
+                    return await injection_plan.execute_async(self.__service_provider, self.__event_loop)
 
             self._get_context_lookup(ClientSourceMemberContext)\
                 .append(CallbackInfo(combined_predicates, wrapper))
@@ -578,8 +605,12 @@ class Dispatcher(IDispatcher, IMessageHandler):
 
             @wraps(server_source_handler_fn)
             async def wrapper(context: ServerSourceContext):
-                kwargs = context.url_segments if context.url_segments else {}
-                data = await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
+                # Only create kwargs dict if handler needs url_segments
+                if injection_plan.has_value_parameters:
+                    kwargs = context.url_segments if context.url_segments else {}
+                    data = await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
+                else:
+                    data = await injection_plan.execute_async(self.__service_provider, self.__event_loop)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -643,8 +674,12 @@ class Dispatcher(IDispatcher, IMessageHandler):
 
             @wraps(server_source_member_handler_fn)
             async def wrapper(context):
-                kwargs = context.url_segments if context.url_segments else {}
-                return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
+                # Only create kwargs dict if handler needs url_segments
+                if injection_plan.has_value_parameters:
+                    kwargs = context.url_segments if context.url_segments else {}
+                    return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
+                else:
+                    return await injection_plan.execute_async(self.__service_provider, self.__event_loop)
 
             self._get_context_lookup(ServerSourceMemberContext)\
                 .append(CallbackInfo(combined_predicates, wrapper))
@@ -827,7 +862,7 @@ class Dispatcher(IDispatcher, IMessageHandler):
             else:
                 raise HandlerNotFoundErr(context_type.__name__)
         except Exception as ex:
-            traceback.print_exc()
+            self.__logger.error(f"Error in dispatch_async {ex}", exc_info=True)
             result = context.generate_error_response(ex)
         return result
 
@@ -908,7 +943,7 @@ class Dispatcher(IDispatcher, IMessageHandler):
         self.__context_factory.rebuild_router()
 
         # Initialize all hosted services (async)
-        await self.__service_provider.initialize_hosted_services_async()
+        await self.__service_container.initialize_hosted_services_async()
 
         # Load listeners from factory if not already loaded
         from bclib.listener.listener_factory import IListenerFactory
@@ -921,58 +956,44 @@ class Dispatcher(IDispatcher, IMessageHandler):
         for listener in self.__listeners:
             listener.initialize_task(self.__event_loop)
 
-        # Initialize endpoint listener if configured
-        if hasattr(self, '_endpoint_connection_handler') and hasattr(self, '_endpoint'):
-            async def start_endpoint_server():
-                server = await asyncio.start_server(
-                    self._endpoint_connection_handler,
-                    self._endpoint.host,
-                    self._endpoint.port
-                )
-                async with server:
-                    await server.serve_forever()
-
-            self.__event_loop.create_task(start_endpoint_server())
-
-    def listening(self, before_start: Optional[Coroutine] = None, after_end: Optional[Coroutine] = None, with_block: bool = True):
+    def listening(self):
         """Start listening for incoming requests
 
-        Args:
-            before_start (Coroutine, optional): Coroutine to execute before starting listeners.
-                Defaults to None.
-            after_end (Coroutine, optional): Coroutine to execute after event loop stops.
-                Defaults to None.
-            with_block (bool, optional): Whether to block until SIGTERM/SIGINT received.
-                Defaults to True.
+        Registers SIGTERM and SIGINT handlers for graceful shutdown, initializes all
+        listeners and hosted services, then blocks until the application is stopped.
 
         Note:
-            - Registers SIGTERM and SIGINT handlers for graceful shutdown
-            - Calls initialize_task_async() to set up all listeners
-            - If with_block=True, runs event loop until stopped
-            - Cancels all pending tasks on shutdown
+            - Graceful shutdown: stops hosted services before cancelling tasks
+            - Event loop is always closed on exit
         """
+        # Register signal handlers for graceful shutdown
         for sig in (signal.SIGTERM, signal.SIGINT):
             signal.signal(sig, lambda sig, _: self.__event_loop.stop())
-        if before_start != None:
-            self.__event_loop.run_until_complete(
-                self.__event_loop.create_task(before_start()))
-        self.__event_loop.run_until_complete(self.initialize_task_async())
-        if with_block:
+
+        try:
+            # Initialize all listeners and hosted services
+            self.__event_loop.run_until_complete(self.initialize_task_async())
+
+            # Block and run event loop until stopped
             self.__event_loop.run_forever()
+
+            # Graceful shutdown sequence:
+            # 1. Stop hosted services first (graceful)
+            self.__event_loop.run_until_complete(
+                self.__service_container.stop_hosted_services_async()
+            )
+
+            # 2. Cancel all remaining tasks
             tasks = asyncio.all_tasks(loop=self.__event_loop)
             for task in tasks:
                 task.cancel()
+
+            # 3. Wait for all tasks to finish cancellation
             group = asyncio.gather(*tasks, return_exceptions=True)
             self.__event_loop.run_until_complete(group)
 
-            # Stop all hosted services for graceful shutdown
-            self.__event_loop.run_until_complete(
-                self.__service_provider.stop_hosted_services_async()
-            )
-
-            if after_end != None:
-                self.__event_loop.run_until_complete(
-                    self.__event_loop.create_task(after_end()))
+        finally:
+            # Always close event loop, even if exception occurred
             self.__event_loop.close()
 
     def add_static_handler(self, handler: StaticFileHandler) -> None:

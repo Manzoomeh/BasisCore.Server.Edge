@@ -4,7 +4,7 @@ import sys
 
 from bclib.context import RESTfulContext
 from bclib.dispatcher.dispatcher import Dispatcher
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '../..')))

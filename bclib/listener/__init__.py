@@ -2,7 +2,7 @@
 from typing import TYPE_CHECKING, Any, Optional, Type
 
 if TYPE_CHECKING:
-    from bclib.service_provider.iservice_provider import IServiceProvider
+    from bclib.di.iservice_provider import IServiceProvider
 
 from bclib.utility.http_base_data_name import HttpBaseDataName
 from bclib.utility.http_base_data_type import HttpBaseDataType

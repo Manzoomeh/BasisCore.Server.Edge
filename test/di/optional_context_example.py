@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 from bclib import edge
 from bclib.context import RESTfulContext
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 
 # Services

@@ -4,7 +4,7 @@ Test InjectionPlan with both methods and classes
 import asyncio
 from abc import ABC, abstractmethod
 
-from bclib.service_provider import InjectionPlan, ServiceProvider
+from bclib.di import InjectionPlan, ServiceProvider
 from bclib.utility import DictEx
 
 

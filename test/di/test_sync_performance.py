@@ -9,7 +9,7 @@ import unittest
 from bclib.context import RESTfulContext
 from bclib.dispatcher import Dispatcher
 from bclib.logger import ILogger
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 
 class MockLogger(ILogger):

@@ -1,7 +1,7 @@
 """
 Quick test to verify modular service_provider structure
 """
-from bclib.service_provider import (InjectionPlan, ServiceDescriptor,
+from bclib.di import (InjectionPlan, ServiceDescriptor,
                                     ServiceLifetime, ServiceProvider)
 
 print("=" * 70)

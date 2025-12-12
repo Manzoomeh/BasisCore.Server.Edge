@@ -2,7 +2,7 @@
 Test generic type resolution in ServiceProvider after refactoring
 """
 from bclib.logger import ConsoleLogger, ILogger
-from bclib.service_provider import ServiceProvider
+from bclib.di import ServiceProvider
 
 print("=" * 70)
 print("Testing Generic Type Resolution")
