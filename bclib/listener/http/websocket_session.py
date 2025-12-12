@@ -61,6 +61,7 @@ class WebSocketSession:
         request (web.Request): Original HTTP request that upgraded to WebSocket
         cms_object (dict): CMS data from initial connection
         url (str): WebSocket URL from CMS request data
+        data (dict): Custom data dictionary for storing user-defined session data
         session_manager (Optional[WebSocketSessionManager]): Parent session manager
         _message_handler (IMessageHandler): Message handler instance
         _heartbeat_interval (float): Ping interval in seconds
@@ -99,6 +100,11 @@ class WebSocketSession:
         print(f"URL: {session.url}")
         print(f"Closed: {session.closed}")
 
+        # Store custom data
+        session.data['user_id'] = 'user_123'
+        session.data['room'] = 'general'
+        session.data['connected_at'] = time.time()
+
         # Send messages
         if not session.closed:
             await session.send_json_async({"data": "value"})
@@ -132,6 +138,7 @@ class WebSocketSession:
         self.request = request
         self.cms_object = cms_object
         self.url = self.cms_object.get('request', {}).get('url')
+        self.data: dict = {}  # Custom data storage for user-defined session data
         self._message_handler = message_handler
         self._heartbeat_interval = heartbeat_interval
         self.session_manager = session_manager

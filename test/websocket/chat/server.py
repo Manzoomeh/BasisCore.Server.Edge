@@ -69,12 +69,12 @@ async def websocket_handler(context: edge.WebSocketContext, rkey: str):
                 groups = manager.get_session_groups(session_id)
                 if groups:
                     for group in groups:
-                        await manager.send_to_group_async(group, {
+                        await manager.send_json_to_group_async(group, {
                             "type": "message",
                             "room": group,
                             "sender": session_id[:8],
                             "message": text
-                        }, "json")
+                        })
                 else:
                     await session.send_json_async({
                         "type": "error",
