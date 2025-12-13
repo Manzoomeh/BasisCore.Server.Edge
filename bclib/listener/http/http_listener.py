@@ -140,7 +140,7 @@ class HttpListener(IListener):
         message_handler: IMessageHandler,
         logger: ILogger['HttpListener'],
         ws_manager: IWebSocketSessionManager,
-        options: dict
+        options: dict | str
     ):
         """Initialize HTTP listener from options dictionary
 

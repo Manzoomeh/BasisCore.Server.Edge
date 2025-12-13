@@ -117,8 +117,8 @@ class ListenerFactory(IListenerFactory):
                 listeners.append(listener)
 
         # Add RabbitMQ listener(s) if configured
-        if "rabbit" in self.__options:
-            rabbit_config = self.__options.get('rabbit')
+        if "rabbitmq" in self.__options:
+            rabbit_config = self.__options.get('rabbitmq')
 
             # Normalize to list - only handle array vs single item
             if isinstance(rabbit_config, list):
