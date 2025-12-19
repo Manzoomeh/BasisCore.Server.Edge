@@ -42,6 +42,7 @@ import asyncio
 
 from bclib import __version__
 from bclib.context import *
+from bclib.db_context import add_db_context_services
 from bclib.db_manager import *
 from bclib.di import convert_to_service_provider, create_service_container
 from bclib.dispatcher import IDispatcher, adding_dispatcher_services
@@ -225,6 +226,9 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDisp
     adding_listener_services(service_container)
 
     adding_dispatcher_services(service_container)
+
+    # Register database context services in DI container
+    add_db_context_services(service_container)
 
     # Create Dispatcher instance
     service_provider = convert_to_service_provider(service_container)
