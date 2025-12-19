@@ -16,7 +16,7 @@ class TcpListener(IListener):
         self,
         message_handler: IMessageHandler,
         logger: ILogger['TcpListener'],
-        options: dict
+        options: dict | str
     ):
         """Initialize TcpListener.
 

@@ -333,15 +333,12 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
             @wraps(restful_handler_fn)
             async def wrapper(context: RESTfulContext):
                 # Execute pre-compiled plan (fast - no reflection)
-                # Only create kwargs dict if handler needs url_segments/query parameters
+                kwargs = {}
                 if injection_plan.has_value_parameters:
                     kwargs = {**(context.url_segments or {}),
                               **(context.query or {})}
-                    action_result = await injection_plan.execute_async(
-                        self.__service_provider, self.__event_loop, **kwargs)
-                else:
-                    action_result = await injection_plan.execute_async(
-                        self.__service_provider, self.__event_loop)
+                action_result = await injection_plan.execute_async(
+                    context.services, self.__event_loop, **kwargs)
                 return None if action_result is None else context.generate_response(action_result)
 
             self._get_context_lookup(RESTfulContext)\
@@ -407,12 +404,11 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
 
             @wraps(web_handler_fn)
             async def wrapper(context: HttpContext):
-                # Only create kwargs dict if handler needs url_segments
+                # Execute pre-compiled plan (fast - no reflection)
+                kwargs = {}
                 if injection_plan.has_value_parameters:
                     kwargs = context.url_segments if context.url_segments else {}
-                    action_result = await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
-                else:
-                    action_result = await injection_plan.execute_async(self.__service_provider, self.__event_loop)
+                action_result = await injection_plan.execute_async(context.services, self.__event_loop, **kwargs)
                 return None if action_result is None else context.generate_response(action_result)
 
             self._get_context_lookup(HttpContext)\
@@ -450,12 +446,11 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
 
             @wraps(websocket_handler_fn)
             async def wrapper(context: WebSocketContext):
-                # Only create kwargs dict if handler needs url_segments
+                # Execute pre-compiled plan (fast - no reflection)
+                kwargs = {}
                 if injection_plan.has_value_parameters:
                     kwargs = context.url_segments if context.url_segments else {}
-                    return await injection_plan.execute_async(context.services, self.__event_loop, **kwargs)
-                else:
-                    return await injection_plan.execute_async(context.services, self.__event_loop)
+                return await injection_plan.execute_async(context.services, self.__event_loop, **kwargs)
 
             self._get_context_lookup(WebSocketContext)\
                 .append(CallbackInfo(combined_predicates, wrapper))
@@ -493,12 +488,11 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
 
             @wraps(client_source_handler_fn)
             async def wrapper(context):
-                # Only create kwargs dict if handler needs url_segments
+                # Execute pre-compiled plan (fast - no reflection)
+                kwargs = {}
                 if injection_plan.has_value_parameters:
                     kwargs = context.url_segments if context.url_segments else {}
-                    data = await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
-                else:
-                    data = await injection_plan.execute_async(self.__service_provider, self.__event_loop)
+                data = await injection_plan.execute_async(context.services, self.__event_loop, **kwargs)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -562,12 +556,11 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
 
             @wraps(client_source_member_handler_fn)
             async def wrapper(context: ClientSourceMemberContext):
-                # Only create kwargs dict if handler needs url_segments
+                # Execute pre-compiled plan (fast - no reflection)
+                kwargs = {}
                 if injection_plan.has_value_parameters:
                     kwargs = context.url_segments if context.url_segments else {}
-                    return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
-                else:
-                    return await injection_plan.execute_async(self.__service_provider, self.__event_loop)
+                return await injection_plan.execute_async(context.services, self.__event_loop, **kwargs)
 
             self._get_context_lookup(ClientSourceMemberContext)\
                 .append(CallbackInfo(combined_predicates, wrapper))
@@ -605,12 +598,11 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
 
             @wraps(server_source_handler_fn)
             async def wrapper(context: ServerSourceContext):
-                # Only create kwargs dict if handler needs url_segments
+                # Execute pre-compiled plan (fast - no reflection)
+                kwargs = {}
                 if injection_plan.has_value_parameters:
                     kwargs = context.url_segments if context.url_segments else {}
-                    data = await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
-                else:
-                    data = await injection_plan.execute_async(self.__service_provider, self.__event_loop)
+                data = await injection_plan.execute_async(context.services, self.__event_loop, **kwargs)
                 result_set = list()
                 if data is not None:
                     for member in context.command.member:
@@ -674,12 +666,11 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
 
             @wraps(server_source_member_handler_fn)
             async def wrapper(context):
-                # Only create kwargs dict if handler needs url_segments
+                # Execute pre-compiled plan (fast - no reflection)
+                kwargs = {}
                 if injection_plan.has_value_parameters:
                     kwargs = context.url_segments if context.url_segments else {}
-                    return await injection_plan.execute_async(self.__service_provider, self.__event_loop, **kwargs)
-                else:
-                    return await injection_plan.execute_async(self.__service_provider, self.__event_loop)
+                return await injection_plan.execute_async(context.services, self.__event_loop, **kwargs)
 
             self._get_context_lookup(ServerSourceMemberContext)\
                 .append(CallbackInfo(combined_predicates, wrapper))
@@ -715,8 +706,8 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
             injection_plan = InjectionPlan(rabbit_handler_fn)
 
             @wraps(rabbit_handler_fn)
-            async def wrapper(_: RabbitContext):
-                return await injection_plan.execute_async(self.__service_provider, self.__event_loop)
+            async def wrapper(context: RabbitContext):
+                return await injection_plan.execute_async(context.services, self.__event_loop)
 
             self._get_context_lookup(RabbitContext)\
                 .append(CallbackInfo(combined_predicates, wrapper))

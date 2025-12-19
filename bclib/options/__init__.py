@@ -1,21 +1,20 @@
 """Options module - Configuration access for dependency injection"""
 from typing import ForwardRef
 
-from bclib.di.iservice_provider import IServiceProvider
+from bclib.di import IServiceContainer, IServiceProvider
 
 from .app_options import AppOptions
 from .ioptions import IOptions
-from .service_options import ServiceOptions
 
-__all__ = ['IOptions', 'service_options', 'add_options_service']
+__all__ = ['IOptions', 'add_options_service']
 
 
-def add_options_service(service_provider: IServiceProvider, app_options: dict):
+def add_options_service(service_container: IServiceContainer, app_options: dict) -> IServiceContainer:
     """
     Register IOptions in DI container
 
     Args:
-        service_provider: ServiceProvider instance
+        service_container: IServiceContainer instance
         app_options: Application options dictionary
 
     Note:
@@ -24,6 +23,9 @@ def add_options_service(service_provider: IServiceProvider, app_options: dict):
     """
     def create_options(sp: IServiceProvider, **kwargs):
         """Factory for creating Options with configuration key"""
+        from bclib.utility import resolve_dict_value
+
+        from .service_options import ServiceOptions
         app_options = sp.get_service(AppOptions)
         type_args: tuple[type, ...] = kwargs.get(
             'generic_type_args', ('',))
@@ -44,8 +46,9 @@ def add_options_service(service_provider: IServiceProvider, app_options: dict):
         else:
             # Fallback to string representation
             key = str(key_source)
+        options = resolve_dict_value(key, app_options)
+        return ServiceOptions(options)
 
-        return ServiceOptions(key, app_options)
-
-    service_provider.add_singleton(AppOptions, instance=app_options)
-    service_provider.add_transient(IOptions, factory=create_options)
+    return service_container\
+        .add_singleton(AppOptions, instance=app_options)\
+        .add_transient(IOptions, factory=create_options)

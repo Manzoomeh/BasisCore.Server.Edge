@@ -10,15 +10,21 @@ from bclib.logger.ilogger import ILogger
 
 
 class RabbitListener(IListener):
-    def __init__(self, message_handler: IMessageHandler, logger: ILogger['RabbitListener'], options: dict) -> None:
+    def __init__(self, message_handler: IMessageHandler, logger: ILogger['RabbitListener'], options: dict | str) -> None:
         self._message_handler = message_handler
         self._logger = logger
         self.__options = options
 
-        # Extract connection options from options dict
-        connection_options = options.get(
-            'connection_options') or options.get('rabbit') or options
-
+        # Normalize options to dict format
+        if isinstance(options, str):
+            # Simple string: "localhost:8080"
+            connection_options = {"url": options}
+        elif isinstance(options, dict):
+            # Already a dict
+            connection_options = options
+        else:
+            raise ValueError(
+                f"Invalid options type: {type(options)}. Expected str or dict.")
         import pika
         from pika.adapters.blocking_connection import BlockingChannel
         try:

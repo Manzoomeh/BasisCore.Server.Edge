@@ -2,18 +2,16 @@
 
 Provides independent generic logger functionality based on Python's standard logging.
 """
-from bclib.di import IServiceProvider
+from bclib.di import IServiceContainer
 
-from .console_logger import ConsoleLogger
 from .ilogger import ILogger
 
 __all__ = [
-    'ConsoleLogger',
     'ILogger'
 ]
 
 
-def add_default_logger(service_provider: IServiceProvider) -> None:
+def add_default_logger(service_container: IServiceContainer) -> None:
     """
     Register Logger Services in DI Container
 
@@ -42,5 +40,5 @@ def add_default_logger(service_provider: IServiceProvider) -> None:
         # Now ILogger[T] can be injected in handlers
         ```
     """
-
-    service_provider.add_singleton(ILogger, implementation=ConsoleLogger)
+    from .console_logger import ConsoleLogger
+    service_container.add_singleton(ILogger, implementation=ConsoleLogger)

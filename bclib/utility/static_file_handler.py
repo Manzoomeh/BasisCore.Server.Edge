@@ -8,8 +8,6 @@ from bclib.utility.response_types import ResponseTypes
 if TYPE_CHECKING:
     from bclib.context.cms_base_context import CmsBaseContext
 
-    from bclib.exception import ForbiddenErr
-
 
 class StaticFileHandler:
     """

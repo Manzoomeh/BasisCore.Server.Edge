@@ -42,19 +42,13 @@ import asyncio
 
 from bclib import __version__
 from bclib.context import *
+from bclib.db_context import add_db_context_services
 from bclib.db_manager import *
-from bclib.di import (IServiceProvider, convert_to_service_provider,
-                      create_service_container)
+from bclib.di import convert_to_service_provider, create_service_container
 from bclib.dispatcher import IDispatcher, adding_dispatcher_services
-from bclib.exception import *
-from bclib.listener import (HttpBaseDataName, HttpBaseDataType, Message,
-                            MessageType)
-from bclib.log_service import ILogService, add_log_service
-from bclib.logger import ILogger, add_default_logger
-from bclib.options import IOptions, add_options_service
-from bclib.predicate import Predicate, PredicateHelper
-from bclib.utility import (DictEx, HttpHeaders, HttpMimeTypes, HttpStatusCodes,
-                           ResponseTypes, StaticFileHandler)
+from bclib.log_service import add_log_service
+from bclib.logger import add_default_logger
+from bclib.options import add_options_service
 
 
 def from_config(option_file_path: str, file_name: str = "host.json") -> IDispatcher:
@@ -232,6 +226,9 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDisp
     adding_listener_services(service_container)
 
     adding_dispatcher_services(service_container)
+
+    # Register database context services in DI container
+    add_db_context_services(service_container)
 
     # Create Dispatcher instance
     service_provider = convert_to_service_provider(service_container)
