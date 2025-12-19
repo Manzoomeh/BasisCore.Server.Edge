@@ -36,8 +36,8 @@ Example:
 from typing import TYPE_CHECKING
 
 from bclib.dispatcher.idispatcher import IDispatcher
-from bclib.listener import (WebSocketMessage, WebSocketSession,
-                            WebSocketSessionManager)
+from bclib.listener.http import (WebSocketMessage, WebSocketSession,
+                                 WebSocketSessionManager)
 
 from .cms_base_context import CmsBaseContext
 

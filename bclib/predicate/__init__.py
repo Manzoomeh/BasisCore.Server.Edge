@@ -32,22 +32,22 @@ Example:
     ```
 """
 
-from bclib.predicate.all import All
-from bclib.predicate.any import Any
-from bclib.predicate.between import Between
-from bclib.predicate.callback import Callback
-from bclib.predicate.equal import Equal
-from bclib.predicate.greater_than import GreaterThan
-from bclib.predicate.greater_than_equal import GreaterThanEqual
-from bclib.predicate.has_value import HasValue
-from bclib.predicate.in_list import InList
-from bclib.predicate.less_than import LessThan
-from bclib.predicate.less_than_equal import LessThanEqual
-from bclib.predicate.match import Match
-from bclib.predicate.not_equal import NotEqual
-from bclib.predicate.predicate import Predicate
-from bclib.predicate.predicate_helper import PredicateHelper
-from bclib.predicate.url import Url
+from .all import All
+from .any import Any
+from .between import Between
+from .callback import Callback
+from .equal import Equal
+from .greater_than import GreaterThan
+from .greater_than_equal import GreaterThanEqual
+from .has_value import HasValue
+from .in_list import InList
+from .less_than import LessThan
+from .less_than_equal import LessThanEqual
+from .match import Match
+from .not_equal import NotEqual
+from .predicate import Predicate
+from .predicate_helper import PredicateHelper
+from .url import Url
 
 __all__ = [
     # Base class
