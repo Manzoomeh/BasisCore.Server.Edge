@@ -1,4 +1,4 @@
-"""MongoDB Context - Modern Database Management
+"""MongoDB Connection - Modern Database Management
 
 A modern, flexible architecture for MongoDB management inspired by ILogger pattern.
 Provides type-safe configuration injection through generic parameters.
@@ -8,18 +8,18 @@ Example:
     ```python
     # Use directly without inheritance (Recommended)
     class UserService:
-        def __init__(self, db_context: IMongoDbContext['database.users']):
-            self.db = db_context
+        def __init__(self, db_connection: IMongoConnection['database.users']):
+            self.db = db_connection
             
         async def get_user(self, user_id: str):
             users = self.db.get_collection('users')
             return await users.find_one({'_id': user_id})
     
     # Register in DI
-    services.add_scoped_generic(IMongoDbContext, MongoDbContext)
+    services.add_scoped_generic(IMongoConnection, MongoConnection)
     
     # Or register for specific configuration
-    services.add_scoped(lambda sp: MongoDbContext(sp.get(IOptions['database.users'])))
+    services.add_scoped(lambda sp: MongoConnection(sp.get(IOptions['database.users'])))
     ```
 
 Configuration Example:
@@ -45,16 +45,16 @@ from pymongo.database import Database
 
 from bclib.options import IOptions
 
-from .imongo_db_context import IMongoDbContext
+from .imongo_connection import IMongoConnection
 
 T = TypeVar('T')
 
 
-class MongoDbContext(IMongoDbContext[T]):
+class MongoConnection(IMongoConnection[T]):
     """
-    MongoDB Context Implementation - Use directly without inheritance.
+    MongoDB Connection Implementation - Use directly without inheritance.
 
-    This is the concrete implementation of IMongoDbContext.
+    This is the concrete implementation of IMongoConnection.
     Similar to Logger<T> in .NET, you don't need to inherit from this class.
 
     Generic type parameter TConfig specifies the configuration key to retrieve
@@ -64,13 +64,13 @@ class MongoDbContext(IMongoDbContext[T]):
         ```python
         # Direct injection (Recommended - ILogger style)
         class UserService:
-            def __init__(self, db: IMongoDbContext['database.users']):
+            def __init__(self, db: IMongoConnection['database.users']):
                 self.db = db
                 self.users = db.get_collection('users')
 
         # Or if you prefer storing collections as properties
         class ProductService:
-            def __init__(self, db: IMongoDbContext['database.products']):
+            def __init__(self, db: IMongoConnection['database.products']):
                 self.db = db
                 # Cache collections as instance variables
                 self.products = db.get_collection('products')
@@ -94,7 +94,7 @@ class MongoDbContext(IMongoDbContext[T]):
 
     def __init__(self, options: IOptions[T]):
         """
-        Initialize MongoDB context with configuration options.
+        Initialize MongoDB connection with configuration options.
 
         Args:
             options: Configuration options containing connection details
@@ -126,13 +126,13 @@ class MongoDbContext(IMongoDbContext[T]):
         """Validate required configuration options."""
         if 'connection_string' not in self._options:
             raise KeyError(
-                f"Configuration key 'connection_string' is required for MongoDB context. "
+                f"Configuration key 'connection_string' is required for MongoDB connection. "
                 f"Please ensure your configuration contains this key."
             )
 
         if 'database_name' not in self._options:
             raise KeyError(
-                f"Configuration key 'database_name' is required for MongoDB context. "
+                f"Configuration key 'database_name' is required for MongoDB connection. "
                 f"Please ensure your configuration contains this key."
             )
 
@@ -344,6 +344,6 @@ class MongoDbContext(IMongoDbContext[T]):
         return False
 
     def __repr__(self) -> str:
-        """String representation of the context."""
+        """String representation of the connection."""
         database_name = self._options.get('database_name', 'unknown')
         return f"<{self.__class__.__name__} database='{database_name}'>"

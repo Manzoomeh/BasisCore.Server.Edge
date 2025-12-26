@@ -10,9 +10,9 @@ if TYPE_CHECKING:
 T = TypeVar('T')
 
 
-class IMongoDbContext(Generic[T], ABC):
+class IMongoConnection(Generic[T], ABC):
     """
-    MongoDB Context Interface - Similar to ILogger<T> pattern.
+    MongoDB Connection Interface - Similar to ILogger<T> pattern.
 
     Use this interface for dependency injection without inheritance.
     The generic type parameter T specifies the type of documents in the collection.
@@ -20,7 +20,7 @@ class IMongoDbContext(Generic[T], ABC):
     Example:
         ```python
         class UserService:
-            def __init__(self, db: IMongoDbContext['database.users']):
+            def __init__(self, db: IMongoConnection['database.users']):
                 self.db = db
 
             def get_users(self):

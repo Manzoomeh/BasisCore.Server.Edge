@@ -1,7 +1,7 @@
-"""MongoDB Context Module
+"""MongoDB Connection Module
 
-Provides modern MongoDB database context management inspired by ILogger<T> pattern.
-No inheritance required - use IMongoDbContext[TConfig] directly in your services.
+Provides modern MongoDB database connection management inspired by ILogger<T> pattern.
+No inheritance required - use IMongoConnection[TConfig] directly in your services.
 
 Features:
     - Sync client support with MongoClient
@@ -12,14 +12,14 @@ Features:
 
 Example:
     ```python
-    from bclib.db_context.mongo import IMongoDbContext, add_mongodb_default_context
+    from bclib.connections.mongo import IMongoConnection, add_mongodb_connection
     
-    # Register MongoDB contexts
-    add_mongodb_default_context(services)
+    # Register MongoDB connections
+    add_mongodb_connection(services)
     
     # Use in service (sync)
     class UserService:
-        def __init__(self, db: IMongoDbContext['database.users']):
+        def __init__(self, db: IMongoConnection['database.users']):
             self.users = db.get_collection('users')
         
         def get_user(self, user_id: str):
@@ -27,7 +27,7 @@ Example:
     
     # Use in service (async)
     class AsyncUserService:
-        def __init__(self, db: IMongoDbContext['database.users']):
+        def __init__(self, db: IMongoConnection['database.users']):
             self.users = db.get_async_collection('users')
         
         async def get_user(self, user_id: str):
@@ -38,21 +38,21 @@ from typing import ForwardRef
 
 from bclib.di import IServiceContainer, IServiceProvider
 
-from .imongo_db_context import IMongoDbContext
+from .imongo_connection import IMongoConnection
 
-__all__ = ['IMongoDbContext', 'add_mongodb_default_context']
+__all__ = ['IMongoConnection', 'add_mongodb_connection']
 
 
-def add_mongodb_default_context(service_container: IServiceContainer) -> IServiceContainer:
+def add_mongodb_connection(service_container: IServiceContainer) -> IServiceContainer:
     """
-    Register MongoDB Context Services in DI Container
+    Register MongoDB Connection Services in DI Container
 
-    Adds MongoDbContext as the implementation for IMongoDbContext[T] in the service provider.
-    This allows you to inject IMongoDbContext[TConfig] directly into your services without
-    creating custom context classes.
+    Adds MongoConnection as the implementation for IMongoConnection[T] in the service provider.
+    This allows you to inject IMongoConnection[TConfig] directly into your services without
+    creating custom connection classes.
 
     Similar to add_logging for ILogger<T>, this function enables the ILogger-style pattern
-    for MongoDB contexts. Supports both sync (MongoClient) and async (AsyncMongoClient) operations.
+    for MongoDB connections. Supports both sync (MongoClient) and async (AsyncMongoClient) operations.
 
     Args:
         service_container: The service container to register services with
@@ -62,18 +62,18 @@ def add_mongodb_default_context(service_container: IServiceContainer) -> IServic
 
     Example:
         ```python
-        from bclib.db_context.mongo import add_mongodb_default_context
+        from bclib.connections.mongo import add_mongodb_connection
         from bclib.di import ServiceProvider
 
         # Create DI container
         services = ServiceProvider()
 
-        # Register MongoDB context services
-        add_mongodb_default_context(services)
+        # Register MongoDB connection services
+        add_mongodb_connection(services)
 
         # Use sync in your services
         class UserService:
-            def __init__(self, db: IMongoDbContext['database.users']):
+            def __init__(self, db: IMongoConnection['database.users']):
                 self.db = db
                 self.users = db.get_collection('users')
 
@@ -82,7 +82,7 @@ def add_mongodb_default_context(service_container: IServiceContainer) -> IServic
 
         # Use async in your services
         class AsyncUserService:
-            def __init__(self, db: IMongoDbContext['database.users']):
+            def __init__(self, db: IMongoConnection['database.users']):
                 self.db = db
                 self.users = db.get_async_collection('users')
 
@@ -103,19 +103,19 @@ def add_mongodb_default_context(service_container: IServiceContainer) -> IServic
         ```
 
     Note:
-        After calling this function, you can inject IMongoDbContext['your.config.key']
+        After calling this function, you can inject IMongoConnection['your.config.key']
         into any service constructor. The DI container will automatically:
         1. Resolve configuration from 'your.config.key' 
-        2. Create MongoDbContext instance with those options
+        2. Create MongoConnection instance with those options
         3. Provide both sync (client) and async (async_client) MongoDB clients
-        4. Inject it as IMongoDbContext['your.config.key']
+        4. Inject it as IMongoConnection['your.config.key']
     """
-    def create_mongo_db_context(sp: IServiceProvider, **kwargs):
-        """Factory for creating MongoDbContext with configuration key from generic type"""
+    def create_mongo_connection(sp: IServiceProvider, **kwargs):
+        """Factory for creating MongoConnection with configuration key from generic type"""
         from bclib.options import AppOptions
         from bclib.utility import resolve_dict_value
 
-        from .mongo_db_context import MongoDbContext
+        from .mongo_connection import MongoConnection
 
         app_options = sp.get_service(AppOptions)
         type_args: tuple[type, ...] = kwargs.get('generic_type_args', ('',))
@@ -139,7 +139,7 @@ def add_mongodb_default_context(service_container: IServiceContainer) -> IServic
         options = resolve_dict_value(key, app_options)
         if (options is None):
             raise ValueError(
-                f"MongoDbContext configuration for key '{key}' not found.")
-        return MongoDbContext(options)
+                f"MongoConnection configuration for key '{key}' not found.")
+        return MongoConnection(options)
     return service_container.add_scoped(
-        IMongoDbContext, factory=create_mongo_db_context)
+        IMongoConnection, factory=create_mongo_connection)
