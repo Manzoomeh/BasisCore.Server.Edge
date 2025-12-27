@@ -25,13 +25,14 @@ class IListener(ABC):
     Example:
         ```python
         class MyCustomListener(IListener):
-            def __init__(self, endpoint, message_handler, logger=None):
+            def __init__(self, endpoint, message_handler, logger=None, loop=None):
                 self._message_handler = message_handler
                 self._logger = logger
                 self.__endpoint = endpoint
+                self.__event_loop = loop
 
-            def initialize_task(self, event_loop: asyncio.AbstractEventLoop):
-                event_loop.create_task(self.__server_task())
+            def initialize_task(self):
+                self.__event_loop.create_task(self.__server_task())
 
             async def __server_task(self):
                 # Start server and handle connections
@@ -43,24 +44,24 @@ class IListener(ABC):
     _logger: logging.Logger
 
     @abstractmethod
-    def initialize_task(self, event_loop: asyncio.AbstractEventLoop) -> None:
+    def initialize_task(self) -> None:
         """
         Initialize listener tasks on the event loop
 
         This method is called by the dispatcher during startup to initialize
         and start the listener's async tasks.
 
-        Args:
-            event_loop: asyncio event loop to run tasks on
-
         Example:
             ```python
-            def initialize_task(self, event_loop: asyncio.AbstractEventLoop):
+            def initialize_task(self):
+                # Get current event loop
+                loop = asyncio.get_event_loop()
+
                 # Create server task
-                event_loop.create_task(self.__start_server_async())
+                loop.create_task(self.__start_server_async())
 
                 # Create background tasks if needed
-                event_loop.create_task(self.__heartbeat_async())
+                loop.create_task(self.__heartbeat_async())
             ```
         """
         pass

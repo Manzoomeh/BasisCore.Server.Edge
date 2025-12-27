@@ -34,9 +34,8 @@ Example:
             return await self.users.find_one({'_id': user_id})
     ```
 """
-from typing import ForwardRef
 
-from bclib.di import IServiceContainer, IServiceProvider
+from bclib.di import IServiceContainer
 
 from .imongo_connection import IMongoConnection
 
@@ -110,6 +109,8 @@ def add_mongodb_connection(service_container: IServiceContainer) -> IServiceCont
         3. Provide both sync (client) and async (async_client) MongoDB clients
         4. Inject it as IMongoConnection['your.config.key']
     """
+    from bclib.di import IServiceProvider, extract_generic_type_key
+
     def create_mongo_connection(sp: IServiceProvider, **kwargs):
         """Factory for creating MongoConnection with configuration key from generic type"""
         from bclib.options import AppOptions
@@ -118,26 +119,10 @@ def add_mongodb_connection(service_container: IServiceContainer) -> IServiceCont
         from .mongo_connection import MongoConnection
 
         app_options = sp.get_service(AppOptions)
-        type_args: tuple[type, ...] = kwargs.get('generic_type_args', ('',))
-        key: str = None
+        key = extract_generic_type_key(kwargs)
 
-        # Extract class name from ForwardRef or type
-        key_source = type_args[0]
-
-        if isinstance(key_source, ForwardRef):
-            # ForwardRef: extract the string representation
-            key = key_source.__forward_arg__
-        elif isinstance(key_source, type):
-            # Actual class: use __name__
-            key = key_source.__name__
-        elif isinstance(key_source, str):
-            # Already a string
-            key = key_source
-        else:
-            # Fallback to string representation
-            key = str(key_source)
         options = resolve_dict_value(key, app_options)
-        if (options is None):
+        if options is None:
             raise ValueError(
                 f"MongoConnection configuration for key '{key}' not found.")
         return MongoConnection(options)

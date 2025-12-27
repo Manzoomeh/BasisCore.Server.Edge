@@ -73,7 +73,7 @@ class ListenerFactory(IListenerFactory):
             listeners = factory.load_listeners()
 
             for listener in listeners:
-                listener.initialize_task(event_loop)
+                listener.initialize_task()
             ```
         """
         listeners: list[IListener] = []

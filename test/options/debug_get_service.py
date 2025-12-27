@@ -1,8 +1,9 @@
 """Debug get_service for IOptions"""
-from bclib.di import ServiceProvider
-from bclib.options import IOptions
-from typing import ForwardRef, get_args, get_origin
 import sys
+from typing import get_args, get_origin
+
+from bclib.di import ServiceProvider, extract_generic_type_key
+from bclib.options import IOptions
 
 sys.path.insert(
     0, 'd:/Programming/Falsafi/BasisCore/Server/BasisCore.Server.Edge')
@@ -20,14 +21,8 @@ sp = ServiceProvider()
 
 def create_options(sp, **kwargs):
     """Factory for creating IOptions with configuration key"""
-    type_args = kwargs.get('generic_type_args', ('root',))
-    if type_args:
-        # Extract string from ForwardRef if needed
-        key = type_args[0]
-        if isinstance(key, ForwardRef):
-            key = key.__forward_arg__
-        return IOptions(key, config)
-    return IOptions('root', config)
+    key = extract_generic_type_key(kwargs)
+    return IOptions(key, config)
 
 
 sp.add_singleton(IOptions, factory=create_options)

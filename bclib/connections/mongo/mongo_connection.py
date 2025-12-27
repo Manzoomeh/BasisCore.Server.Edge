@@ -126,14 +126,14 @@ class MongoConnection(IMongoConnection[T]):
         """Validate required configuration options."""
         if 'connection_string' not in self._options:
             raise KeyError(
-                f"Configuration key 'connection_string' is required for MongoDB connection. "
-                f"Please ensure your configuration contains this key."
+                "Configuration key 'connection_string' is required for MongoDB connection. "
+                "Please ensure your configuration contains this key."
             )
 
         if 'database_name' not in self._options:
             raise KeyError(
-                f"Configuration key 'database_name' is required for MongoDB connection. "
-                f"Please ensure your configuration contains this key."
+                "Configuration key 'database_name' is required for MongoDB connection. "
+                "Please ensure your configuration contains this key."
             )
 
     @property
