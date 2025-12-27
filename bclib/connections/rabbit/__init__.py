@@ -118,25 +118,24 @@ def add_rabbitmq_connection(service_container: IServiceContainer) -> IServiceCon
         4. Inject it as IRabbitConnection['your.config.key']
     """
     from bclib.di import IServiceProvider
+    from bclib.options import IOptions
 
-    def create_rabbit_connection(sp: IServiceProvider, **kwargs):
+    # return service_container.add_transient(IRabbitConnection, RabbitConnection)
+
+    def create_rabbit_connection(service_provider: IServiceProvider, **kwargs):
         """Factory for creating RabbitConnection with configuration key from generic type"""
         from bclib.di import extract_generic_type_key
-        from bclib.options import AppOptions
-        from bclib.utility import resolve_dict_value
 
         from .rabbit_connection import RabbitConnection
 
-        app_options = sp.get_service(AppOptions)
+        # Extract configuration key from generic type arguments
         key = extract_generic_type_key(kwargs)
 
-        options = resolve_dict_value(key, app_options)
-        if options is None:
-            raise ValueError(
-                f"RabbitConnection configuration for key '{key}' not found.")
+        # Get configuration options for this key
+        options = service_provider.get_service(IOptions[key])
 
-        # Use RabbitConnection without generic - generics are for type hints only
-        # The actual configuration is provided through options parameter
-        return sp.create_instance(RabbitConnection, options=options)
+        # # The actual configuration is provided through options parameter
+        return service_provider.create_instance(RabbitConnection, options=options, **kwargs)
+
     return service_container.add_transient(
         IRabbitConnection, factory=create_rabbit_connection)

@@ -46,7 +46,7 @@ Configuration Example:
 
 import asyncio
 import json
-from typing import TYPE_CHECKING, Any, Dict, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Dict, Generic, Optional, TypeVar, Union
 from urllib.parse import urlparse
 
 from bclib.logger import ILogger
@@ -62,7 +62,7 @@ if TYPE_CHECKING:
 T = TypeVar('T')
 
 
-class RabbitConnection(IRabbitConnection[T]):
+class RabbitConnection(IRabbitConnection[T], Generic[T]):
     """
     RabbitMQ Connection Implementation - Fully async using aio_pika.
 
@@ -111,7 +111,7 @@ class RabbitConnection(IRabbitConnection[T]):
         routing_key (str): Routing key (for exchange mode)
     """
 
-    def __init__(self, options: IOptions['RabbitConnection'], loop: asyncio.AbstractEventLoop, logger: ILogger['RabbitConnection']) -> None:
+    def __init__(self, options: IOptions['RabbitConnection[T]'], loop: asyncio.AbstractEventLoop, logger: ILogger['RabbitConnection[T]']) -> None:
         """
         Initialize RabbitMQ connection with configuration options.
 

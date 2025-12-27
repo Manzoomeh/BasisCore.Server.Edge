@@ -26,8 +26,10 @@ Example:
 
 from .mongo import IMongoConnection
 from .rabbit import IRabbitConnection
+from .restful import IRestfulConnection
 
-__all__ = ['add_connection_services', 'IMongoConnection', 'IRabbitConnection']
+__all__ = ['add_connection_services', 'IMongoConnection',
+           'IRabbitConnection', 'IRestfulConnection']
 
 
 from bclib.di import IServiceContainer
@@ -91,8 +93,10 @@ def add_connection_services(service_container: IServiceContainer) -> IServiceCon
     """
     from .mongo import add_mongodb_connection
     from .rabbit import add_rabbitmq_connection
+    from .restful import add_restful_connection
 
     add_mongodb_connection(service_container)
     add_rabbitmq_connection(service_container)
+    add_restful_connection(service_container)
 
     return service_container
