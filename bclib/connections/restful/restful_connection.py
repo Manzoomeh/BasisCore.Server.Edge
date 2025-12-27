@@ -1,9 +1,10 @@
-"""RESTful HTTP Connection - Async implementation using aiohttp"""
+"""RESTful HTTP Connection - Enhanced with certifi and raise_for_status"""
 import asyncio
+import ssl
 from typing import Any, Dict, Generic, Optional, TypeVar
 
 import aiohttp
-from aiohttp import ClientResponse, ClientSession, ClientTimeout
+from aiohttp import ClientResponse, ClientSession, ClientTimeout, TCPConnector
 
 from bclib.logger.ilogger import ILogger
 from bclib.options import IOptions
@@ -15,11 +16,13 @@ T = TypeVar('T')
 
 class RestfulConnection(IRestfulConnection[T], Generic[T]):
     """
-    RESTful HTTP Connection - Async HTTP client using aiohttp.
+    RESTful HTTP Connection - Enhanced async HTTP client.
 
     Features:
         - Async HTTP methods (GET, POST, PUT, PATCH, DELETE)
-        - Configurable base URL, timeout, and headers
+        - Automatic JSON/text parsing
+        - HTTP error handling with raise_for_status
+        - SSL verification with certifi CA bundle
         - Session management with connection pooling
         - Type-safe configuration through generics
         - Automatic session cleanup
@@ -33,7 +36,9 @@ class RestfulConnection(IRestfulConnection[T], Generic[T]):
                 "headers": {
                     "Authorization": "Bearer token",
                     "Content-Type": "application/json"
-                }
+                },
+                "ssl_verify": true,
+                "ssl_cert_path": "/path/to/cert.pem"
             }
         }
         ```
@@ -45,19 +50,26 @@ class RestfulConnection(IRestfulConnection[T], Generic[T]):
                 self.api = api
 
             async def get_users(self):
-                response = await self.api.get_async('/users')
-                return await response.json()
+                # Automatically parses JSON and raises for HTTP errors
+                return await self.api.get_async('/users')
 
             async def create_user(self, name: str):
-                response = await self.api.post_async('/users', json={'name': name})
-                return await response.json()
+                return await self.api.post_async('/users', json={'name': name})
+
+            async def create_user_no_error_check(self, name: str):
+                # Disable automatic error checking
+                return await self.api.post_async(
+                    '/users', 
+                    json={'name': name},
+                    raise_for_status=False
+                )
         ```
     """
 
     def __init__(
         self,
         options: IOptions['RestfulConnection[T]'],
-        logger: ILogger['RestfulConnection[T]']
+        logger: Optional[ILogger['RestfulConnection[T]']] = None
     ):
         """
         Initialize RESTful connection.
@@ -75,14 +87,64 @@ class RestfulConnection(IRestfulConnection[T], Generic[T]):
         self._base_url = self._options.get('base_url', '')
         self._timeout = self._options.get('timeout', 30)
         self._default_headers = self._options.get('headers', {})
+        self._ssl_verify = self._options.get('ssl_verify', True)
+        self._ssl_cert_path = self._options.get('ssl_cert_path', None)
 
         if not self._base_url:
             raise ValueError(
                 f"Configuration key '{options.key}' must contain 'base_url'")
 
+        # Create SSL context
+        self._ssl_context = self._create_ssl_context()
+
         if self._logger:
+            ssl_status = "with certifi" if self._ssl_verify and not self._ssl_cert_path else (
+                "with custom cert" if self._ssl_cert_path else "disabled")
             self._logger.info(
-                f"RestfulConnection initialized for {self._base_url}")
+                f"RestfulConnection initialized: {self._base_url} (SSL {ssl_status})")
+
+    def _create_ssl_context(self) -> Optional[ssl.SSLContext]:
+        """
+        Create SSL context with certifi CA bundle.
+
+        Uses certifi for reliable cross-platform SSL verification.
+        This fixes CERTIFICATE_VERIFY_FAILED errors on Windows/venv
+        where OpenSSL default CA paths may be missing.
+
+        Returns:
+            SSLContext object, False to disable SSL, or None for default
+        """
+        if not self._ssl_verify:
+            # Disable SSL verification
+            if self._logger:
+                self._logger.warning(
+                    "SSL certificate verification is DISABLED. Use only in development!")
+            return False
+
+        if self._ssl_cert_path:
+            # Use custom CA certificate
+            ssl_context = ssl.create_default_context(
+                cafile=self._ssl_cert_path)
+            if self._logger:
+                self._logger.info(
+                    f"Using custom SSL certificate: {self._ssl_cert_path}")
+            return ssl_context
+
+        # Use certifi CA bundle for reliable cross-platform SSL
+        try:
+            import certifi
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
+            if self._logger:
+                self._logger.debug(
+                    "Using certifi CA bundle for SSL verification")
+            return ssl_context
+        except ImportError:
+            if self._logger:
+                self._logger.warning(
+                    "certifi not installed, using default SSL. "
+                    "Install with: pip install certifi")
+            # Fall back to default SSL
+            return None
 
     @property
     def base_url(self) -> str:
@@ -106,236 +168,292 @@ class RestfulConnection(IRestfulConnection[T], Generic[T]):
 
     async def get_session_async(self) -> ClientSession:
         """
-        Get or create aiohttp ClientSession.
-
-        Uses lazy initialization and ensures thread-safe session creation.
+        Get or create aiohttp ClientSession with connection pooling.
 
         Returns:
-            ClientSession instance
+            Active ClientSession instance
         """
         if self._session is None or self._session.closed:
             async with self._session_lock:
-                # Double-check after acquiring lock
                 if self._session is None or self._session.closed:
                     timeout = ClientTimeout(total=self._timeout)
+
+                    # Configure SSL connector
+                    if self._ssl_context is False:
+                        # Disable SSL
+                        connector = TCPConnector(ssl=False)
+                    elif self._ssl_context:
+                        # Use custom SSL context (certifi or custom cert)
+                        connector = TCPConnector(ssl=self._ssl_context)
+                    else:
+                        # Use default SSL
+                        connector = TCPConnector(ssl=True)
+
                     self._session = ClientSession(
+                        base_url=self._base_url,
+                        timeout=timeout,
                         headers=self._default_headers,
-                        timeout=timeout
+                        connector=connector
                     )
+
                     if self._logger:
                         self._logger.debug(
-                            f"Created new HTTP session for {self._base_url}")
+                            f"Created new ClientSession for {self._base_url}")
 
         return self._session
 
-    def _build_url(self, path: str) -> str:
-        """Build full URL from base URL and path."""
-        # Remove leading slash from path if present
-        path = path.lstrip('/')
-        # Ensure base_url doesn't end with slash
-        base = self._base_url.rstrip('/')
-        return f"{base}/{path}"
+    async def _read_response_async(self, response: ClientResponse) -> Any:
+        """
+        Read response with JSON/text fallback.
 
-    def _merge_headers(self, additional_headers: Optional[Dict[str, str]]) -> Dict[str, str]:
-        """Merge default headers with additional headers."""
-        if additional_headers:
-            merged = self._default_headers.copy()
-            merged.update(additional_headers)
-            return merged
-        return self._default_headers
+        Tries to parse as JSON first, falls back to text if parsing fails.
+        This handles APIs that don't set proper content-type headers.
+
+        Args:
+            response: aiohttp ClientResponse
+
+        Returns:
+            Parsed JSON (dict/list) or text string
+        """
+        try:
+            # Try JSON first regardless of content-type
+            return await response.json()
+        except Exception:
+            # Fall back to text for non-JSON responses
+            return await response.text()
 
     async def get_async(
         self,
         path: str,
         params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
-        timeout: Optional[int] = None
-    ) -> ClientResponse:
+        raise_for_status: bool = True
+    ) -> Any:
         """
-        Send GET request to the API.
+        Perform HTTP GET request.
 
         Args:
-            path: URL path (relative to base_url)
-            params: Query parameters
-            headers: Additional headers (merged with default headers)
-            timeout: Request timeout in seconds (overrides default)
+            path: API endpoint path (relative to base_url)
+            params: URL query parameters
+            headers: Additional request headers
+            raise_for_status: Raise exception if status >= 400 (default: True)
 
         Returns:
-            ClientResponse object
+            Parsed JSON or text content
+
+        Raises:
+            Exception: If request fails or status >= 400 (when raise_for_status=True)
         """
         session = await self.get_session_async()
-        url = self._build_url(path)
-        merged_headers = self._merge_headers(headers)
+        # Session already has base_url, so just use the path
+        path = path.lstrip('/')
 
-        if self._logger:
-            self._logger.debug(f"GET {url}")
+        try:
+            async with session.get(path, params=params, headers=headers) as response:
+                # Check for HTTP errors
+                if raise_for_status and response.status >= 400:
+                    error_body = await self._read_response_async(response)
+                    raise Exception(
+                        f"GET failed: status={response.status} url={path} response={error_body}")
 
-        timeout_obj = ClientTimeout(
-            total=timeout) if timeout else ClientTimeout(total=self._timeout)
+                if self._logger:
+                    self._logger.debug(
+                        f"GET {path} - Status: {response.status}")
 
-        return await session.get(
-            url,
-            params=params,
-            headers=merged_headers,
-            timeout=timeout_obj
-        )
+                return await self._read_response_async(response)
+
+        except Exception as e:
+            if self._logger:
+                self._logger.error(f"GET error: {path} - {str(e)}")
+            raise
 
     async def post_async(
         self,
         path: str,
-        json: Optional[Dict[str, Any]] = None,
         data: Optional[Any] = None,
+        json: Optional[Any] = None,
         headers: Optional[Dict[str, str]] = None,
-        timeout: Optional[int] = None
-    ) -> ClientResponse:
+        raise_for_status: bool = True
+    ) -> Any:
         """
-        Send POST request to the API.
+        Perform HTTP POST request.
 
         Args:
-            path: URL path (relative to base_url)
-            json: JSON body data
-            data: Form data or other body
-            headers: Additional headers (merged with default headers)
-            timeout: Request timeout in seconds (overrides default)
+            path: API endpoint path (relative to base_url)
+            data: Form data to send
+            json: JSON data to send
+            headers: Additional request headers
+            raise_for_status: Raise exception if status >= 400 (default: True)
 
         Returns:
-            ClientResponse object
+            Parsed JSON or text content
+
+        Raises:
+            Exception: If request fails or status >= 400 (when raise_for_status=True)
         """
         session = await self.get_session_async()
-        url = self._build_url(path)
-        merged_headers = self._merge_headers(headers)
+        path = path.lstrip('/')
 
-        if self._logger:
-            self._logger.debug(f"POST {url}")
+        try:
+            async with session.post(path, data=data, json=json, headers=headers) as response:
+                # Check for HTTP errors
+                if raise_for_status and response.status >= 400:
+                    error_body = await self._read_response_async(response)
+                    raise Exception(
+                        f"POST failed: status={response.status} url={path} response={error_body}")
 
-        timeout_obj = ClientTimeout(
-            total=timeout) if timeout else ClientTimeout(total=self._timeout)
+                if self._logger:
+                    self._logger.debug(
+                        f"POST {path} - Status: {response.status}")
 
-        return await session.post(
-            url,
-            json=json,
-            data=data,
-            headers=merged_headers,
-            timeout=timeout_obj
-        )
+                return await self._read_response_async(response)
+
+        except Exception as e:
+            if self._logger:
+                self._logger.error(f"POST error: {path} - {str(e)}")
+            raise
 
     async def put_async(
         self,
         path: str,
-        json: Optional[Dict[str, Any]] = None,
         data: Optional[Any] = None,
+        json: Optional[Any] = None,
         headers: Optional[Dict[str, str]] = None,
-        timeout: Optional[int] = None
-    ) -> ClientResponse:
+        raise_for_status: bool = True
+    ) -> Any:
         """
-        Send PUT request to the API.
+        Perform HTTP PUT request.
 
         Args:
-            path: URL path (relative to base_url)
-            json: JSON body data
-            data: Form data or other body
-            headers: Additional headers (merged with default headers)
-            timeout: Request timeout in seconds (overrides default)
+            path: API endpoint path (relative to base_url)
+            data: Form data to send
+            json: JSON data to send
+            headers: Additional request headers
+            raise_for_status: Raise exception if status >= 400 (default: True)
 
         Returns:
-            ClientResponse object
+            Parsed JSON or text content
+
+        Raises:
+            Exception: If request fails or status >= 400 (when raise_for_status=True)
         """
         session = await self.get_session_async()
-        url = self._build_url(path)
-        merged_headers = self._merge_headers(headers)
+        path = path.lstrip('/')
 
-        if self._logger:
-            self._logger.debug(f"PUT {url}")
+        try:
+            async with session.put(path, data=data, json=json, headers=headers) as response:
+                # Check for HTTP errors
+                if raise_for_status and response.status >= 400:
+                    error_body = await self._read_response_async(response)
+                    raise Exception(
+                        f"PUT failed: status={response.status} url={path} response={error_body}")
 
-        timeout_obj = ClientTimeout(
-            total=timeout) if timeout else ClientTimeout(total=self._timeout)
+                if self._logger:
+                    self._logger.debug(
+                        f"PUT {path} - Status: {response.status}")
 
-        return await session.put(
-            url,
-            json=json,
-            data=data,
-            headers=merged_headers,
-            timeout=timeout_obj
-        )
+                return await self._read_response_async(response)
+
+        except Exception as e:
+            if self._logger:
+                self._logger.error(f"PUT error: {path} - {str(e)}")
+            raise
 
     async def patch_async(
         self,
         path: str,
-        json: Optional[Dict[str, Any]] = None,
         data: Optional[Any] = None,
+        json: Optional[Any] = None,
         headers: Optional[Dict[str, str]] = None,
-        timeout: Optional[int] = None
-    ) -> ClientResponse:
+        raise_for_status: bool = True
+    ) -> Any:
         """
-        Send PATCH request to the API.
+        Perform HTTP PATCH request.
 
         Args:
-            path: URL path (relative to base_url)
-            json: JSON body data
-            data: Form data or other body
-            headers: Additional headers (merged with default headers)
-            timeout: Request timeout in seconds (overrides default)
+            path: API endpoint path (relative to base_url)
+            data: Form data to send
+            json: JSON data to send
+            headers: Additional request headers
+            raise_for_status: Raise exception if status >= 400 (default: True)
 
         Returns:
-            ClientResponse object
+            Parsed JSON or text content
+
+        Raises:
+            Exception: If request fails or status >= 400 (when raise_for_status=True)
         """
         session = await self.get_session_async()
-        url = self._build_url(path)
-        merged_headers = self._merge_headers(headers)
+        path = path.lstrip('/')
 
-        if self._logger:
-            self._logger.debug(f"PATCH {url}")
+        try:
+            async with session.patch(path, data=data, json=json, headers=headers) as response:
+                # Check for HTTP errors
+                if raise_for_status and response.status >= 400:
+                    error_body = await self._read_response_async(response)
+                    raise Exception(
+                        f"PATCH failed: status={response.status} url={path} response={error_body}")
 
-        timeout_obj = ClientTimeout(
-            total=timeout) if timeout else ClientTimeout(total=self._timeout)
+                if self._logger:
+                    self._logger.debug(
+                        f"PATCH {path} - Status: {response.status}")
 
-        return await session.patch(
-            url,
-            json=json,
-            data=data,
-            headers=merged_headers,
-            timeout=timeout_obj
-        )
+                return await self._read_response_async(response)
+
+        except Exception as e:
+            if self._logger:
+                self._logger.error(f"PATCH error: {path} - {str(e)}")
+            raise
 
     async def delete_async(
         self,
         path: str,
+        params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
-        timeout: Optional[int] = None
-    ) -> ClientResponse:
+        raise_for_status: bool = True
+    ) -> Any:
         """
-        Send DELETE request to the API.
+        Perform HTTP DELETE request.
 
         Args:
-            path: URL path (relative to base_url)
-            headers: Additional headers (merged with default headers)
-            timeout: Request timeout in seconds (overrides default)
+            path: API endpoint path (relative to base_url)
+            params: URL query parameters
+            headers: Additional request headers
+            raise_for_status: bool = True)
 
         Returns:
-            ClientResponse object
+            Parsed JSON or text content
+
+        Raises:
+            Exception: If request fails or status >= 400 (when raise_for_status=True)
         """
         session = await self.get_session_async()
-        url = self._build_url(path)
-        merged_headers = self._merge_headers(headers)
+        path = path.lstrip('/')
 
-        if self._logger:
-            self._logger.debug(f"DELETE {url}")
+        try:
+            async with session.delete(path, params=params, headers=headers) as response:
+                # Check for HTTP errors
+                if raise_for_status and response.status >= 400:
+                    error_body = await self._read_response_async(response)
+                    raise Exception(
+                        f"DELETE failed: status={response.status} url={path} response={error_body}")
 
-        timeout_obj = ClientTimeout(
-            total=timeout) if timeout else ClientTimeout(total=self._timeout)
+                if self._logger:
+                    self._logger.debug(
+                        f"DELETE {path} - Status: {response.status}")
 
-        return await session.delete(
-            url,
-            headers=merged_headers,
-            timeout=timeout_obj
-        )
+                return await self._read_response_async(response)
+
+        except Exception as e:
+            if self._logger:
+                self._logger.error(f"DELETE error: {path} - {str(e)}")
+            raise
 
     async def close_async(self) -> None:
         """
-        Close the HTTP session.
+        Close the HTTP session and release resources.
 
-        This method should be called when the connection is no longer needed
-        to properly release resources.
+        Call this when the connection is no longer needed.
         """
         if self._session and not self._session.closed:
             if self._logger:

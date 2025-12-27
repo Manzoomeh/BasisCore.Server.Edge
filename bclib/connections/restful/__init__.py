@@ -122,6 +122,8 @@ def add_restful_connection(service_container: IServiceContainer) -> IServiceCont
         - base_url (required): Base URL for all API requests
         - timeout (optional): Request timeout in seconds (default: 30)
         - headers (optional): Default headers for all requests
+        - ssl_verify (optional): Enable/disable SSL certificate verification (default: true)
+        - ssl_cert_path (optional): Path to custom CA certificate bundle
 
         Example:
         ```json
@@ -132,10 +134,17 @@ def add_restful_connection(service_container: IServiceContainer) -> IServiceCont
                 "headers": {
                     "Authorization": "Bearer token",
                     "Content-Type": "application/json"
-                }
+                },
+                "ssl_verify": false,
+                "ssl_cert_path": "/path/to/ca-bundle.crt"
             }
         }
         ```
+
+        SSL Configuration:
+        - Set "ssl_verify": false to disable SSL verification (useful for self-signed certificates in development)
+        - Set "ssl_cert_path": "/path/to/cert.pem" to use custom CA certificate bundle
+        - Leave both unset for default SSL verification
     """
 
     from bclib.di import IServiceProvider, extract_generic_type_key
