@@ -140,6 +140,7 @@ class HttpListener(IListener):
         message_handler: IMessageHandler,
         logger: ILogger['HttpListener'],
         ws_manager: IWebSocketSessionManager,
+        event_loop: asyncio.AbstractEventLoop,
         options: dict | str
     ):
         """Initialize HTTP listener from options dictionary
@@ -175,6 +176,7 @@ class HttpListener(IListener):
         self._message_handler = message_handler
         self._logger = logger
         self.__ws_manager = ws_manager
+        self.__event_loop = event_loop
 
         # Normalize options to dict format
         if isinstance(options, str):
@@ -198,22 +200,16 @@ class HttpListener(IListener):
             # String format: "localhost:8080"
             self.__endpoint = Endpoint(endpoint_value)
 
-    def initialize_task(self, event_loop: asyncio.AbstractEventLoop):
+    def initialize_task(self):
         """Initialize HTTP server task in event loop
-
-        Args:
-            event_loop (asyncio.AbstractEventLoop): Event loop to run server in
         """
-        event_loop.create_task(self.__server_task(event_loop))
+        self.__event_loop.create_task(self.__server_task())
 
-    async def __server_task(self, event_loop: asyncio.AbstractEventLoop):
+    async def __server_task(self):
         """Main server task that runs the HTTP/HTTPS server
 
         Sets up aiohttp web application with routing, SSL context, and starts
         the TCP site. Handles graceful shutdown on cancellation.
-
-        Args:
-            event_loop (asyncio.AbstractEventLoop): Event loop for server
 
         Notes:
             - Creates wildcard route that handles all paths
@@ -247,7 +243,7 @@ class HttpListener(IListener):
                 HttpListener.HANDLER_ARGS, HttpListener._DEFAULT_HANDLER_ARGS),
             client_max_size=app_config.get(
                 HttpListener.CLIENT_MAX_SIZE, HttpListener._DEFAULT_CLIENT_MAX_SIZE),
-            loop=event_loop
+            loop=self.__event_loop
         )
         app.add_routes(
             [web.route('*', '/{tail:.*}', on_request_receive_async)])

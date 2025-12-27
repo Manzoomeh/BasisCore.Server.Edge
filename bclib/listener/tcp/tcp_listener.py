@@ -16,6 +16,7 @@ class TcpListener(IListener):
         self,
         message_handler: IMessageHandler,
         logger: ILogger['TcpListener'],
+        event_loop: asyncio.AbstractEventLoop,
         options: dict | str
     ):
         """Initialize TcpListener.
@@ -27,6 +28,7 @@ class TcpListener(IListener):
         """
         self._message_handler = message_handler
         self._logger = logger
+        self.__event_loop = event_loop
 
         # Normalize options to dict format
         if isinstance(options, str):
@@ -48,9 +50,9 @@ class TcpListener(IListener):
             self.__endpoint = Endpoint(endpoint_value)
         self.__server: asyncio.Server = None
 
-    def initialize_task(self, event_loop: asyncio.AbstractEventLoop):
-        """Schedule the server task on the given event loop."""
-        event_loop.create_task(self.__server_task())
+    def initialize_task(self):
+        """Schedule the server task on the event loop."""
+        self.__event_loop.create_task(self.__server_task())
 
     async def __server_task(self):
         """Start the TCP server and accept connections."""

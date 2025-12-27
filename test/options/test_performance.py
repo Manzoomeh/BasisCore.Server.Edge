@@ -2,8 +2,8 @@
 
 import time
 
+from bclib.di import ServiceProvider, extract_generic_type_key
 from bclib.options import AppOptions, IOptions
-from bclib.di import ServiceProvider
 
 
 def benchmark_singleton_caching():
@@ -121,24 +121,10 @@ def benchmark_cache_key_creation():
 
 def _create_options(sp, **kwargs):
     """Factory for creating Options with configuration key"""
-    from typing import ForwardRef
-
     from bclib.options.service_options import ServiceOptions
 
     app_options = sp.get_service(AppOptions)
-    type_args = kwargs.get('generic_type_args', ('',))
-
-    # Extract key from generic type argument
-    key_source = type_args[0]
-    if isinstance(key_source, ForwardRef):
-        key = key_source.__forward_arg__
-    elif isinstance(key_source, type):
-        key = key_source.__name__
-    elif isinstance(key_source, str):
-        key = key_source
-    else:
-        key = str(key_source)
-
+    key = extract_generic_type_key(kwargs)
     return ServiceOptions(key, app_options)
 
 

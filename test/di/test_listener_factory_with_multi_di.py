@@ -94,7 +94,7 @@ class ListenerFactory:
         """Initialize all listeners"""
         print(f"\nInitializing {len(self.listeners)} listeners:")
         for listener in self.listeners:
-            listener.initialize_task(event_loop)
+            listener.initialize_task()
 
 
 def example_1_simple_config():

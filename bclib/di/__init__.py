@@ -40,7 +40,7 @@ Example:
 # Hosted service interface
 import asyncio
 import sys
-from typing import Optional
+from typing import ForwardRef, Optional
 
 from .ihosted_service import IHostedService
 from .injection_plan import InjectionPlan
@@ -56,7 +56,53 @@ __all__ = [
     # Hosted services
     'IHostedService',
     'InjectionPlan',
+    'extract_generic_type_key',
 ]
+
+
+def extract_generic_type_key(kwargs: dict) -> str:
+    """
+    Extract configuration key from generic type arguments.
+
+    This utility function extracts the string key from generic type arguments
+    passed through DI container's factory kwargs. Handles ForwardRef, type objects,
+    and string literals.
+
+    Args:
+        kwargs: Factory kwargs containing 'generic_type_args'
+
+    Returns:
+        str: Extracted configuration key
+
+    Example:
+        ```python
+        # In factory function:
+        def create_service(sp: IServiceProvider, **kwargs):
+            key = extract_generic_type_key(kwargs)  # e.g., 'rabbitmq.tasks'
+            options = sp.get_service(AppOptions).get(key)
+            return MyService(options)
+        ```
+
+    Supported formats:
+        - ForwardRef('config.key') -> 'config.key'
+        - type(MyClass) -> 'MyClass'
+        - 'config.key' -> 'config.key'
+    """
+    type_args: tuple[type, ...] = kwargs.get('generic_type_args', ('',))
+    key_source = type_args[0]
+
+    if isinstance(key_source, ForwardRef):
+        # ForwardRef: extract the string representation
+        return key_source.__forward_arg__
+    elif isinstance(key_source, type):
+        # Actual class: use __name__
+        return key_source.__name__
+    elif isinstance(key_source, str):
+        # Already a string
+        return key_source
+    else:
+        # Fallback to string representation
+        return str(key_source)
 
 
 def create_service_container(loop: Optional[asyncio.AbstractEventLoop] = None) -> IServiceContainer:

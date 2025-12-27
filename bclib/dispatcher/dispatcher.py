@@ -121,6 +121,7 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
         # Event loop should already be registered in ServiceProvider by edge.from_options
         self.__event_loop = loop
         self.__cache_manager = CacheFactory.create(cache_options)
+        self.__shutdown_requested = False  # Flag for graceful shutdown
 
         self.name = self.__options.get('name')
 
@@ -945,7 +946,7 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
 
         # Initialize all listeners (HTTP, Socket, Rabbit, etc.)
         for listener in self.__listeners:
-            listener.initialize_task(self.__event_loop)
+            listener.initialize_task()
 
     def listening(self):
         """Start listening for incoming requests
@@ -957,35 +958,109 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
             - Graceful shutdown: stops hosted services before cancelling tasks
             - Event loop is always closed on exit
         """
+
+        # Create shutdown event for graceful shutdown coordination
+        shutdown_event = asyncio.Event()
+
+        def handle_shutdown(sig, frame):
+            """Signal handler for graceful shutdown"""
+            if not self.__shutdown_requested:
+                self.__shutdown_requested = True
+                self.__logger.info(
+                    f"Received signal {sig}, initiating graceful shutdown...")
+                # Schedule shutdown on the event loop instead of stopping immediately
+                self.__event_loop.call_soon_threadsafe(shutdown_event.set)
+
         # Register signal handlers for graceful shutdown
         for sig in (signal.SIGTERM, signal.SIGINT):
-            signal.signal(sig, lambda sig, _: self.__event_loop.stop())
+            signal.signal(sig, handle_shutdown)
+
+        async def shutdown_waiter():
+            """Wait for shutdown signal and perform graceful cleanup"""
+            await shutdown_event.wait()
+            self.__logger.info("Shutdown signal received, cleaning up...")
+
+            try:
+                # 1. Stop hosted services first (graceful)
+                self.__logger.info("Stopping hosted services...")
+                await self.__service_container.stop_hosted_services_async()
+
+                # 2. Close all listeners
+                self.__logger.info("Closing listeners...")
+                close_tasks = []
+                for listener in self.__listeners:
+                    if hasattr(listener, 'close_async'):
+                        close_tasks.append(listener.close_async())
+
+                if close_tasks:
+                    try:
+                        await asyncio.wait_for(
+                            asyncio.gather(
+                                *close_tasks, return_exceptions=True),
+                            timeout=3.0
+                        )
+                    except asyncio.TimeoutError:
+                        self.__logger.warning(
+                            "Listener close operations timed out")
+                    except Exception as e:
+                        self.__logger.error(f"Error closing listeners: {e}")
+
+                # 3. Cancel all remaining tasks (except this one)
+                self.__logger.info("Cancelling remaining tasks...")
+                tasks = [t for t in asyncio.all_tasks(loop=self.__event_loop)
+                         if t is not asyncio.current_task() and not t.done()]
+
+                for task in tasks:
+                    task.cancel()
+
+                # 4. Wait for tasks to complete cancellation
+                if tasks:
+                    self.__logger.info(
+                        f"Waiting for {len(tasks)} tasks to complete...")
+                    try:
+                        await asyncio.wait_for(
+                            asyncio.gather(*tasks, return_exceptions=True),
+                            timeout=5.0
+                        )
+                    except asyncio.TimeoutError:
+                        self.__logger.warning(
+                            "Some tasks did not complete within timeout")
+                    except Exception as e:
+                        self.__logger.error(
+                            f"Error during task cancellation: {e}")
+
+                self.__logger.info("Shutdown complete")
+
+            except Exception as e:
+                self.__logger.error(f"Error during graceful shutdown: {e}")
+            finally:
+                # Stop the event loop from within
+                self.__event_loop.stop()
 
         try:
             # Initialize all listeners and hosted services
             self.__event_loop.run_until_complete(self.initialize_task_async())
 
+            # Create shutdown waiter task
+            self.__event_loop.create_task(shutdown_waiter())
+
             # Block and run event loop until stopped
             self.__event_loop.run_forever()
 
-            # Graceful shutdown sequence:
-            # 1. Stop hosted services first (graceful)
-            self.__event_loop.run_until_complete(
-                self.__service_container.stop_hosted_services_async()
-            )
-
-            # 2. Cancel all remaining tasks
-            tasks = asyncio.all_tasks(loop=self.__event_loop)
-            for task in tasks:
-                task.cancel()
-
-            # 3. Wait for all tasks to finish cancellation
-            group = asyncio.gather(*tasks, return_exceptions=True)
-            self.__event_loop.run_until_complete(group)
-
+        except KeyboardInterrupt:
+            self.__logger.info("Keyboard interrupt received, shutting down...")
+            shutdown_event.set()
         finally:
-            # Always close event loop, even if exception occurred
-            self.__event_loop.close()
+            # Close event loop after shutdown is complete
+            if not self.__event_loop.is_closed():
+                try:
+                    # Give event loop a moment to process any final cleanup tasks
+                    # This prevents "Task was destroyed but it is pending!" warnings
+                    import time
+                    time.sleep(0.1)
+                    self.__event_loop.close()
+                except Exception:
+                    pass  # Ignore errors during close
 
     def add_static_handler(self, handler: StaticFileHandler) -> None:
         """Add static file handler for serving files
