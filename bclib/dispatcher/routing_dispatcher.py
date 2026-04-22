@@ -93,10 +93,15 @@ class RoutingDispatcher(Dispatcher, DispatcherHelper):
             ret_val: Message = None
             if context.is_adhoc:
                 # Pass raw response object; message implementation will handle serialization
-                ret_val = message.create_response_message(
-                    message.session_id,
-                    response
-                )
+                # TODO: Consider to move this logic to message implementation for better separation of concerns
+                if isinstance(message, ReceiveMessage):
+                    ret_val = Message(message.session_id,
+                                      message.type, json.dumps(response).encode("utf-8"))
+                else:
+                    ret_val = message.create_response_message(
+                        message.session_id,
+                        response
+                    )
             return ret_val
         except Exception as ex:
             print(f"Error in process received message {ex}")
