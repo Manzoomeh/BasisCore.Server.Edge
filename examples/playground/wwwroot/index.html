@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BasisEdge Playground</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #12151a;
+      --panel: #1a1f27;
+      --line: #2a3340;
+      --text: #e8edf4;
+      --muted: #9aa7b8;
+      --accent: #e2a03f;
+      --ok: #3dcf8e;
+      --err: #f07178;
+      --info: #6cb6ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Vazirmatn", system-ui, sans-serif;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #243044 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #2a2114 0%, transparent 50%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      padding: 1.75rem 1.5rem 1rem;
+      border-bottom: 1px solid var(--line);
+      background: rgba(18, 21, 26, 0.85);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    header p {
+      margin: 0.4rem 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    header code {
+      font-family: "IBM Plex Mono", monospace;
+      color: var(--accent);
+      font-size: 0.85em;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 1rem;
+      padding: 1rem 1.5rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+    .group-title {
+      margin: 1.25rem 0 0.5rem;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.55rem;
+    }
+    .card h3 {
+      margin: 0 0 0.25rem;
+      font-size: 1rem;
+    }
+    .card .desc {
+      margin: 0 0 0.55rem;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      align-items: center;
+      margin-bottom: 0.65rem;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.12rem 0.45rem;
+      border-radius: 4px;
+      border: 1px solid var(--line);
+      color: var(--info);
+    }
+    .badge.err { color: var(--err); }
+    .path { color: var(--text); direction: ltr; unicode-bidi: plaintext; }
+    .sample {
+      color: var(--muted);
+      direction: ltr;
+      unicode-bidi: plaintext;
+      font-size: 0.72rem;
+    }
+    .actions { display: flex; gap: 0.45rem; flex-wrap: wrap; }
+    button, .btn {
+      font-family: inherit;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: #243041;
+      color: var(--text);
+      border-radius: 7px;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.86rem;
+    }
+    button.primary {
+      background: linear-gradient(180deg, #efb45a, #c8892a);
+      color: #1a1205;
+      border-color: #b87a20;
+      font-weight: 600;
+    }
+    button:hover { filter: brightness(1.08); }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 1rem;
+      position: sticky;
+      top: 5.5rem;
+      align-self: start;
+      min-height: 320px;
+    }
+    .panel h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1rem;
+    }
+    pre {
+      margin: 0;
+      background: #0d1014;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.85rem;
+      overflow: auto;
+      max-height: 55vh;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      direction: ltr;
+      text-align: left;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .status-ok { color: var(--ok); }
+    .status-err { color: var(--err); }
+    .ws-box {
+      margin-top: 0.75rem;
+      display: grid;
+      gap: 0.45rem;
+    }
+    .ws-box input {
+      font-family: "IBM Plex Mono", monospace;
+      background: #0d1014;
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 7px;
+      padding: 0.45rem 0.6rem;
+      direction: ltr;
+    }
+    .hint {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>BasisEdge Playground</h1>
+    <p>
+      همهٔ الگوهای اصلی نمونه‌ها روی یک سرور —
+      <code>examples/playground/app.py</code>
+      · پورت <code>9300</code>
+    </p>
+  </header>
+
+  <div class="layout">
+    <main id="list"></main>
+    <aside class="panel">
+      <h2>نتیجه</h2>
+      <div id="status" class="meta"></div>
+      <pre id="out">روی «اجرا» بزنید…</pre>
+      <div class="ws-box" id="wsPanel" hidden>
+        <input id="wsMsg" value='{"ping":1}' />
+        <div class="actions">
+          <button type="button" id="wsConnect">اتصال WS</button>
+          <button type="button" id="wsSend">ارسال</button>
+          <button type="button" id="wsClose">قطع</button>
+        </div>
+      </div>
+      <div class="hint">
+        الگوهایی مثل HTTPS، Rabbit، SQL، multi_server و parser آفلاین اینجایک‌جا نیستند
+        (سرویس بیرونی یا اسکریپت جدا می‌خواهند). لینک به فایل نمونه روی هر کارت هست.
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const out = document.getElementById("out");
+    const statusEl = document.getElementById("status");
+    const listEl = document.getElementById("list");
+    const wsPanel = document.getElementById("wsPanel");
+    let catalog = [];
+    let socket = null;
+
+    function setStatus(ok, text) {
+      statusEl.innerHTML = `<span class="${ok ? "status-ok" : "status-err"}">${text}</span>`;
+    }
+
+    async function loadCatalog() {
+      const res = await fetch("/api/catalog");
+      const data = await res.json();
+      catalog = data.endpoints || [];
+      render();
+    }
+
+    function render() {
+      const groups = {};
+      for (const ep of catalog) {
+        (groups[ep.group] ||= []).push(ep);
+      }
+      listEl.innerHTML = "";
+      for (const [group, items] of Object.entries(groups)) {
+        const title = document.createElement("div");
+        title.className = "group-title";
+        title.textContent = group;
+        listEl.appendChild(title);
+        for (const ep of items) {
+          const card = document.createElement("article");
+          card.className = "card";
+          card.innerHTML = `
+            <h3>${ep.title}</h3>
+            <p class="desc">${ep.desc}</p>
+            <div class="meta">
+              <span class="badge ${ep.expectError ? "err" : ""}">${ep.method}</span>
+              <span class="path">${ep.path}</span>
+            </div>
+            <div class="sample">${ep.sample || ""}</div>
+            <div class="actions" style="margin-top:0.55rem">
+              <button class="primary" data-id="${ep.id}">اجرا</button>
+            </div>
+          `;
+          card.querySelector("button").addEventListener("click", () => run(ep));
+          listEl.appendChild(card);
+        }
+      }
+    }
+
+    async function run(ep) {
+      wsPanel.hidden = !ep.websocket;
+      if (ep.websocket) {
+        setStatus(true, "WebSocket — از پنل کنار استفاده کنید");
+        out.textContent = `مسیر: ${location.protocol === "https:" ? "wss" : "ws"}://${location.host}${ep.path}`;
+        return;
+      }
+
+      const started = performance.now();
+      try {
+        const opts = { method: ep.method || "GET" };
+        if (ep.method === "POST") {
+          opts.headers = { "Content-Type": "application/json" };
+          opts.body = ep.body === undefined ? JSON.stringify({ demo: true, n: 1 }) : JSON.stringify(ep.body);
+          if (ep.body === null) {
+            // empty body case for BadRequest demo
+            delete opts.headers;
+            opts.body = null;
+          }
+        }
+        const res = await fetch(ep.path, opts);
+        const ms = Math.round(performance.now() - started);
+        const ct = res.headers.get("content-type") || "";
+        let body;
+        if (ct.includes("application/json")) {
+          body = JSON.stringify(await res.json(), null, 2);
+        } else {
+          body = await res.text();
+        }
+        const ok = ep.expectError ? res.status >= 400 : res.ok;
+        setStatus(ok, `${res.status} ${res.statusText} · ${ms} ms`);
+        out.textContent = body;
+      } catch (e) {
+        setStatus(false, "request failed");
+        out.textContent = String(e);
+      }
+    }
+
+    document.getElementById("wsConnect").onclick = () => {
+      if (socket) socket.close();
+      const url = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/echo`;
+      socket = new WebSocket(url);
+      out.textContent = `connecting ${url}…`;
+      socket.onopen = () => setStatus(true, "WS open");
+      socket.onmessage = (ev) => {
+        out.textContent = (out.textContent + "\n← " + ev.data).trim();
+      };
+      socket.onclose = () => setStatus(false, "WS closed");
+      socket.onerror = () => setStatus(false, "WS error");
+    };
+    document.getElementById("wsSend").onclick = () => {
+      if (!socket || socket.readyState !== 1) {
+        setStatus(false, "WS not connected");
+        return;
+      }
+      const msg = document.getElementById("wsMsg").value;
+      socket.send(msg);
+      out.textContent = (out.textContent + "\n→ " + msg).trim();
+    };
+    document.getElementById("wsClose").onclick = () => {
+      if (socket) socket.close();
+    };
+
+    loadCatalog().catch((e) => {
+      setStatus(false, "catalog failed");
+      out.textContent = String(e);
+    });
+  </script>
+</body>
+</html>

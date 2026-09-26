@@ -9,7 +9,11 @@ All samples below are intended to start without external brokers/databases (no R
 ## Quick start
 
 ```bash
-# from repo root
+# Interactive playground (all main patterns + HTML console)
+python examples/playground/app.py
+# open http://127.0.0.1:9300/
+
+# or a single sample
 pip install -r requirements.txt
 # or: set PYTHONPATH to the repo root
 python examples/restful/hello.py
@@ -23,6 +27,7 @@ Latest smoke-run logs (one start each): [`_run_outputs/`](_run_outputs/).
 
 | Path | Port | Notes |
 |------|------|-------|
+| **`playground/`** | **9300** | **All-in-one demos + HTML index console** |
 | `restful/hello.py` | 9130 | Minimal REST |
 | `restful/async_initializers.py` | 9131 | Preload data then listen |
 | `restful/simple.py` | 9132 | REST + `@app.cache()` |
