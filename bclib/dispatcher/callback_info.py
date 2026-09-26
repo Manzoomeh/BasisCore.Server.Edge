@@ -57,23 +57,35 @@ class CallbackInfo:
 
     def get_url_patterns(self) -> list[str]:
         """
-        Extract URL patterns from predicates and convert to regex patterns
+        Extract URL patterns from predicates and convert to regex patterns.
 
-        Converts URL predicates with parameter placeholders (e.g., '/api/users/:id')
-        into regex patterns (e.g., '/api/users/(?P<id>[^/]+)') for routing.
-
-        Returns:
-            List of regex patterns for URL matching
+        Nested Url predicates inside All/Any (e.g. from app.get/post helpers) are
+        included. Handlers with no URL predicate are treated as catch-all ('*').
         """
+        from bclib.predicate.all import All
+        from bclib.predicate.any import Any
         from bclib.predicate.url import Url
 
-        patterns = []
-        for predicate in self.__predicates:
+        patterns: list[str] = []
+
+        def collect(predicate: Predicate) -> None:
             if isinstance(predicate, Url):
                 pattern = predicate.expression
-                # Convert :param to (?P<param>[^/]+) for named regex groups
                 regex_pattern = re.sub(r':(\w+)', r'(?P<\1>[^/]+)', pattern)
                 patterns.append(regex_pattern)
+            elif isinstance(predicate, All):
+                for child in predicate._All__predicate_list:
+                    collect(child)
+            elif isinstance(predicate, Any):
+                for child in predicate._Any__predicate_list:
+                    collect(child)
+
+        for predicate in self.__predicates:
+            collect(predicate)
+
+        # No URL restriction → this context type handles any path
+        if not patterns:
+            patterns.append("*")
         return patterns
 
     def matches_handler(self, handler: Callable) -> bool:

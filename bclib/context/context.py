@@ -76,13 +76,15 @@ class Context(ABC):
         in its own scope, allowing services to depend on the current context.
     """
 
-    def __init__(self, dispatcher: 'IDispatcher', create_scope: bool) -> None:
+    def __init__(self, dispatcher: 'IDispatcher', create_scope: bool,
+                 parent_services: 'IServiceProvider' = None) -> None:
         """
         Initialize the base context
 
         Args:
             dispatcher: Dispatcher instance for routing and DI container access
             create_scope: If True, creates a new DI scope; if False, uses parent scope
+            parent_services: Optional parent scoped provider (used by member contexts)
 
         Note:
             Most request contexts use create_scope=True to isolate request-level services.
@@ -95,9 +97,10 @@ class Context(ABC):
         # Create scoped service provider for this request
         if create_scope:
             self.__service_provider = dispatcher.service_provider.create_scope()
-            # service_container = self.__service_provider.get_service(
-            #     IServiceContainer)
             # Register current context as singleton in the scoped service provider
+            self.__service_provider.add_scoped(type(self), instance=self)
+        elif parent_services is not None:
+            self.__service_provider = parent_services
             self.__service_provider.add_scoped(type(self), instance=self)
         else:
             self.__service_provider = dispatcher.service_provider

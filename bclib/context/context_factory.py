@@ -106,12 +106,18 @@ class ContextFactory:
             method = dict.get(req, 'method', 'none')
 
         # Determine context type based on URL patterns or message type
-        # 1. Try to match URL patterns in lookup
-        if url and self.__route_lookup:
+        # 1. Try to match URL patterns in lookup (prefer concrete patterns over '*')
+        if url is not None and self.__route_lookup:
+            wildcard_type = None
             for pattern, ctx_type in self.__route_lookup.items():
-                if pattern == "*" or re.search(pattern, url):
+                if pattern == "*":
+                    wildcard_type = ctx_type
+                    continue
+                if re.search(pattern, url):
                     context_type = ctx_type
                     break
+            if context_type is None and wildcard_type is not None:
+                context_type = wildcard_type
 
         # 2. Fallback to message type if no match found
         if context_type is None:

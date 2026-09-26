@@ -10,3 +10,8 @@ bclib.egg-info
 dist
 build
 .vscode
+.pytest_cache
+.coverage
+htmlcov
+
+examples/_run_outputs/

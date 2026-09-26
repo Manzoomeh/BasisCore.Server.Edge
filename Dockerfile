@@ -13,7 +13,7 @@ COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 COPY . .
-COPY ./test/DockerSample ./code
+COPY ./examples/docker ./code
 
 RUN echo "/app" > /opt/venv/lib/python3.13/site-packages/bclib.pth && \
     echo "/app/bclib" >> /opt/venv/lib/python3.13/site-packages/bclib.pth

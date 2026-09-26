@@ -49,6 +49,7 @@ from typing import TYPE_CHECKING, Any, Callable, Coroutine, Optional, Type
 from bclib.cache import CacheFactory, CacheManager
 from bclib.context.context import Context
 from bclib.options.app_options import AppOptions
+from bclib.utility import DictEx
 
 if TYPE_CHECKING:
     from bclib.context.context_factory import ContextFactory
@@ -118,6 +119,8 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
         self.__service_provider = service_provider
         self.__service_container = service_container
         cache_options = self.__options.get('cache')
+        if cache_options is not None and not isinstance(cache_options, DictEx):
+            cache_options = DictEx(cache_options)
         # Event loop should already be registered in ServiceProvider by edge.from_options
         self.__event_loop = loop
         self.__cache_manager = CacheFactory.create(cache_options)
@@ -274,7 +277,25 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
 
         return self
 
-    def restful_handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
+    @staticmethod
+    def _normalize_handler_route(route, predicates):
+        """Allow first arg to be a route string or a Predicate (legacy style)."""
+        extra = list(predicates)
+        if route is None or isinstance(route, str):
+            return route, extra
+        if isinstance(route, Predicate):
+            extra.insert(0, route)
+            return None, extra
+        raise TypeError(
+            f"route must be str or Predicate, got {type(route).__name__}"
+        )
+
+    def restful_handler(
+        self,
+        route: Optional[str | Predicate] = None,
+        *predicates: Predicate,
+        method: Optional[str | list[str]] = None,
+    ):
         """
         Decorator for RESTful handler with automatic DI
 
@@ -284,47 +305,33 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
         - Mix both: def handler(context: RESTfulContext, logger: ILogger)
 
         Args:
-            route: Optional URL route pattern as first argument (e.g., "users/:id", "api/posts")
-            method: Optional HTTP method filter - single string ("get", "post") or list (["GET", "POST"])
-            *predicates: Variable number of Predicate objects for additional request matching rules
+            route: Optional URL route pattern (str) or a Predicate (legacy style)
+            *predicates: Additional Predicate objects for request matching
+            method: Optional HTTP method filter - string or list (keyword-only)
 
         Example:
             ```python
-            # Using route as first argument
-            @app.restful_handler("users/:id")
+            @app.restful_handler("users/:id", method="GET")
             def get_user(context: RESTfulContext):
-                user_id = context.url_segments['id']
-                return {"user_id": user_id}
-
-            # Using route and single method
-            @app.restful_handler("users", method="post")
-            def create_user(context: RESTfulContext):
-                return {"status": "created"}
-
-            # Using multiple methods as array
-            @app.restful_handler("users/:id", method=["GET", "PUT"])
-            def user_handler(context: RESTfulContext):
                 return {"user_id": context.url_segments['id']}
 
-            # Using route with additional predicates
-            @app.restful_handler("posts/:id", method="GET", app.has_value("context.query.filter"))
+            @app.restful_handler("posts/:id", app.has_value("context.query.filter"), method="GET")
             def get_filtered_post(context: RESTfulContext):
                 return {"post_id": context.url_segments['id']}
 
-            # No route, just predicates
-            @app.restful_handler(predicates=[app.equal("context.query.type", "admin")])
-            def admin_handler(context: RESTfulContext):
-                return {"admin": True}
+            @app.restful_handler(app.url(":id"), app.callback(check_id))
+            def by_id(context: RESTfulContext):
+                return {"id": context.url_segments['id']}
             ```
         """
         from bclib.context import RESTfulContext
         from bclib.predicate import PredicateHelper
 
-        # Build predicates using helper method
+        route_str, extra = self._normalize_handler_route(route, predicates)
         combined_predicates = PredicateHelper.build_predicates(
-            route,
-            method=method,
-            *predicates
+            route_str,
+            method,
+            *extra
         )
 
         def _decorator(restful_handler_fn: Callable):
@@ -347,7 +354,7 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
             return restful_handler_fn
         return _decorator
 
-    def web_handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
+    def web_handler(self, route: Optional[str | Predicate] = None, *predicates: Predicate, method: Optional[str | list[str]] = None):
         """
         Decorator for legacy web request handler with automatic DI
 
@@ -392,11 +399,11 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
         from bclib.context import HttpContext
         from bclib.predicate import PredicateHelper
 
-        # Build predicates using helper method
+        route_str, extra = self._normalize_handler_route(route, predicates)
         combined_predicates = PredicateHelper.build_predicates(
-            route,
-            method=method,
-            *predicates
+            route_str,
+            method,
+            *extra
         )
 
         def _decorator(web_handler_fn: Callable):
@@ -417,7 +424,7 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
             return web_handler_fn
         return _decorator
 
-    def websocket_handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
+    def websocket_handler(self, route: Optional[str | Predicate] = None, *predicates: Predicate, method: Optional[str | list[str]] = None):
         """
         Decorator for WebSocket handler with automatic DI
 
@@ -434,11 +441,11 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
         from bclib.context import WebSocketContext
         from bclib.predicate import PredicateHelper
 
-        # Build predicates using helper method
+        route_str, extra = self._normalize_handler_route(route, predicates)
         combined_predicates = PredicateHelper.build_predicates(
-            route,
-            method=method,
-            *predicates
+            route_str,
+            method,
+            *extra
         )
 
         def _decorator(websocket_handler_fn: Callable):
@@ -458,7 +465,7 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
             return websocket_handler_fn
         return _decorator
 
-    def client_source_handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
+    def client_source_handler(self, route: Optional[str | Predicate] = None, *predicates: Predicate, method: Optional[str | list[str]] = None):
         """
         Decorator for client source handler with automatic DI
 
@@ -476,11 +483,11 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
                                    ClientSourceMemberContext)
         from bclib.predicate import PredicateHelper
 
-        # Build predicates using helper method
+        route_str, extra = self._normalize_handler_route(route, predicates)
         combined_predicates = PredicateHelper.build_predicates(
-            route,
-            method=method,
-            *predicates
+            route_str,
+            method,
+            *extra
         )
 
         def _decorator(client_source_handler_fn: Callable):
@@ -527,7 +534,7 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
             return client_source_handler_fn
         return _decorator
 
-    def client_source_member_handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
+    def client_source_member_handler(self, route: Optional[str | Predicate] = None, *predicates: Predicate, method: Optional[str | list[str]] = None):
         """
         Decorator for client source member handler with automatic DI
 
@@ -544,11 +551,11 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
         from bclib.context import ClientSourceMemberContext
         from bclib.predicate import PredicateHelper
 
-        # Build predicates using helper method
+        route_str, extra = self._normalize_handler_route(route, predicates)
         combined_predicates = PredicateHelper.build_predicates(
-            route,
-            method=method,
-            *predicates
+            route_str,
+            method,
+            *extra
         )
 
         def _decorator(client_source_member_handler_fn: Callable):
@@ -568,7 +575,7 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
             return client_source_member_handler_fn
         return _decorator
 
-    def server_source_handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
+    def server_source_handler(self, route: Optional[str | Predicate] = None, *predicates: Predicate, method: Optional[str | list[str]] = None):
         """
         Decorator for server source handler with automatic DI
 
@@ -586,11 +593,11 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
                                    ServerSourceMemberContext)
         from bclib.predicate import PredicateHelper
 
-        # Build predicates using helper method
+        route_str, extra = self._normalize_handler_route(route, predicates)
         combined_predicates = PredicateHelper.build_predicates(
-            route,
-            method=method,
-            *predicates
+            route_str,
+            method,
+            *extra
         )
 
         def _decorator(server_source_handler_fn: Callable):
@@ -637,7 +644,7 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
             return server_source_handler_fn
         return _decorator
 
-    def server_source_member_handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
+    def server_source_member_handler(self, route: Optional[str | Predicate] = None, *predicates: Predicate, method: Optional[str | list[str]] = None):
         """
         Decorator for server source member handler with automatic DI
 
@@ -654,11 +661,11 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
         from bclib.context import ServerSourceMemberContext
         from bclib.predicate import PredicateHelper
 
-        # Build predicates using helper method
+        route_str, extra = self._normalize_handler_route(route, predicates)
         combined_predicates = PredicateHelper.build_predicates(
-            route,
-            method=method,
-            *predicates
+            route_str,
+            method,
+            *extra
         )
 
         def _decorator(server_source_member_handler_fn: Callable):
@@ -678,7 +685,7 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
             return server_source_member_handler_fn
         return _decorator
 
-    def rabbit_handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
+    def rabbit_handler(self, route: Optional[str | Predicate] = None, *predicates: Predicate, method: Optional[str | list[str]] = None):
         """
         Decorator for RabbitMQ message handler with automatic DI
 
@@ -695,11 +702,11 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
         from bclib.context import RabbitContext
         from bclib.predicate import PredicateHelper
 
-        # Build predicates using helper method
+        route_str, extra = self._normalize_handler_route(route, predicates)
         combined_predicates = PredicateHelper.build_predicates(
-            route,
-            method=method,
-            *predicates
+            route_str,
+            method,
+            *extra
         )
 
         def _decorator(rabbit_handler_fn: Callable):
@@ -716,7 +723,7 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
             return rabbit_handler_fn
         return _decorator
 
-    def handler(self, route: Optional[str] = None, method: Optional[str | list[str]] = None, *predicates: (Predicate)):
+    def handler(self, route: Optional[str | Predicate] = None, *predicates: Predicate, method: Optional[str | list[str]] = None):
         """
         Universal handler decorator that automatically determines the action type based on handler's context parameter
 
@@ -797,28 +804,28 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
 
                 # Route to appropriate decorator based on context type
                 if context_type == HttpContext:
-                    return self.web_handler(route, method, *predicates)(handler)
+                    return self.web_handler(route, *predicates, method=method)(handler)
                 elif context_type == RESTfulContext:
-                    return self.restful_handler(route, method, *predicates)(handler)
+                    return self.restful_handler(route, *predicates, method=method)(handler)
                 elif context_type == WebSocketContext:
-                    return self.websocket_handler(route, method, *predicates)(handler)
+                    return self.websocket_handler(route, *predicates, method=method)(handler)
                 elif context_type == ClientSourceContext:
-                    return self.client_source_handler(route, method, *predicates)(handler)
+                    return self.client_source_handler(route, *predicates, method=method)(handler)
                 elif context_type == ClientSourceMemberContext:
-                    return self.client_source_member_handler(route, method, *predicates)(handler)
+                    return self.client_source_member_handler(route, *predicates, method=method)(handler)
                 elif context_type == ServerSourceContext:
-                    return self.server_source_handler(route, method, *predicates)(handler)
+                    return self.server_source_handler(route, *predicates, method=method)(handler)
                 elif context_type == ServerSourceMemberContext:
-                    return self.server_source_member_handler(route, method, *predicates)(handler)
+                    return self.server_source_member_handler(route, *predicates, method=method)(handler)
                 elif context_type == RabbitContext:
-                    return self.rabbit_handler(route, method, *predicates)(handler)
+                    return self.rabbit_handler(route, *predicates, method=method)(handler)
                 else:
                     # Default to restful_handler if no context type found
-                    return self.restful_handler(route, method, *predicates)(handler)
+                    return self.restful_handler(route, *predicates, method=method)(handler)
 
             except Exception:
                 # If type hint inspection fails, default to restful_handler
-                return self.restful_handler(route, method, *predicates)(handler)
+                return self.restful_handler(route, *predicates, method=method)(handler)
 
         return _universal_decorator
 

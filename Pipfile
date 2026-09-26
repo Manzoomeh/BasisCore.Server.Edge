@@ -5,12 +5,15 @@ name = "pypi"
 
 [packages]
 aio-pika = "*"
-requests = "*"
+pika = "*"
+pymongo = "*"
 pyodbc = "*"
 aiohttp = "*"
-legacy-cgi = "*"
+cryptography = "*"
+certifi = "*"
 
 [dev-packages]
+pytest = ">=8.0"
 
 [requires]
 python_version = "3.13"

@@ -114,8 +114,8 @@ All tests pass:
 
 ## New Test Files
 
-1. `test/di/test_factory_with_sp.py` - Unit tests for new feature
-2. `test/di/factory_with_dependencies.py` - Example demonstrating feature
+1. `tests/test_di.py` - Focused unit coverage for DI
+2. `examples/di/factory_with_dependencies.py` - Example demonstrating factory + DI
 
 ## Migration Guide
 

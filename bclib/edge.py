@@ -79,7 +79,15 @@ def from_config(option_file_path: str, file_name: str = "host.json") -> IDispatc
     import json
     from pathlib import Path
 
-    with open(Path(option_file_path).with_name(file_name), encoding="utf-8") as options_file:
+    path = Path(option_file_path)
+    # Directory (or path without .json) → join with file_name.
+    # Existing/explicit .json file path → use as-is.
+    if path.is_file() or path.suffix.lower() == ".json":
+        config_path = path
+    else:
+        config_path = path / file_name
+
+    with open(config_path, encoding="utf-8") as options_file:
         options = json.load(options_file)
     return from_options(options)
 

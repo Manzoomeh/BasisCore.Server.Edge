@@ -6,6 +6,7 @@ if TYPE_CHECKING:
 
 from bclib.context.context import Context
 from bclib.parser import HtmlParserEx
+from bclib.utility import DictEx
 
 
 class ServerSourceContext(Context):
@@ -18,7 +19,7 @@ class ServerSourceContext(Context):
         self.dmn_id = cms_object.get("dmnid")
         self.params = cms_object.get("params")
         parser.feed(self.raw_command)
-        self.command = parser.get_dict()
+        self.command = DictEx.create(parser.get_dict())
         self.process_async = True
 
     def generate_response(self, result: Any) -> dict:

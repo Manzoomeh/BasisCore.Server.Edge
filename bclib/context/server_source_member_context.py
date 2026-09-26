@@ -11,7 +11,11 @@ class ServerSourceMemberContext(Context):
     """Context for Server dbSource member request"""
 
     def __init__(self, sourceContext: 'ServerSourceContext', data: Any, member: dict) -> None:
-        super().__init__(sourceContext.dispatcher, False)
+        super().__init__(
+            sourceContext.dispatcher,
+            False,
+            parent_services=sourceContext.services,
+        )
         self.__source_context = sourceContext
         self.member = member
         self.data = data

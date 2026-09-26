@@ -44,19 +44,36 @@ from typing import ForwardRef, Optional
 
 from .ihosted_service import IHostedService
 from .injection_plan import InjectionPlan
+from .injection_strategy import (InjectionStrategy, ServiceStrategy,
+                                 ValueStrategy)
 # Core DI container
 from .iservice_container import IServiceContainer
 from .iservice_provider import IServiceProvider
+from .service_descriptor import ServiceDescriptor
+from .service_lifetime import ServiceLifetime
+from .service_provider import ServiceProvider
 
 __all__ = [
     # Main DI container
     'IServiceContainer',
     'IServiceProvider',
+    'ServiceProvider',
+    'ServiceLifetime',
+    'ServiceDescriptor',
+
+    # Injection
+    'InjectionPlan',
+    'InjectionStrategy',
+    'ServiceStrategy',
+    'ValueStrategy',
 
     # Hosted services
     'IHostedService',
-    'InjectionPlan',
+
+    # Helpers
     'extract_generic_type_key',
+    'create_service_container',
+    'convert_to_service_provider',
 ]
 
 
@@ -123,20 +140,12 @@ def create_service_container(loop: Optional[asyncio.AbstractEventLoop] = None) -
     Example:
         ```python
         from bclib import edge
-        from bclib.di import create_service_provider
+        from bclib.di import create_service_container
 
-        # Load app options (e.g., from config file)
-        app_options = edge.load_app_options("config/host.json")
-
-        # Create DI container and get dispatcher
-        dispatcher = create_service_provider(app_options)
-
-        # Use dispatcher in application
-        app = edge.EdgeApp(dispatcher)
+        # Create DI container
+        container = create_service_container()
         ```
     """
-    from .service_provider import ServiceProvider
-
     io_c_container = ServiceProvider()
     io_c_container.add_singleton(ServiceProvider, instance=io_c_container)
     io_c_container.add_singleton(

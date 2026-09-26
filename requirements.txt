@@ -1,6 +1,7 @@
 aio-pika
-requests
+pika
+pymongo
 pyodbc
 aiohttp
-legacy-cgi
 cryptography
+certifi
