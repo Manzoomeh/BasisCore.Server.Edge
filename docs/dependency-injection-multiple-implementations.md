@@ -758,5 +758,5 @@ for config in configs:
 
 - [ServiceProvider Documentation](./service-provider.md)
 - [Dependency Injection Guide](./dependency-injection.md)
-- [Test Examples](../test/di/test_multiple_implementations.py)
-- [ListenerFactory Example](../test/di/test_listener_factory_with_multi_di.py)
+- [DI examples](../examples/di/)
+- [Unit tests](../tests/test_di.py)

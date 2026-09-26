@@ -1,4 +1,3 @@
-from abc import ABC
 from typing import TYPE_CHECKING, Any
 
 from bclib.context.context import Context
@@ -12,7 +11,11 @@ class ClientSourceMemberContext(Context):
     """Context for dbSource member request"""
 
     def __init__(self, sourceContext: 'ClientSourceContext', data: Any, member: dict) -> None:
-        super().__init__(sourceContext.dispatcher, False)
+        super().__init__(
+            sourceContext.dispatcher,
+            False,
+            parent_services=sourceContext.services,
+        )
         self.__source_context = sourceContext
         self.member = member
         self.data = data

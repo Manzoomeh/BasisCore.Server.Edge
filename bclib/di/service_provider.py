@@ -975,14 +975,20 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
         """
         Get the lifetime of a registered service
 
+        When multiple implementations are registered, returns the lifetime of
+        the first registration.
+
         Args:
             service_type: The service type
 
         Returns:
             ServiceLifetime or None if not registered
         """
-        descriptor = self._descriptors.get(service_type)
-        return descriptor.lifetime if descriptor else None
+        descriptors = self._descriptors.get(service_type)
+        if not descriptors:
+            return None
+        first = descriptors[0] if isinstance(descriptors, list) else descriptors
+        return first.lifetime
 
     def remove_service(self, service_type: Type[T]) -> bool:
         """

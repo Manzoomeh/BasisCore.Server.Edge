@@ -1,0 +1,87 @@
+2026-09-26 16:42:01,284 - HttpListener - INFO - Development Edge server started at http://127.0.0.1:9300
+2026-09-26 16:42:01,451 - ContextFactory - INFO - playground: (HttpContext::AD_HOC) - 1 none 127.0.0.1:9300/
+2026-09-26 16:42:01,525 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 2 none 127.0.0.1:9300/api/catalog
+2026-09-26 16:42:01,612 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 3 none 127.0.0.1:9300/api/hello
+2026-09-26 16:42:01,654 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 4 none 127.0.0.1:9300/api/di/greet/Ada
+2026-09-26 16:42:01,699 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 5 none 127.0.0.1:9300/api/errors/bad-request
+2026-09-26 16:42:01,699 - Dispatcher - ERROR - Error in dispatch_async 
+Traceback (most recent call last):
+  File "D:\Programming\Falsafi\BasisCore\Server\BasisCore.Server.Edge\bclib\dispatcher\dispatcher.py", line 858, in dispatch_async
+    result = await item.try_execute_async(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Programming\Falsafi\BasisCore\Server\BasisCore.Server.Edge\bclib\dispatcher\callback_info.py", line 55, in try_execute_async
+    result = await self.__async_callback(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Programming\Falsafi\BasisCore\Server\BasisCore.Server.Edge\bclib\dispatcher\dispatcher.py", line 348, in wrapper
+    action_result = await injection_plan.execute_async(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        context.services, self.__event_loop, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Qamsari\AppData\Local\Programs\Python\Python313\Lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "D:\Programming\Falsafi\BasisCore\Server\BasisCore.Server.Edge\bclib\di\injection_plan.py", line 274, in <lambda>
+    None, lambda: self.target(*args, **injected_kwargs))
+                  ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Programming\Falsafi\BasisCore\Server\BasisCore.Server.Edge\examples\playground\app.py", line 369, in err_400
+    raise BadRequestErr(data={"error": "bad request"})
+bclib.exception.bad_request_err.BadRequestErr
+2026-09-26 16:42:01,741 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 6 none 127.0.0.1:9300/api/cache/demo
+2026-09-26 16:43:20,782 - ContextFactory - INFO - playground: (HttpContext::AD_HOC) - 7 none 127.0.0.1:9300/
+2026-09-26 16:43:21,723 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 8 none 127.0.0.1:9300/api/catalog
+2026-09-26 16:43:59,007 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 9 none 127.0.0.1:9300/api/hello
+2026-09-26 16:44:00,733 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 10 none 127.0.0.1:9300/api/hello
+2026-09-26 16:44:03,321 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 11 none 127.0.0.1:9300/api/hello
+2026-09-26 16:44:03,612 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 12 none 127.0.0.1:9300/api/hello
+2026-09-26 16:44:03,789 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 13 none 127.0.0.1:9300/api/hello
+2026-09-26 16:44:03,973 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 14 none 127.0.0.1:9300/api/hello
+2026-09-26 16:44:29,310 - ContextFactory - INFO - playground: (HttpContext::AD_HOC) - 15 none 127.0.0.1:9300/
+2026-09-26 16:44:29,334 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 16 none 127.0.0.1:9300/api/catalog
+2026-09-26 16:44:29,516 - ContextFactory - INFO - playground: (HttpContext::AD_HOC) - 17 none 127.0.0.1:9300/
+2026-09-26 16:44:29,763 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 18 none 127.0.0.1:9300/api/catalog
+2026-09-26 16:44:30,725 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 19 none 127.0.0.1:9300/api/hello
+2026-09-26 16:44:39,155 - ContextFactory - INFO - playground: (HttpContext::AD_HOC) - 20 none 127.0.0.1:9300/
+2026-09-26 16:44:39,916 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 21 none 127.0.0.1:9300/api/catalog
+2026-09-26 16:44:41,664 - ContextFactory - INFO - playground: (HttpContext::AD_HOC) - 22 none 127.0.0.1:9300/favicon.ico
+2026-09-26 16:44:41,667 - Dispatcher - ERROR - Error in dispatch_async Suitable handler not found for HttpContext!
+Traceback (most recent call last):
+  File "D:\Programming\Falsafi\BasisCore\Server\BasisCore.Server.Edge\bclib\dispatcher\dispatcher.py", line 862, in dispatch_async
+    raise HandlerNotFoundErr(context_type.__name__)
+bclib.exception.handler_not_found_err.HandlerNotFoundErr: Suitable handler not found for HttpContext!
+2026-09-26 16:44:44,053 - ContextFactory - INFO - playground: (WebSocketContext::CONNECT) - 23 none 127.0.0.1:9300/ws/echo
+2026-09-26 16:44:44,054 - Dispatcher - ERROR - Error in dispatch_async Suitable handler not found for WebSocketContext!
+Traceback (most recent call last):
+  File "D:\Programming\Falsafi\BasisCore\Server\BasisCore.Server.Edge\bclib\dispatcher\dispatcher.py", line 862, in dispatch_async
+    raise HandlerNotFoundErr(context_type.__name__)
+bclib.exception.handler_not_found_err.HandlerNotFoundErr: Suitable handler not found for WebSocketContext!
+2026-09-26 16:44:46,923 - ContextFactory - INFO - playground: (WebSocketContext::MESSAGE) - 23 none 127.0.0.1:9300/ws/echo
+2026-09-26 16:44:46,923 - Dispatcher - ERROR - Error in dispatch_async Suitable handler not found for WebSocketContext!
+Traceback (most recent call last):
+  File "D:\Programming\Falsafi\BasisCore\Server\BasisCore.Server.Edge\bclib\dispatcher\dispatcher.py", line 862, in dispatch_async
+    raise HandlerNotFoundErr(context_type.__name__)
+bclib.exception.handler_not_found_err.HandlerNotFoundErr: Suitable handler not found for WebSocketContext!
+2026-09-26 16:44:48,003 - ContextFactory - INFO - playground: (WebSocketContext::MESSAGE) - 23 none 127.0.0.1:9300/ws/echo
+2026-09-26 16:44:48,003 - Dispatcher - ERROR - Error in dispatch_async Suitable handler not found for WebSocketContext!
+Traceback (most recent call last):
+  File "D:\Programming\Falsafi\BasisCore\Server\BasisCore.Server.Edge\bclib\dispatcher\dispatcher.py", line 862, in dispatch_async
+    raise HandlerNotFoundErr(context_type.__name__)
+bclib.exception.handler_not_found_err.HandlerNotFoundErr: Suitable handler not found for WebSocketContext!
+2026-09-26 16:44:49,011 - ContextFactory - INFO - playground: (WebSocketContext::DISCONNECT) - 23 none 127.0.0.1:9300/ws/echo
+2026-09-26 16:44:49,011 - Dispatcher - ERROR - Error in dispatch_async Suitable handler not found for WebSocketContext!
+Traceback (most recent call last):
+  File "D:\Programming\Falsafi\BasisCore\Server\BasisCore.Server.Edge\bclib\dispatcher\dispatcher.py", line 862, in dispatch_async
+    raise HandlerNotFoundErr(context_type.__name__)
+bclib.exception.handler_not_found_err.HandlerNotFoundErr: Suitable handler not found for WebSocketContext!
+2026-09-26 16:44:50,606 - ContextFactory - INFO - playground: (WebSocketContext::CONNECT) - 24 none 127.0.0.1:9300/ws/echo
+2026-09-26 16:44:50,606 - Dispatcher - ERROR - Error in dispatch_async Suitable handler not found for WebSocketContext!
+Traceback (most recent call last):
+  File "D:\Programming\Falsafi\BasisCore\Server\BasisCore.Server.Edge\bclib\dispatcher\dispatcher.py", line 862, in dispatch_async
+    raise HandlerNotFoundErr(context_type.__name__)
+bclib.exception.handler_not_found_err.HandlerNotFoundErr: Suitable handler not found for WebSocketContext!
+2026-09-26 16:44:53,773 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 25 none 127.0.0.1:9300/api/di/now
+2026-09-26 16:44:58,165 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 26 none 127.0.0.1:9300/api/cache/demo
+2026-09-26 16:44:59,069 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 27 none 127.0.0.1:9300/api/cache/demo
+2026-09-26 16:44:59,668 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 28 none 127.0.0.1:9300/api/cache/demo
+2026-09-26 16:45:00,404 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 29 none 127.0.0.1:9300/api/cache/demo
+2026-09-26 16:45:00,797 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 30 none 127.0.0.1:9300/api/cache/demo
+2026-09-26 16:45:02,052 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 31 none 127.0.0.1:9300/api/cache/slow
+2026-09-26 16:45:02,629 - ContextFactory - INFO - playground: (RESTfulContext::AD_HOC) - 32 none 127.0.0.1:9300/api/cache/slow

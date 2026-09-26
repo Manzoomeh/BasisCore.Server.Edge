@@ -1,9 +1,6 @@
 """Rabbit Message - Message implementation for RabbitMQ communications"""
 from typing import Any, Optional
 
-from pika import spec
-from pika.adapters.blocking_connection import BlockingChannel
-
 from bclib.listener.message import Message
 
 
@@ -14,14 +11,17 @@ class RabbitMessage(Message):
     This message type is used for receiving messages from RabbitMQ queues/exchanges.
     Unlike other message types, RabbitMQ messages are one-way (no response).
 
+    Compatible with both legacy pika listeners and aio-pika connections; channel,
+    method, and properties are typed as Any so pika is not required at import time.
+
     Attributes:
         host: RabbitMQ server host
         queue: Queue name message was received from
         body: Raw message body as bytes
         routing_key: Routing key used (for exchange-based routing)
-        channel: Pika channel object for performing operations
-        method: Pika method object containing delivery information
-        properties: Pika properties object containing message metadata
+        channel: Optional channel object (pika or aio-pika) for operations
+        method: Optional delivery method / metadata object
+        properties: Optional message properties / metadata object
         delivery_tag: Delivery tag for manual acknowledgment
         exchange: Exchange name the message was published to
         content_type: Message content type (e.g., 'application/json')
@@ -46,9 +46,9 @@ class RabbitMessage(Message):
         host: str,
         queue: str,
         body: bytes,
-        channel: Optional[BlockingChannel] = None,
-        method: Optional[spec.Basic.Deliver] = None,
-        properties: Optional[spec.BasicProperties] = None,
+        channel: Optional[Any] = None,
+        method: Optional[Any] = None,
+        properties: Optional[Any] = None,
         routing_key: Optional[str] = None
     ) -> None:
         """
@@ -58,9 +58,9 @@ class RabbitMessage(Message):
             host: RabbitMQ server host
             queue: Queue name
             body: Raw message body as bytes
-            channel: Pika channel object for performing operations
-            method: Pika method object containing delivery information
-            properties: Pika properties object containing message metadata
+            channel: Optional channel object for performing operations
+            method: Optional delivery method object
+            properties: Optional message properties object
             routing_key: Optional routing key for exchange-based routing
         """
         # RabbitMessage doesn't need session_id or type
@@ -72,12 +72,13 @@ class RabbitMessage(Message):
         self.properties = properties
         self.routing_key = routing_key
 
-        # Extract commonly used fields for convenience
-        self.delivery_tag = method.delivery_tag if method else None
-        self.exchange = method.exchange if method else None
-        self.content_type = properties.content_type if properties else None
-        self.headers = dict(
-            properties.headers) if properties and properties.headers else {}
+        # Extract commonly used fields for convenience (pika / aio-pika compatible)
+        self.delivery_tag = getattr(method, "delivery_tag", None) if method else None
+        self.exchange = getattr(method, "exchange", None) if method else None
+        self.content_type = getattr(
+            properties, "content_type", None) if properties else None
+        headers = getattr(properties, "headers", None) if properties else None
+        self.headers = dict(headers) if headers else {}
 
     @property
     def message_text(self) -> str:

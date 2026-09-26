@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 from bclib.context.restful_context import RESTfulContext
 from bclib.parser import HtmlParserEx
+from bclib.utility import DictEx
 
 if TYPE_CHECKING:
     from bclib.dispatcher.idispatcher import IDispatcher
@@ -17,7 +18,7 @@ class ClientSourceContext(RESTfulContext):
         self.raw_command = self.form.get('command')
         self.dmn_id = self.form.get('dmnid')
         parser.feed(self.raw_command)
-        self.command = parser.get_dict()
+        self.command = DictEx.create(parser.get_dict())
         self.params: dict = None
         if "params" in self.command:
             params_list = self.command.get('params', [])

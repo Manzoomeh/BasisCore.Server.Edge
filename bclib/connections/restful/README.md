@@ -291,7 +291,7 @@ class MyService:
 Run the test suite:
 
 ```bash
-python test/restful/test_restful_enhanced.py
+python examples/restful/simple.py
 ```
 
 The test demonstrates:
