@@ -54,8 +54,8 @@ class IListener(ABC):
         Example:
             ```python
             def initialize_task(self):
-                # Get current event loop
-                loop = asyncio.get_event_loop()
+                # Called by the dispatcher while its event loop is running
+                loop = asyncio.get_running_loop()
 
                 # Create server task
                 loop.create_task(self.__start_server_async())

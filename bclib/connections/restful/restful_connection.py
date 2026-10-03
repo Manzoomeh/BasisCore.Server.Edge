@@ -465,9 +465,9 @@ class RestfulConnection(IRestfulConnection[T], Generic[T]):
         """Cleanup session on object destruction."""
         if self._session and not self._session.closed:
             try:
-                # Try to close session, but don't fail if event loop is closed
-                loop = asyncio.get_event_loop()
-                if loop and not loop.is_closed():
-                    loop.create_task(self.close_async())
+                # Close on the running loop; without one there is nothing
+                # to schedule the close on (raises RuntimeError, ignored)
+                loop = asyncio.get_running_loop()
+                loop.create_task(self.close_async())
             except:
                 pass  # Ignore errors during cleanup

@@ -130,7 +130,8 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
             cache_options = DictEx(cache_options)
         # Event loop should already be registered in ServiceProvider by edge.from_options
         self.__event_loop = loop
-        self.__cache_manager = CacheFactory.create(cache_options)
+        self.__cache_manager = CacheFactory.create(
+            cache_options, self.__event_loop)
         self.__shutdown_requested = False  # Flag for graceful shutdown
 
         self.name = self.__options.get('name')

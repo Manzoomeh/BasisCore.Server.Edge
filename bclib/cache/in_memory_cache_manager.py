@@ -14,8 +14,8 @@ import inspect
 
 class InMemoryCacheManager(SignalBaseCacheManager):
     
-    def __init__(self, options: DictEx) -> None:
-        super().__init__(options)
+    def __init__(self, options: DictEx, loop: "asyncio.AbstractEventLoop" = None) -> None:
+        super().__init__(options, loop)
         self.__cache_dict:"dict[str, BaseValueItem]" = dict()
         self.__keyless_function_items:"list[FunctionCacheItem]" = list()
 

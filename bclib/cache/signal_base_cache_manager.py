@@ -7,7 +7,7 @@ class SignalBaseCacheManager(CacheManager):
     DEFAULT_CLEAN_INTERVAL = 43200 #Seconds => 12 Hours; 0 for indefinitely
     DEFAULT_RESET_INTERVAL = 86400 #Seconds => 24 Hours; 0 for indefinitely
 
-    def __init__(self, options: "DictEx") -> None:
+    def __init__(self, options: "DictEx", loop: "asyncio.AbstractEventLoop" = None) -> None:
         super().__init__(options)
         self.__clean_interval = int(self._options.clean_interval) if self._options.has("clean_interval") else SignalBaseCacheManager.DEFAULT_CLEAN_INTERVAL
         if self.__clean_interval < 0:
@@ -18,7 +18,10 @@ class SignalBaseCacheManager(CacheManager):
         signaler_options = self._options.signaler if self._options.has("signaler") else None
         self._reset_signaler = SignalerFactory.create(self.reset, signaler_options)
         if self.__reset_interval > 0 or self.__clean_interval > 0:
-            loop = asyncio.get_event_loop()
+            if loop is None:
+                # asyncio.get_event_loop() raises on Python 3.14 when no loop is set
+                from bclib.di import _current_or_new_event_loop
+                loop = _current_or_new_event_loop()
             if self.__reset_interval > 0:
                 loop.create_task(self.__reset_async(self.__reset_interval))
             if self.__clean_interval > 0:
