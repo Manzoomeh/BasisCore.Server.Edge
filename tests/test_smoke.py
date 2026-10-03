@@ -6,7 +6,7 @@ from pathlib import Path
 def test_package_version():
     import bclib
 
-    assert bclib.__version__ == "4.0.0"
+    assert bclib.__version__ == "4.0.1"
 
 
 def test_edge_import():
