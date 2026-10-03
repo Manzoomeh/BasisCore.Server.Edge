@@ -158,11 +158,26 @@ def create_service_container(loop: Optional[asyncio.AbstractEventLoop] = None) -
         # Use Windows version of proactor event loop using IOCP
         loop = asyncio.ProactorEventLoop()
         asyncio.set_event_loop(loop)
-    event_loop = asyncio.get_event_loop() if loop is None else loop
+    event_loop = _current_or_new_event_loop() if loop is None else loop
 
     # Register event loop in DI container
     return io_c_container.add_singleton(
         asyncio.AbstractEventLoop, instance=event_loop)
+
+
+def _current_or_new_event_loop() -> asyncio.AbstractEventLoop:
+    """
+    Return the thread's current event loop, creating and setting one if there is none.
+
+    Since Python 3.12, asyncio.get_event_loop() raises RuntimeError once a loop has been
+    cleared, which asyncio.run() does when it finishes.
+    """
+    try:
+        return asyncio.get_event_loop()
+    except RuntimeError:
+        new_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(new_loop)
+        return new_loop
 
 
 def convert_to_service_provider(service_container: IServiceContainer) -> IServiceProvider:
