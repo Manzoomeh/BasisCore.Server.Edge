@@ -1,9 +1,9 @@
 # Extending BasisEdge
 
-BasisEdge 4.0 has four genuine extension points: `Predicate` subclasses, hosted services
-(`IHostedService`), application services in the DI container, and listeners (`IListener`).
-Each section has a complete example that runs against `bclib` 4.0.1, with its output in
-comments. The last section lists the parts that look pluggable but are not.
+BasisEdge 4.1 has five extension points: `Predicate` subclasses, hosted services
+(`IHostedService`), application services in the DI container, the logger (`ILogger`), and
+listeners (`IListener`). Each section has a complete example that runs against `bclib` 4.1.0,
+with its output in comments. The last section lists the parts that look pluggable but are not.
 
 The examples run requests through the dispatcher on the app's own event loop instead of
 opening a port, so each one is a plain script. They share this helper, saved as
@@ -251,7 +251,67 @@ instead of replacing the first: `get_service(T)` and plain injection return the 
 `list[T]` returns all (see
 [dependency-injection-multiple-implementations.md](dependency-injection-multiple-implementations.md)).
 To use a fake in tests, choose the implementation before registering it, for example through
-an app factory parameter as shown in [testing.md](testing.md).
+an app factory parameter as shown in [testing.md](testing.md). The one exception is a framework
+default such as the console `ILogger`, which your registration replaces (next section).
+
+## Replacing the logger
+
+`from_options` registers `ConsoleLogger` as a replaceable default for `ILogger`. An explicit
+`add_singleton(ILogger, MyLogger)`, made after `from_options`, removes that default, so every
+`ILogger[...]` resolved from then on, in handlers and in your services, is your class. The
+implementation subclasses `ILogger[T]` (a `logging.Logger`) and receives the generic argument
+as `generic_type_args`:
+
+```python
+import logging
+import sys
+from typing import Type, TypeVar
+
+from bclib import edge
+from bclib.logger import ILogger
+from bclib.options import AppOptions
+
+from local_dispatch import content, dispatch
+
+T = TypeVar("T")
+
+
+class JsonLinesLogger(ILogger[T]):
+    """Writes one JSON object per record to standard output."""
+
+    def __init__(self, options: AppOptions, generic_type_args: tuple[Type, ...] = None):
+        category = generic_type_args[0] if generic_type_args else None
+        # ILogger["Orders"] arrives as a ForwardRef, ILogger[SomeClass] as the class
+        name = getattr(category, "__forward_arg__", getattr(category, "__name__", "app"))
+        super().__init__(name)
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(logging.Formatter(
+            '{"logger": "%(name)s", "level": "%(levelname)s", "message": "%(message)s"}'))
+        self.addHandler(handler)
+        self.setLevel(logging.INFO)
+
+
+app = edge.from_options({"name": "logger-demo"})
+app.service_provider.add_singleton(ILogger, JsonLinesLogger)  # after from_options
+
+
+@app.restful_handler("api/orders/:id", method="GET")
+def get_order(id: str, logger: ILogger["Orders"]):
+    logger.info("order %s read", id)
+    return {"id": id}
+
+
+print(content(dispatch(app, "api/orders/7")))
+# {"logger": "Orders", "level": "INFO", "message": "order 7 read"}
+# {'id': '7'}
+```
+
+- `list[ILogger]` returns only your logger; the console logger is no longer registered.
+- The dispatcher resolves its own logger inside `from_options`, before your registration, so its
+  messages (dispatch errors, unmatched requests, shutdown) still go to the console logger
+  configured by the `logger` option.
+- Register it once. A second explicit registration is an ordinary additional implementation,
+  and the first one wins.
 
 ## Custom listeners
 
@@ -336,11 +396,12 @@ Before writing one:
 
 - `create_instance` builds the listener with its constructor dependencies resolved from DI.
 - `cms_object` is the full envelope `{"cms": {"request": {...}}}`, and `request` must carry
-  `full-url`. The context type is chosen by matching `full-url` against registered handler
-  routes; unlike the built-in HTTP, TCP, WebSocket and RabbitMQ messages, a custom message has
-  no fallback type, so an unmatched URL gets an error reply.
-- If processing fails before a context exists, the dispatcher still replies with a 500
-  through `set_response_async`. For a message without `IResponseBaseMessage` it re-raises.
+  `full-url`. The context type is chosen by matching the path of `full-url` against registered
+  handler routes; unlike the built-in HTTP, TCP, WebSocket and RabbitMQ messages, a custom
+  message has no fallback type, so an unmatched URL gets an error reply.
+- If processing fails before a context exists, the dispatcher still replies through
+  `set_response_async`, with a 500 or the status of a `ShortCircuitErr`. For a message without
+  `IResponseBaseMessage` it re-raises.
 - **`add_listener` replaces the configured listeners.** The `http`, `tcp` and `rabbitmq`
   listeners from the options load only when none was added by hand. To keep them, add them
   first:
@@ -362,10 +423,6 @@ Configuring the built-in listeners is covered in
   a fixed factory that knows only `"memory"` (any other type raises `ValueError`), so a
   `CacheManager` subclass has no supported way in. Use the built-in cache
   ([Cache](../README.md#15-cache)) or register your own cache client as a DI service.
-- **Logger implementation.** `from_options` registers the console `ILogger` before your code
-  runs, and the first registration wins, so registering another `ILogger` changes nothing
-  that gets injected. Configure the built-in one through the `logger` option
-  ([Logger](../README.md#14-logger)).
 - **Dispatcher and context factory.** Both are created inside `from_options`, with no
   supported way to supply your own.
 

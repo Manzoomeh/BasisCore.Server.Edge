@@ -1,6 +1,6 @@
 # Deployment
 
-Running a BasisEdge 4.0.1 service in production. Listener options are in
+Running a BasisEdge 4.1.0 service in production. Listener options are in
 [README §18](../README.md#18-listeners-http--tcp--rabbit--ssl), every option key is in
 [configuration-reference.md](configuration-reference.md), and the request pipeline is in
 [architecture.md](architecture.md).
@@ -12,7 +12,7 @@ BasisEdge needs **Python 3.13 or later** (`python_requires=">=3.13"` in `setup.p
 **From PyPI**
 
 ```bash
-pip install bclib==4.0.1
+pip install bclib==4.1.0
 ```
 
 This resolves the runtime dependencies from the ranges declared in `setup.py`
@@ -27,7 +27,7 @@ the versions the test suite ran against. To get those exact versions with the Py
 it as a constraints file:
 
 ```bash
-pip install bclib==4.0.1 -c requirements.txt
+pip install bclib==4.1.0 -c requirements.txt
 ```
 
 Use the pinned set for anything you deploy ([README §3](../README.md#3-install)). All seven
@@ -64,9 +64,9 @@ loop, DI container, in-memory cache and WebSocket sessions, and each must bind i
 `examples/multi_server/` runs two services this way.
 
 `from_list` is a development convenience, not a supervisor: it does not restart a child that
-exits, does not forward `SIGTERM` to the children, does not load-balance (put a reverse proxy or
-the BasisCore web server in front), and fails at start-up under Python 3.14
-([limitations.md](limitations.md#process-and-platform)). In production, run one Edge process per
+exits, does not forward `SIGTERM` to the children, and does not load-balance (put a reverse proxy
+or the BasisCore web server in front); see
+[limitations.md](limitations.md#process-and-platform). In production, run one Edge process per
 unit of your process manager (systemd, a container orchestrator, a Windows service wrapper).
 
 ## Docker
@@ -74,12 +74,12 @@ unit of your process manager (systemd, a container orchestrator, a Windows servi
 The repository's `Dockerfile` builds an image that runs `examples/docker/main.py`:
 
 1. a builder stage creates `/opt/venv` from `python:3.13-slim` and installs `requirements.txt`;
-2. the runtime stage copies that venv, then copies the whole build context to `/app`
-   (`.dockerignore` excludes `.git`, `__pycache__`, `*.pyc` and virtualenv folders) and
-   `examples/docker` to `/app/code`;
+2. the runtime stage creates a system user `app`, copies that venv, then copies the build context
+   to `/app` (`.dockerignore` excludes `tests/`, `.git`, `__pycache__`, `*.pyc` and virtualenv
+   folders) and `examples/docker` to `/app/code`, owned by `app`;
 3. a `bclib.pth` file adds `/app` to the venv's `sys.path`, so `bclib` is imported from the
    copied source, not installed as a package;
-4. `CMD ["python", "code/main.py"]`.
+4. the process runs as `app`, not root, with `EXPOSE 9181` and `CMD ["python", "code/main.py"]`.
 
 Build and run it from the repository root:
 
@@ -88,11 +88,10 @@ docker build -t bclib-edge-sample .
 docker run --rm -p 9181:9181 bclib-edge-sample
 ```
 
-The sample binds `"http": "localhost:9181"`. Inside a container that is the container's own
-loopback interface, so the published port is **not reachable from the host** as shipped. Change
-the endpoint to `0.0.0.0:9181` in `examples/docker/main.py` before building. The same applies to
-every service you containerise: bind `0.0.0.0` and publish the port. The `Dockerfile` has no
-`EXPOSE` line, so `-p` must always be given explicitly.
+The sample binds `"http": "0.0.0.0:9181"`, so the published port is reachable at
+`http://localhost:9181/`. Every service you containerise needs the same: an endpoint of
+`localhost` inside a container is the container's own loopback interface and cannot be reached
+through a published port. `EXPOSE` only documents the port; publish it with `-p`.
 
 For your own service, a smaller image installs the package instead of copying the repository:
 
@@ -100,8 +99,10 @@ For your own service, a smaller image installs the package instead of copying th
 FROM python:3.13-slim
 WORKDIR /srv
 COPY requirements.txt .
-RUN pip install --no-cache-dir bclib==4.0.1 -c requirements.txt
+RUN pip install --no-cache-dir bclib==4.1.0 -c requirements.txt
 COPY app/ ./app/
+RUN useradd --system --no-create-home app
+USER app
 EXPOSE 8080
 CMD ["python", "app/main.py"]
 ```
@@ -110,8 +111,8 @@ Here `requirements.txt` is the pinned file from the BasisEdge repository, and `a
 `edge.from_options({"http": "0.0.0.0:8080", ...})` and `app.listening()`. Add the ODBC packages
 below if the service uses SQL Server.
 
-`docker stop` sends `SIGTERM`. Read [Graceful shutdown](#graceful-shutdown) before relying on
-cleanup code in containers.
+`docker stop` sends `SIGTERM`, which runs the [graceful shutdown](#graceful-shutdown)
+sequence.
 
 ## Operating-system notes
 
@@ -140,8 +141,8 @@ host.
 
 ## Logging in production
 
-Edge has two separate logging features. Both read the top-level `logger` key, which matters for
-the second one (see [limitations.md](limitations.md#logging-and-errors)).
+Edge has two separate logging features. Both read the top-level `logger` key: the console
+settings below, and `type` for the event log service.
 
 **Diagnostic logging: `ILogger[T]`.** The default implementation, `ConsoleLogger`, is a standard
 `logging.Logger` that writes to standard error. Options under `logger`:
@@ -155,34 +156,36 @@ the second one (see [limitations.md](limitations.md#logging-and-errors)).
 | `queue_size` | `-1` | queue bound for async logging; `-1` is unlimited |
 
 For JSON output or log files, attach standard `logging` handlers or formatters to Python's
-logging system at start-up. Registering a second `ILogger` implementation has no effect in
-4.0.1: the console logger registered by `from_options` is the one that gets injected
-([limitations.md](limitations.md#logging-and-errors)). See also [README §14](../README.md#14-logger).
+logging system at start-up, or replace the logger: `ConsoleLogger` is registered as a replaceable
+default, so `app.service_provider.add_singleton(ILogger, MyLogger)` after `from_options` makes
+handlers and services receive `MyLogger` ([extending.md](extending.md#replacing-the-logger)).
+See also [README §14](../README.md#14-logger).
 
 **Request logging: `log_request`.** On by default. Each request produces one `INFO` line from
 `ContextFactory`:
 
 ```
-my-app: (RESTfulContext::AD_HOC) - 1 none 127.0.0.1:8080/api/orders?page=2
+my-app: (RESTfulContext::AD_HOC) - 1 get 127.0.0.1:8080/api/orders?page=2
 ```
 
 The fields are the app `name`, context type, message type, a per-process request counter, the
-method (always `none` in 4.0.1, see [limitations.md](limitations.md#logging-and-errors)) and the
-URL with its query string. If clients send tokens or personal data in query strings, set
-`"log_request": false` or filter the `ContextFactory` logger.
+method and the URL with its query string. If clients send tokens or personal data in query
+strings, set `"log_request": false` or filter the `ContextFactory` logger.
 
-**Errors.** Every exception that reaches the dispatcher is logged at `ERROR` with a traceback,
-including `HandlerNotFoundErr` for an unmatched URL. A scanner probing random paths therefore
-produces one traceback per request. `log_error` has no effect. `error_log: true` adds the
-traceback to the response body; keep it off in production ([security.md](security.md)).
+**Errors.** An exception raised by a handler or predicate is logged at `ERROR` with a
+traceback. An unmatched URL (`HandlerNotFoundErr`) is logged as one `WARNING` line without a
+traceback, so a scanner probing random paths produces one short line per request. `log_error`
+has no effect. `error_log: true` adds the traceback to the response body; keep it off in
+production ([security.md](security.md)).
 
 **Event logging: `ILogService`.** For business events sent to a schema-based log collector, set
-`logger.type` to `schema.restful` or `schema.rabbit` and inject `ILogService`. Without `logger`,
-`ILogService` accepts calls and discards them.
+`logger.type` to `schema.restful` or `schema.rabbit` and inject `ILogService`. Without
+`logger.type` (no `logger` section, or console settings only), `ILogService` accepts calls and
+discards them.
 
 ## Health and monitoring
 
-4.0.1 has no built-in health endpoint, metrics endpoint or readiness hook. Besides the log lines
+4.1.0 has no built-in health endpoint, metrics endpoint or readiness hook. Besides the log lines
 above, hosted services ([extending.md](extending.md)) give you start and stop hooks: `start_async`
 runs before any listener binds and `stop_async` during graceful shutdown.
 
@@ -202,61 +205,19 @@ probes; both share one dispatcher.
 
 ## Graceful shutdown
 
-`app.listening()` installs handlers for `SIGTERM` and `SIGINT` with `signal.signal`. When one
-fires, the dispatcher:
+`app.listening()` installs handlers for `SIGTERM` and `SIGINT` with `signal.signal`; listeners
+do not install their own. When one fires, the dispatcher:
 
 1. calls `stop_async` on hosted services, in reverse start order;
-2. calls `close_async` on listeners that have one (the RabbitMQ listener), with a 3-second
-   timeout;
-3. cancels every other task on the loop (HTTP and TCP servers, in-flight requests, WebSocket
-   sessions, background tasks) and waits up to 5 seconds;
+2. calls `close_async` on listeners that have one, with a 3-second timeout: the HTTP listener
+   stops its server and releases the port, the RabbitMQ listener closes its connection;
+3. cancels every other task on the loop (TCP servers, in-flight requests, WebSocket sessions,
+   background tasks) and waits up to 5 seconds;
 4. stops and closes the loop, and `listening()` returns.
 
-In-flight requests are cancelled, not drained. Put a load balancer drain period in front of the
-stop signal if requests must complete.
-
-**Linux with an HTTP listener.** The HTTP listener starts aiohttp's `AppRunner` with
-`handle_signals=True`, which replaces the dispatcher's handlers once the server starts. A
-`SIGTERM` or `SIGINT` then raises aiohttp's `GracefulExit` (a `SystemExit`) out of
-`listening()`: the process exits with status 1, hosted services' `stop_async` is never called,
-and the loop is closed with tasks still pending. This is what `docker stop` triggers. Windows is
-not affected because the proactor loop does not support `add_signal_handler`.
-
-Until this is fixed, a hosted service can put the dispatcher's handlers back after aiohttp has
-replaced them:
-
-```python
-import asyncio
-import signal
-
-from bclib.di import IHostedService
-
-
-class KeepEdgeSignalHandlers(IHostedService):
-    """Restores the dispatcher's SIGTERM/SIGINT handlers after the HTTP listener replaces them."""
-
-    def __init__(self, loop: asyncio.AbstractEventLoop):
-        self._loop = loop
-
-    async def start_async(self):
-        saved = {s: signal.getsignal(s) for s in (signal.SIGTERM, signal.SIGINT)}
-
-        async def watch():
-            for _ in range(100):  # up to ~10 s after start-up
-                await asyncio.sleep(0.1)
-                if signal.getsignal(signal.SIGTERM) is not saved[signal.SIGTERM]:
-                    for sig, handler in saved.items():
-                        self._loop.remove_signal_handler(sig)
-                        signal.signal(sig, handler)
-                    return
-
-        self._loop.create_task(watch())
-
-
-app.service_provider.add_singleton(KeepEdgeSignalHandlers, KeepEdgeSignalHandlers, is_hosted=True)
-```
-
-With it, `SIGTERM` runs the full sequence above and the process exits with status 0.
+The sequence is the same with or without an HTTP listener, so on Linux `docker stop` and
+`systemctl stop` run your hosted services' `stop_async`. In-flight requests are cancelled, not
+drained. Put a load balancer drain period in front of the stop signal if requests must complete.
 
 ## Performance
 
@@ -332,24 +293,55 @@ async def get_order(id: str, store: OrderStore):
 ```
 
 To close them on shutdown, make the singleton a hosted service and, in `stop_async`, await
-`close_async()` on REST and RabbitMQ connections. For MongoDB, close the client you used directly
-(`await db.async_client.close()` or `db.client.close()`) rather than `db.close()`
-([limitations.md](limitations.md#connections-and-cache)). The legacy `DbManager` opens a new
-pyodbc/sqlite/Mongo connection on every `open_*_connection` call; keep those calls in `def`
-handlers so they run on the executor.
+`close_async()` on each connection. For MongoDB, `close_async()` closes both the synchronous and
+the async client; the synchronous `close()` also closes both, scheduling the async client's close
+on the running loop when there is one. The legacy `DbManager` opens a new pyodbc/sqlite/Mongo
+connection on every `open_*_connection` call; keep those calls in `def` handlers so they run on
+the executor.
 
 **Cache.** `"cache": {"type": "memory"}` enables a per-process in-memory cache; without it,
 `@app.cache` does nothing ([README §15](../README.md#15-cache)). Use it for results that are
 expensive and identical for every caller, such as lookup tables and configuration fetched from
 another service. Points to plan for:
 
-- `@app.cache` stores one value per decorated function and ignores arguments; it only suits
-  functions with no parameters. For per-key data use `app.cache_manager.add_or_update(key, data,
-  life_time)` and `get_cache(key)`.
-- It wraps synchronous functions only. Do not put it on an `async def`.
+- `@app.cache(life_time=0, key=None)` keeps one entry per distinct set of arguments (values that
+  cannot be hashed are keyed by their `repr`), and works on both `def` and `async def`
+  functions. `life_time` is in seconds; `0` keeps entries until the cache is reset. A `None`
+  result is not stored.
+- `app.cache_manager.reset(["<key>"])`, or a `clear-cache` message from the
+  [cache signaler](configuration-reference.md#cache), clears every entry of the functions
+  decorated with that `key`. `reset()` with no keys clears everything, including functions
+  decorated without a key. Resetting a key that was never registered raises `KeyError`.
+- For other per-key data use `app.cache_manager.add_or_update(key, data, life_time)` and
+  `get_cache(key)`.
 - Each process, including each `from_list` child, has its own copy. Defaults clean expired
   entries every 12 hours and reset the whole cache every 24 hours; set `clean_interval` and
   `reset_interval` (seconds, `0` disables) to match your data.
+
+```python
+import asyncio
+
+from bclib import edge
+
+app = edge.from_options({"name": "cache-demo",
+                         "cache": {"type": "memory", "clean_interval": 600, "reset_interval": 3600}})
+calls = []
+
+
+@app.cache(life_time=300, key="rates")
+async def rate(currency: str) -> float:
+    calls.append(currency)
+    return {"eur": 0.92, "gbp": 0.79}[currency]
+
+
+async def main():
+    print(await rate("eur"), await rate("gbp"), await rate("eur"))  # 0.92 0.79 0.92
+    print(calls)                                                     # ['eur', 'gbp']
+    app.cache_manager.reset(["rates"])
+    print(await rate("eur"), calls)                                  # 0.92 ['eur', 'gbp', 'eur']
+
+app.service_provider.get_service(asyncio.AbstractEventLoop).run_until_complete(main())
+```
 
 **RabbitMQ consumers.** A `rabbitmq` listener processes messages from its queue one at a time
 and acknowledges each after the handler returns. Throughput per queue is therefore bounded by
@@ -360,5 +352,5 @@ handler latency. To process a queue in parallel, run several processes, or sever
 
 - [configuration-reference.md](configuration-reference.md): every option key
 - [security.md](security.md): TLS, exposure of the TCP endpoint, error details
-- [limitations.md](limitations.md): known gaps in 4.0.1
+- [limitations.md](limitations.md): known gaps in 4.1.0
 - [README §19](../README.md#19-multi-process-hosts) and [README §24](../README.md#24-troubleshooting)

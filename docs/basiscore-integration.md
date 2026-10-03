@@ -2,7 +2,7 @@
 
 BasisEdge speaks the BasisCore request model natively: every request is a **CMS object**, every
 reply is the same object with a `cms` node added, and `dbsource` commands from BasisCore pages map
-to source and member handlers. This page describes those contracts as implemented in 4.0. For the
+to source and member handlers. This page describes those contracts as implemented in 4.1. For the
 general request pipeline see [architecture.md](architecture.md); for handler basics see
 [README §8](../README.md#8-handlers) and [README §20](../README.md#20-client--server-source-dbsource).
 
@@ -281,13 +281,9 @@ Both source decorators build the same envelope from the member results:
 
 Member contexts carry `member` (the `<member>` element's attributes, e.g. `context.member.name`),
 `data` (the source handler's result, the same object for every member), `command`, and on the
-client side `cms` and `url`. Select member handlers with predicates on these attributes; URL routes
+client side `cms` and `url`. Each member gets its own member context, so the options a handler sets
+apply to its member only. Select member handlers with predicates on these attributes; URL routes
 do not apply to member contexts.
-
-In 4.0.1, when a command has more than one member, every member handler receives the context of the
-**first** member (the predicates still see the right one). Until this is fixed, set
-`key_field_name`, `merge_type` and the other options only for the first member, and do not rely on
-`context.member` inside handlers for later members. See [limitations.md](limitations.md).
 
 ### Example: a catalog dbsource
 
@@ -437,8 +433,11 @@ the reply frame (type `4`, session `s-1`) carries the bare envelope:
 {"setting": {"keepalive": false}, "sources": [{"options": {"tableName": "report.rows", "keyFieldName": null, "statusFieldName": null, "mergeType": 0, "columnNames": null}, "data": [{"dmnid": "1001", "x": 1}]}]}
 ```
 
-A server source request that arrives over HTTP has no `cms.command` and is answered with a `500`
-reply.
+An HTTP request that routing assigns to a server source handler (for example because a
+`server_source_handler` registered without a route owns the wildcard) has no `cms.command`. It is
+rejected before a context is created and answered with `400 Bad Request` and the message
+`server source request has no 'command'; a dbsource sent over HTTP must be handled as a client source`
+(HTML-escaped). Browser-side `dbsource` commands belong to `client_source_handler`.
 
 ## Related
 

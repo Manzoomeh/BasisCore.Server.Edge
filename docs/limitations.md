@@ -1,14 +1,14 @@
-# Limitations in 4.0.1
+# Limitations in 4.1.0
 
-Known gaps and defects in bclib 4.0.1 that affect application code or operations, each with what
-to do instead. Upgrading from 3.x is covered at the end.
+Known gaps in bclib 4.1.0 that affect application code or operations, each with what to do
+instead. Upgrading from 3.x is covered at the end.
 
 ## Routing
 
 - **The `router` option is not read.** The context type (REST, web, WebSocket, source) is chosen
-  from the URL patterns of the registered handlers ([architecture.md](architecture.md)). A URL that
-  matches no pattern becomes an `HttpContext`, so a REST-only app answers unknown paths with an
-  HTML 404. *Instead:* register a catch-all REST handler last:
+  from the URL patterns of the registered handlers ([architecture.md](architecture.md#choosing-the-context-the-router)).
+  A URL that matches no pattern becomes an `HttpContext`, so a REST-only app answers unknown
+  paths with an HTML 404. *Instead:* register a catch-all REST handler last:
 
   ```python
   from bclib.context import RESTfulContext
@@ -19,11 +19,11 @@ to do instead. Upgrading from 3.x is covered at the end.
       raise NotFoundErr(f"no route for {context.url}")
   ```
 
-- **Context selection uses the first unanchored match.** Patterns are tested with `re.search`
-  against `host:port/path`, grouped by context type in registration order. With
-  `restful_handler("users")` and `web_handler("users/profile")`, a request for `/users/profile`
-  is routed as REST and returns 404. *Instead:* give each context type its own prefix (for
-  example `api/` for REST only) and avoid route strings that occur inside other routes.
+- **Overlapping routes of different context types are not ranked by specificity.** Concrete
+  patterns are tried grouped by context type, in the order the context types were first
+  registered. With `restful_handler("api/:*rest")` registered before `web_handler("api/users")`,
+  a request for `/api/users` becomes a `RESTfulContext` and never reaches the web handler.
+  *Instead:* give each context type its own prefix (for example `api/` for REST only).
 
 - **No CORS support.** There is no CORS middleware and no automatic `OPTIONS` reply; a preflight
   request gets 404 unless a handler matches `OPTIONS`. `HttpHeaders.add_cors_headers(context)`
@@ -39,10 +39,6 @@ to do instead. Upgrading from 3.x is covered at the end.
   and `IRestfulConnection` are transient, so injecting them into handlers creates new clients per
   request and nothing closes them. *Instead:* hold them in a singleton service
   ([deployment.md](deployment.md#performance)).
-- **`IMongoConnection.close()` does not close the async client.** It calls
-  `AsyncMongoClient.close()` without awaiting it, which only produces a `RuntimeWarning`.
-  *Instead:* close the client you used directly: `await connection.async_client.close()` or
-  `connection.client.close()`.
 - **The REST client is minimal.** `IRestfulConnection` has no retries, returns only the body
   (parsed JSON, else text) without status or headers, and reports HTTP errors as a plain
   `Exception` whose message contains the status. *Instead:* pass `raise_for_status=False` and
@@ -51,15 +47,8 @@ to do instead. Upgrading from 3.x is covered at the end.
   handler exceptions into error responses, so the consumer always acknowledges. Messages are
   processed one at a time per listener. *Instead:* catch failures in the handler and republish
   or dead-letter explicitly; scale with more listeners or processes.
-- **`@app.cache` ignores arguments and does not support coroutines.** It stores one value per
-  function; on an `async def` the second call fails with
-  `RuntimeError: cannot reuse already awaited coroutine`. *Instead:* use it only on synchronous
-  functions without parameters, and `app.cache_manager.add_or_update` / `get_cache` for keyed
-  values.
-- **The RabbitMQ cache signaler cannot start.** `"cache": {"signaler": {"type": "rabbit"}}`
-  fails during `from_options` with `no running event loop`
-  (`bclib/cache/signaler/rabbit_signaler.py`). *Instead:* consume the invalidation queue
-  yourself (a `rabbitmq` listener and `rabbit_handler`) and call `app.cache_manager.reset(keys)`.
+- **`@app.cache` does not store `None`.** A cached function that returns `None` runs again on
+  every call. *Instead:* return an empty value (`[]`, `{}`) for "no data".
 
 ## WebSockets
 
@@ -71,19 +60,15 @@ to do instead. Upgrading from 3.x is covered at the end.
 
 ## Process and platform
 
-- **Graceful shutdown does not run on Linux with an HTTP listener.** `SIGTERM` exits with status
-  1 without calling hosted services' `stop_async`. A workaround is in
-  [deployment.md](deployment.md#graceful-shutdown).
-- **The HTTP server is not stopped cleanly.** On shutdown its cleanup raises
-  `AttributeError: '_HttpListener__ssl_options'`, so `site.stop()` and `runner.cleanup()` are
-  skipped; sockets are released only when the process exits.
-- **`edge.from_list` fails on Python 3.14**, which `python_requires` allows: it calls
-  `asyncio.get_event_loop()` with no loop set. It also does not restart or signal children.
-  *Instead:* use a process manager, or run `from_list` on 3.13.
-- **`from_options` parses `sys.argv`.** `-n <name>` overrides `name` and `-m` hides the banner.
-  The long form `--Name` is silently ignored, and an unrecognised flag prints a `getopt` error
-  and stops parsing, so a `-n` after it is lost. Do not give your own script `-n` or `-m` flags,
-  and put Edge's flags first.
+- **In-flight requests are cancelled on shutdown, not drained.** *Instead:* stop routing traffic
+  to the process before sending `SIGTERM` ([deployment.md](deployment.md#graceful-shutdown)).
+- **`edge.from_list` is not a supervisor.** It does not restart a child that exits and does not
+  forward `SIGTERM` to the children. *Instead:* use a process manager in production
+  ([deployment.md](deployment.md#process-model)).
+- **`from_options` parses `sys.argv`.** `-n <name>` or `--Name <name>` overrides `name`, and
+  `-m` or `--Multi` hides the banner. An unrecognised flag prints a `getopt` error and stops
+  parsing, so a `-n` after it is lost. Do not give your own script `-n` or `-m` flags, and put
+  Edge's flags first.
 - **ODBC on Linux needs system packages.** `pyodbc` fails to import without unixODBC and a driver
   ([deployment.md](deployment.md#operating-system-notes)).
 - **No TCP-specific handler.** Requests from the TCP listener are dispatched to
@@ -91,20 +76,12 @@ to do instead. Upgrading from 3.x is covered at the end.
 
 ## Logging and errors
 
-- **`logger` is shared by two services.** `ConsoleLogger` reads `level`/`format` from it, while
-  `ILogService` requires `logger.type`. With `"logger": {"level": "INFO"}`, injecting
-  `ILogService` fails with `Type property not set for logger!` and the handler gets a 500.
-  *Instead:* do not inject `ILogService` unless you configure a schema logger.
-- **A custom `ILogger` is not used.** `from_options` registers the console logger first, and the
-  first registration wins, so `add_singleton(ILogger, MyLogger)` changes nothing that handlers
-  receive (the repository's `examples/logger/custom_logger.py` shows this pattern, but it has no
-  effect). *Instead:* configure Python `logging` handlers and formatters directly.
 - **`log_error` has no effect.** Tracebacks in responses are controlled by `error_log`
   ([configuration-reference.md](configuration-reference.md)).
-- **The request log always shows the method as `none`.** `ContextFactory` reads `method`, but the
-  CMS request carries `methode`.
-- **Unmatched requests log a full traceback at `ERROR`.** Filter `HandlerNotFoundErr` in your log
-  pipeline or add the catch-all handler above.
+- **A listener configuration error surfaces as a `TypeError`.** For example, a `rabbitmq` entry
+  without `url` fails at `listening()` with `RabbitListener.__init__() missing 3 required
+  positional arguments`. *Instead:* read the `ERROR` log line just before it, which carries the
+  real cause ([configuration-reference.md](configuration-reference.md#reading-configuration-errors)).
 - **Top-level `ssl` is ignored.** TLS options belong inside each `http` entry
   ([README §18](../README.md#18-listeners-http--tcp--rabbit--ssl)).
 
@@ -119,13 +96,13 @@ bclib.dispatcher.routing_dispatcher
 bclib.listener.socket_listener
 ```
 
-4.0.1 removes them, so importing them now fails with `ModuleNotFoundError`. Move such code to
-the 4.0 API below: import contexts from `bclib.context` and get the dispatcher from
+4.0.1 and later do not contain them, so importing them fails with `ModuleNotFoundError`. Move
+such code to the 4.x API below: import contexts from `bclib.context` and get the dispatcher from
 `edge.from_options`.
 
 **Name map.**
 
-| 3.x | 4.0 |
+| 3.x | 4.x |
 |-----|-----|
 | `@app.restful_action(...)` | `@app.restful_handler(...)` |
 | `@app.web_action(...)` with `WebContext` | `@app.web_handler(...)` with `HttpContext` |
@@ -140,9 +117,9 @@ the 4.0 API below: import contexts from `bclib.context` and get the dispatcher f
 | `SocketListener` | `TcpListener` (`bclib.listener.tcp`) |
 | `app.event_loop` | `app.service_provider.get_service(asyncio.AbstractEventLoop)` |
 | `listening(with_block=False)` | no equivalent; `listening()` takes no arguments and blocks |
-| `NoLogger` | no class; without a `logger` section, `ILogService` discards events |
+| `NoLogger` | no class; without a schema logger (`logger.type`), `ILogService` discards events |
 
-Handlers in 4.0 receive services and URL segments by parameter type and name
+Handlers in 4.x receive services and URL segments by parameter type and name
 ([README §8](../README.md#8-handlers)); a handler that only takes `context` keeps working.
 
 ## Related
