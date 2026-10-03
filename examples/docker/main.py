@@ -8,7 +8,7 @@ WWW = Path(__file__).resolve().parent / "wwwroot"
 
 options = {
     "name": "docker-sample",
-    "http": "localhost:9181",
+    "http": "0.0.0.0:9181",
     "router": {"web": ["*"]},
     "log_request": True,
 }

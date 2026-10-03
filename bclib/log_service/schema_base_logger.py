@@ -185,6 +185,8 @@ class SchemaBaseLogger(ILogService):
         Returns:
             Coroutine: Task for background logging
         """
-        import asyncio
-        loop = asyncio.get_event_loop()
+        # May be called outside a coroutine; asyncio.get_event_loop() raises
+        # on Python 3.14 when no loop is set
+        from bclib.di import _current_or_new_event_loop
+        loop = _current_or_new_event_loop()
         return loop.create_task(self.log_async(log_object, **kwargs))

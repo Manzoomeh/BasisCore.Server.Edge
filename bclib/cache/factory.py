@@ -6,11 +6,11 @@ from ..cache.no_cache import NoCacheManager
 
 class CacheFactory(ABC):
     @staticmethod
-    def create(options:"DictEx"=None) -> "CacheManager":
+    def create(options:"DictEx"=None, loop:"asyncio.AbstractEventLoop"=None) -> "CacheManager":
         cache_type = str(options.type) if options is not None and options.has("type") else None
         if cache_type is not None:
             if cache_type == "memory":
-                return InMemoryCacheManager(options)
+                return InMemoryCacheManager(options, loop)
             else:
                 raise ValueError(f"Unknown type for cache ('${cache_type}')")
         return NoCacheManager(options)

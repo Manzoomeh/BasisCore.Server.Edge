@@ -117,8 +117,11 @@ def from_list(hosts: 'dict[str,list[str]]') -> None:
     import concurrent.futures
     import subprocess
 
+    from bclib.di import _current_or_new_event_loop
+
     __print_splash(True)
-    loop = asyncio.get_event_loop()
+    # asyncio.get_event_loop() raises on Python 3.14 when no loop is set
+    loop = _current_or_new_event_loop()
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(hosts.items())) as executor:
         tasks: list[asyncio.Future] = []
         for host, args in hosts.items():
@@ -170,10 +173,13 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDisp
         # Full configuration
         options = {
             "name": "MyAPI",
-            "http": "0.0.0.0:443",
-            "ssl": {
-                "cert": "/path/to/cert.pem",
-                "key": "/path/to/key.pem"
+            "http": {
+                "endpoint": "0.0.0.0:443",
+                "ssl": {
+                    "certfile": "/path/to/cert.pem",
+                    "keyfile": "/path/to/key.pem"
+                    # or: "pfxfile": "/path/to/cert.pfx", "password": "..."
+                }
             },
             "router": {
                 "restful": ["api/*"],
@@ -200,7 +206,7 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDisp
     # Options
     short_options = "mn:"
     # Long options
-    long_options = ["Name =", "Multi"]
+    long_options = ["Name=", "Multi"]
     try:
         arguments, _ = getopt.gnu_getopt(
             argumentList, short_options, long_options)

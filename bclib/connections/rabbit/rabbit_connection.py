@@ -668,13 +668,8 @@ class RabbitConnection(IRabbitConnection[T], Generic[T]):
                 import asyncio
                 loop = asyncio.get_running_loop()
             except RuntimeError:
-                # No running loop, try to get the default one
-                try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_closed():
-                        return
-                except:
-                    return
+                # No running loop: a cleanup task could never run
+                return
 
             # Schedule cleanup task if loop is running
             if loop.is_running():

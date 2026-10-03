@@ -38,7 +38,8 @@ class StaticFileHandler:
         allowed_extensions: Optional[Set[str]] = None,
         enable_index: bool = True,
         index_files: Optional[List[str]] = None,
-        url_prefix: str = ""
+        url_prefix: str = "",
+        allow_hidden: bool = False
     ):
         """
         Initialize static file handler
@@ -49,13 +50,17 @@ class StaticFileHandler:
                               If None, all extensions are allowed
             enable_index: If True, serve index files when directory is requested
             index_files: List of index file names to try (default: ['index.html', 'index.htm'])
-            url_prefix: URL prefix to strip before mapping to file path (e.g. '/static')
+            url_prefix: URL prefix to strip before mapping to file path (e.g. 'static' or '/static');
+                        leading and trailing slashes are ignored
+            allow_hidden: If True, serve dotfiles and files inside dot-directories
+                          (e.g. '.env', '.git/config'). Default False (not served)
         """
         self.base_dir = Path(base_dir).resolve()
         self.allowed_extensions = allowed_extensions
         self.enable_index = enable_index
         self.index_files = index_files or ['index.html', 'index.htm']
-        self.url_prefix = url_prefix.rstrip('/')
+        self.url_prefix = url_prefix.strip('/')
+        self.allow_hidden = allow_hidden
 
         # Ensure base directory exists
         if not self.base_dir.exists():
@@ -117,12 +122,33 @@ class StaticFileHandler:
         Returns:
             Normalized path string
         """
-        # Remove url_prefix if present
-        if self.url_prefix and url_path.startswith(self.url_prefix):
-            url_path = url_path[len(self.url_prefix):]
+        # Request URLs reach handlers without a leading slash; accept both forms
+        url_path = url_path.lstrip('/')
 
-        # Remove leading slash and normalize
+        # Remove url_prefix if present (whole path segment only)
+        if self.url_prefix:
+            if url_path == self.url_prefix:
+                url_path = ''
+            elif url_path.startswith(self.url_prefix + '/'):
+                url_path = url_path[len(self.url_prefix) + 1:]
+
         return url_path.lstrip('/')
+
+    @staticmethod
+    def _is_hidden_path(relative_path: str) -> bool:
+        """
+        Check if any segment of the path is a dotfile or dot-directory
+
+        Args:
+            relative_path: Normalized path relative to base_dir
+
+        Returns:
+            True if a segment starts with '.' (other than '.' and '..')
+        """
+        return any(
+            part.startswith('.') and part not in ('.', '..')
+            for part in Path(relative_path).parts
+        )
 
     def _try_index_files(self, dir_path: Path) -> Optional[Path]:
         """
@@ -160,6 +186,10 @@ class StaticFileHandler:
 
         # Normalize the path
         normalized_path = self._normalize_url_path(url_path)
+
+        # Do not serve dotfiles / dot-directories unless explicitly allowed
+        if not self.allow_hidden and self._is_hidden_path(normalized_path):
+            return None
 
         # Convert URL path to file system path
         file_path = self.base_dir / normalized_path

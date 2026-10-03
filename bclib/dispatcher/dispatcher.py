@@ -26,8 +26,8 @@ Example:
     })
     
     # Register services
-    app.add_singleton(ILogger, ConsoleLogger)
-    app.add_scoped(IDatabase, PostgresDatabase)
+    app.service_provider.add_singleton(ILogger, ConsoleLogger)
+    app.service_provider.add_scoped(IDatabase, PostgresDatabase)
     
     # Register handlers with DI
     @app.restful_handler("api/users/:id")
@@ -90,7 +90,7 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
 
         # Create and configure dispatcher
         app = edge.from_options({"http": "localhost:8080"})
-        app.add_singleton(ILogger, ConsoleLogger)
+        app.service_provider.add_singleton(ILogger, ConsoleLogger)
 
         # Register handler with DI
         @app.restful_handler("api/users/:id")
@@ -130,7 +130,8 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
             cache_options = DictEx(cache_options)
         # Event loop should already be registered in ServiceProvider by edge.from_options
         self.__event_loop = loop
-        self.__cache_manager = CacheFactory.create(cache_options)
+        self.__cache_manager = CacheFactory.create(
+            cache_options, self.__event_loop)
         self.__shutdown_requested = False  # Flag for graceful shutdown
 
         self.name = self.__options.get('name')
@@ -867,6 +868,10 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
                     break
             else:
                 raise HandlerNotFoundErr(context_type.__name__)
+        except HandlerNotFoundErr as ex:
+            # Unmatched URLs (e.g. scanners) are routine: no traceback
+            self.__logger.warning(f"Error in dispatch_async {ex}")
+            result = context.generate_error_response(ex)
         except Exception as ex:
             self.__logger.error(f"Error in dispatch_async {ex}", exc_info=True)
             result = context.generate_error_response(ex)
