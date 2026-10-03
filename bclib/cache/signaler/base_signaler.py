@@ -7,3 +7,6 @@ class BaseSignaler(ABC):
         super().__init__()
         self._callback = reset_cache_callback
         self._options = options if options is not None else DictEx({})
+
+    def start(self) -> None:
+        """Start receiving signals; called once the application event loop is running"""

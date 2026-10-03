@@ -34,7 +34,8 @@ class ServiceDescriptor:
         instance: Optional[Any] = None,
         lifetime: ServiceLifetime = ServiceLifetime.TRANSIENT,
         is_hosted: bool = False,
-        priority: int = 0
+        priority: int = 0,
+        is_default: bool = False
     ) -> None:
         """
         Initialize service descriptor
@@ -47,6 +48,7 @@ class ServiceDescriptor:
             lifetime: Service lifetime (singleton/scoped/transient)
             is_hosted: Whether service should be instantiated at application startup
             priority: Initialization priority for hosted services (higher = initialized first, default=0)
+            is_default: Replaceable framework default; dropped when an explicit registration of the same service type is added
         """
         self.service_type: Type = service_type
         self.implementation: Optional[Type] = implementation
@@ -55,4 +57,5 @@ class ServiceDescriptor:
         self.instance: Optional[Any] = instance
         self.lifetime: ServiceLifetime = lifetime
         self.is_hosted: bool = is_hosted
+        self.is_default: bool = is_default
         self.priority: int = priority

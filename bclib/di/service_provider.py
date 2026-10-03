@@ -119,7 +119,8 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
         factory: Optional[Callable[['IServiceProvider', Any], T]] = None,
         instance: Optional[T] = None,
         is_hosted: bool = False,
-        priority: int = 0
+        priority: int = 0,
+        is_default: bool = False
     ) -> 'IServiceContainer':
         """
         Register a singleton service (one instance for entire application)
@@ -135,6 +136,9 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
             instance: Pre-created instance
             is_hosted: If True, service is instantiated at startup and start_async is called
             priority: Initialization priority for hosted services (higher = initialized first, default=0)
+            is_default: Register as a replaceable framework default. It is used only while no
+                explicit registration exists for service_type; an explicit registration
+                (made before or after) replaces it. The framework uses this for ILogger.
 
         Returns:
             Self for chaining
@@ -174,13 +178,36 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
             instance=instance,
             lifetime=ServiceLifetime.SINGLETON,
             is_hosted=is_hosted,
-            priority=priority
+            priority=priority,
+            is_default=is_default
         )
         # Support multiple implementations: append to list instead of replacing
-        if service_type not in self._descriptors:
-            self._descriptors[service_type] = []
-        self._descriptors[service_type].append(descriptor)
+        self._add_descriptor(descriptor)
         return self
+
+    def _add_descriptor(self, descriptor: ServiceDescriptor) -> None:
+        """
+        Append a descriptor to the registrations of its service type
+
+        Explicit registrations are kept in registration order (the first one wins
+        for single resolution). A default registration (is_default=True) is only
+        used while no explicit registration exists: it is skipped when one already
+        exists, and it is removed - together with any singleton instance it
+        cached - when the first explicit registration arrives. Scoped instances
+        are left alone: add_scoped(instance=...) stores its instance before
+        registering the descriptor.
+        """
+        service_type = descriptor.service_type
+        descriptors = self._descriptors.setdefault(service_type, [])
+        if descriptor.is_default:
+            if any(not d.is_default for d in descriptors):
+                return
+        elif any(d.is_default for d in descriptors):
+            descriptors[:] = [d for d in descriptors if not d.is_default]
+            for key in [k for k in self._generic_singleton_instances
+                        if k[0] is service_type]:
+                del self._generic_singleton_instances[key]
+        descriptors.append(descriptor)
 
     def add_scoped(
         self,
@@ -222,11 +249,19 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
             services.add_scoped(IDatabase, instance=db_instance)
             ```
         """
-        # If instance provided, store it in current scope's cache
+        # If instance provided, store it in current scope's cache.
+        # A later explicit instance replaces an earlier one: contexts that share a
+        # scope (e.g. dbsource member contexts) register themselves one after another.
         if instance is not None:
-            if service_type not in self._scoped_instances:
-                self._scoped_instances[service_type] = instance
-            # Don't store instance in descriptor (would be shared across scopes)
+            self._scoped_instances[service_type] = instance
+            # Don't store instance in descriptor (would be shared across scopes).
+            # Descriptors are shared by all scopes, so register the instance-only
+            # descriptor once instead of once per scope (per request).
+            if implementation is None and factory is None and any(
+                    d.lifetime == ServiceLifetime.SCOPED and d.implementation is None
+                    and d.factory is None
+                    for d in self._descriptors.get(service_type, [])):
+                return self
 
         descriptor = ServiceDescriptor(
             service_type=service_type,
@@ -235,9 +270,7 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
             lifetime=ServiceLifetime.SCOPED
         )
         # Support multiple implementations: append to list instead of replacing
-        if service_type not in self._descriptors:
-            self._descriptors[service_type] = []
-        self._descriptors[service_type].append(descriptor)
+        self._add_descriptor(descriptor)
         return self
 
     def add_transient(
@@ -283,9 +316,7 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
             lifetime=ServiceLifetime.TRANSIENT
         )
         # Support multiple implementations: append to list instead of replacing
-        if service_type not in self._descriptors:
-            self._descriptors[service_type] = []
-        self._descriptors[service_type].append(descriptor)
+        self._add_descriptor(descriptor)
         return self
 
     def get_service(self, service_type: Type[T], **kwargs: Any) -> Optional[T]:
@@ -691,13 +722,14 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
             else:
                 # Other TypeError, re-raise
                 raise
-        except Exception:
+        except Exception as e:
             # For other exceptions during injection, try parameterless constructor
             try:
                 return implementation_type()
-            except:
-                # If both fail, re-raise original exception
-                raise
+            except Exception:
+                # If both fail, re-raise the original exception (not the
+                # fallback's "missing N required positional arguments")
+                raise e from None
 
     def inject_dependencies(self, handler: Callable, **kwargs: Any) -> Dict[str, Any]:
         """

@@ -21,3 +21,6 @@ class CacheManager(ABC):
 
     @abstractmethod
     def reset(self, keys:"list[str]"=None) -> "CacheStatus": ...
+
+    def start(self) -> None:
+        """Start background parts (e.g. signalers); called once the event loop is running"""

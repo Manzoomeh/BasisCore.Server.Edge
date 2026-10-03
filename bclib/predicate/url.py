@@ -108,6 +108,23 @@ class Url(Predicate):
             print("Error in check url predicate", ex)
             return False
 
+    def is_match(self, url: str) -> bool:
+        """
+        Check if a URL path matches this pattern, without touching any context
+
+        Args:
+            url: Request path without leading slash, host or query string
+                 (the same form as context.url)
+
+        Returns:
+            True if the path matches the pattern as check_async would match it
+        """
+        try:
+            is_ok, _ = self.__validator(url)
+            return is_ok
+        except Exception:
+            return False
+
     @staticmethod
     def __generate_validator(url: str) -> FunctionType:
         """

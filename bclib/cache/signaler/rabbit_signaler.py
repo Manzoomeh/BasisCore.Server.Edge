@@ -8,7 +8,17 @@ class RabbitSignaller(BaseSignaler):
     """Implement rabbit-mq signaler"""
     def __init__(self, reset_cache_callback:"Callable", options:"DictEx") -> None:
         super().__init__(reset_cache_callback, options)
+        # Connecting needs a running event loop, which does not exist yet while
+        # edge.from_options() builds the dispatcher; start() connects later.
+        self.__started = False
+
+    def start(self) -> None:
+        """Connect to rabbit-mq and consume signals; call from the running event loop"""
+        if self.__started:
+            return
+        self.__started = True
         import pika
+        options = self._options
         try:
             param = pika.URLParameters(options.url)
             queue_name = options.queue

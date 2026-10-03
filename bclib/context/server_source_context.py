@@ -5,6 +5,7 @@ if TYPE_CHECKING:
     from bclib.dispatcher.idispatcher import IDispatcher
 
 from bclib.context.context import Context
+from bclib.exception import BadRequestErr
 from bclib.parser import HtmlParserEx
 from bclib.utility import DictEx
 
@@ -13,6 +14,9 @@ class ServerSourceContext(Context):
     """Base class for dispatching server base dbsource request context"""
 
     def __init__(self, cms_object: dict, dispatcher: 'IDispatcher', message_object: Message = None) -> None:
+        if not isinstance(cms_object, dict) or "command" not in cms_object:
+            raise BadRequestErr(
+                "server source request has no 'command'; a dbsource sent over HTTP must be handled as a client source")
         super().__init__(dispatcher, True)
         parser = HtmlParserEx()
         self.raw_command = cms_object["command"]

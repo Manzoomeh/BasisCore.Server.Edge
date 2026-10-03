@@ -88,6 +88,34 @@ class CallbackInfo:
             patterns.append("*")
         return patterns
 
+    def get_url_predicates(self) -> list:
+        """
+        Collect the Url predicates of this handler (including those nested in All/Any).
+
+        Returns:
+            list of Url predicates; an empty list means the handler has no URL
+            restriction and handles any path.
+        """
+        from bclib.predicate.all import All
+        from bclib.predicate.any import Any
+        from bclib.predicate.url import Url
+
+        url_predicates: list = []
+
+        def collect(predicate: Predicate) -> None:
+            if isinstance(predicate, Url):
+                url_predicates.append(predicate)
+            elif isinstance(predicate, All):
+                for child in predicate._All__predicate_list:
+                    collect(child)
+            elif isinstance(predicate, Any):
+                for child in predicate._Any__predicate_list:
+                    collect(child)
+
+        for predicate in self.__predicates:
+            collect(predicate)
+        return url_predicates
+
     def matches_handler(self, handler: Callable) -> bool:
         """
         Check if this callback info wraps the given handler
