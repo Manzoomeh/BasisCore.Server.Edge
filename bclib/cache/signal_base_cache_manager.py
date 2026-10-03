@@ -23,6 +23,9 @@ class SignalBaseCacheManager(CacheManager):
                 loop.create_task(self.__reset_async(self.__reset_interval))
             if self.__clean_interval > 0:
                 loop.create_task(self.__clean_async(self.__clean_interval))
+
+    def start(self) -> None:
+        self._reset_signaler.start()
     
     async def __reset_async(self, interval:"int"):
         try:

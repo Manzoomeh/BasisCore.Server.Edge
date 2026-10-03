@@ -41,4 +41,7 @@ def add_default_logger(service_container: IServiceContainer) -> None:
         ```
     """
     from .console_logger import ConsoleLogger
-    service_container.add_singleton(ILogger, implementation=ConsoleLogger)
+    # Replaceable default: an explicit add_singleton(ILogger, MyLogger), even one
+    # made after edge.from_options(), takes precedence over ConsoleLogger.
+    service_container.add_singleton(
+        ILogger, implementation=ConsoleLogger, is_default=True)

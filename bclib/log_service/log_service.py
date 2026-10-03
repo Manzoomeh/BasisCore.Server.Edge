@@ -62,24 +62,23 @@ class LogService(ILogService):
             ILogService: Configured logger instance
 
         Raises:
-            Exception: If logger type is not specified or not supported
+            Exception: If logger type is not supported
         """
         logger: ILogService = None
-        if "logger" not in options:
+        logger_option: AppOptions = options.get('logger')
+        if not logger_option or 'type' not in logger_option:
+            # No logger section, or one without 'type' (e.g. console logger
+            # settings such as {"level": "INFO"}): no schema logger (no-op)
             logger = None
         else:
-            logger_option: AppOptions = options.get('logger')
-            if 'type' not in logger_option:
-                raise Exception("Type property not set for logger!")
+            logger_type = logger_option.get('type').lower()
+            if logger_type == 'schema.restful':
+                logger = RESTfulSchemaBaseLogger(logger_option)
+            elif logger_type == "schema.rabbit":
+                logger = RabbitSchemaBaseLogger(logger_option)
             else:
-                logger_type = logger_option.get('type').lower()
-                if logger_type == 'schema.restful':
-                    logger = RESTfulSchemaBaseLogger(logger_option)
-                elif logger_type == "schema.rabbit":
-                    logger = RabbitSchemaBaseLogger(logger_option)
-                else:
-                    raise Exception(
-                        f"Type '{logger_type}' not support for logger")
+                raise Exception(
+                    f"Type '{logger_type}' not support for logger")
             print(f'{logger.__class__.__name__} start logging')
         return logger
 
