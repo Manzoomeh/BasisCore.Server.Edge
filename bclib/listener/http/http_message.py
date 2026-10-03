@@ -61,12 +61,12 @@ class HttpMessage(Message, ICmsBaseMessage, IResponseBaseMessage):
         """Start streaming response for chunked data transfer"""
         if self.Response is not None:
             raise Exception('StreamResponse already started')
-        if self.__request is None:
+        if self.request is None:
             raise Exception('Request not available for streaming')
         self.Response = web.StreamResponse(status=status,
                                            reason=reason,
                                            headers=headers)
-        await self.Response.prepare(self.__request)
+        await self.Response.prepare(self.request)
 
     async def write_async(self, data: bytes) -> Coroutine[Any, Any, None]:
         """Write data chunk to streaming response"""

@@ -177,6 +177,7 @@ class HttpListener(IListener):
         self._logger = logger
         self.__ws_manager = ws_manager
         self.__event_loop = event_loop
+        self.__runner: 'Optional[web.AppRunner]' = None
 
         # Normalize options to dict format
         if isinstance(options, str):
@@ -276,26 +277,43 @@ class HttpListener(IListener):
                     except OSError:
                         pass
 
-        runner = web.AppRunner(app, handle_signals=True)
+        # Signals belong to the dispatcher (Dispatcher.listening), which closes
+        # this listener through close_async() during its graceful shutdown.
+        runner = web.AppRunner(app, handle_signals=False)
         await runner.setup()
+        self.__runner = runner
         site = web.TCPSite(runner, self.__endpoint.host,
                            self.__endpoint.port, ssl_context=ssl_context)
         await site.start()
 
-        ssl_options = self.__options.get('ssl')
         self._logger.info(
-            f"Development Edge server started at http{'s' if ssl_options else ''}://{self.__endpoint.host}:{self.__endpoint.port}")
+            f"Development Edge server started at {self.__url}")
         try:
             while True:
                 await asyncio.sleep(1)
         except asyncio.CancelledError:
             pass
         finally:
-            self._logger.info(
-                f"Development Edge server for http{'s' if self.__ssl_options else ''}://{self.__endpoint.host}:{self.__endpoint.port} stopped.")
-            await site.stop()
-            await runner.cleanup()
-            await runner.shutdown()
+            await self.close_async()
+
+    @property
+    def __url(self) -> str:
+        scheme = 'https' if self.__options.get('ssl') else 'http'
+        return f"{scheme}://{self.__endpoint.host}:{self.__endpoint.port}"
+
+    async def close_async(self) -> None:
+        """Stop the HTTP server and release its port
+
+        Called by the dispatcher during graceful shutdown and when the server
+        task is cancelled. Safe to call more than once.
+        """
+        runner, self.__runner = self.__runner, None
+        if runner is None:
+            return
+        # cleanup() stops the sites, runs the app's shutdown and cleanup hooks
+        await runner.cleanup()
+        self._logger.info(
+            f"Development Edge server for {self.__url} stopped.")
 
     async def __handle_http_async(self, request: 'web.Request', cms_object: dict) -> 'web.Response':
         """
