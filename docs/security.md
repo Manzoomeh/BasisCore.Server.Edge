@@ -1,6 +1,6 @@
 # Security
 
-What BasisEdge 4.0 does, and does not do, at each point where security matters, with the
+What BasisEdge 4.1 does, and does not do, at each point where security matters, with the
 configuration or code that closes each gap. Key names are defined in
 [configuration-reference.md](configuration-reference.md).
 
@@ -102,8 +102,9 @@ the port accepts a handshake.
 ## What error responses expose
 
 When a handler raises, the dispatcher logs the exception at `ERROR` with its traceback
-(`bclib/dispatcher/dispatcher.py`, `dispatch_async`), then asks the context to build the
-response (`bclib/context/cms_base_context.py`, `_generate_error_object`):
+(`bclib/dispatcher/dispatcher.py`, `dispatch_async`; an unmatched request is one `WARNING`
+line), then asks the context to build the response (`bclib/context/cms_base_context.py`,
+`_generate_error_object`):
 
 - **Every** error response contains `str(exception)` as `errorMessage`, whatever the options.
   An exception from a database driver can carry a host name, a user name or a query.
@@ -116,7 +117,8 @@ response (`bclib/context/cms_base_context.py`, `_generate_error_object`):
 - For a `ShortCircuitErr` subclass that carries `data`, the response is that `data`, with no
   traceback.
 - When a request fails before a context exists, the reply is an escaped HTML page of the form
-  `Edge could not process the request: <Type>: <message>`.
+  `Edge could not process the request: <Type>: <message>`, with the exception's status for a
+  `ShortCircuitErr` and `500` otherwise.
 
 Keep `error_log` off in production. Raise framework errors with fixed, user-safe messages, and
 convert everything else:
@@ -206,9 +208,11 @@ cookies, check the `origin` value in the request data before acting on messages.
 | Check | Behaviour today |
 |-------|-----------------|
 | Path traversal | The target is resolved, symlinks included, and must stay inside `base_dir`; otherwise `403`. Encoded `..%2F` is caught too. |
-| Extension whitelist | Optional. Without `allowed_extensions`, **every** file under `base_dir` is served, dotfiles such as `.env` included. |
+| Hidden files | A path with any segment starting with `.` (`.env`, `.git/config`) is not served and falls through to your handlers, or to a `404`. Pass `allow_hidden=True` to serve them. |
+| Extension whitelist | Optional. Without `allowed_extensions`, every other file under `base_dir` is served. |
 | HTTP method | Only GET and HEAD are served; other methods fall through to your handlers, or to a `404`. |
-| `url_prefix` | Stripped when present, never required: the same files are also served without the prefix. Write it without a leading slash (`"static"`). On the HTTP listener a value such as `"/static"` never matches, because request URLs reach the handler without a leading slash. |
+| `url_prefix` | Stripped when the path starts with it as a whole segment (`static/app.js`, not `staticx/app.js`); `"static"` and `"/static"` are the same. Never required: the same files are also served without the prefix. |
+| Error pages | Message and traceback are HTML-escaped. |
 | Directory index | Only the names in `index_files`; directory listing is never produced. |
 | Large files | Read fully into memory before sending. |
 
@@ -231,7 +235,8 @@ app.add_static_handler(StaticFileHandler(
 ))
 ```
 
-With this handler, `/static/.env` returns 404 and `/static/..%2F..%2Fapp.py` returns 403.
+With this handler, `/static/app.js` and `/app.js` return the file, `/static/.env` and a `POST`
+to `/static/app.js` return 404, and `/static/..%2F..%2Fapp.py` returns 403.
 
 ## Request size and timeouts
 

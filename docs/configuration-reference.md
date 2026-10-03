@@ -1,6 +1,6 @@
 # Configuration reference
 
-Every key that BasisEdge 4.0 reads from the options dictionary, with its type, default, the
+Every key that BasisEdge 4.1 reads from the options dictionary, with its type, default, the
 module that reads it and what it does. The options dictionary is the `dict` you pass to
 `edge.from_options(...)`, or the parsed `host.json` that `edge.from_config(...)` loads (see
 [README: From a JSON file](../README.md#52-from-a-json-file)).
@@ -36,7 +36,7 @@ out of `host.json`, see [security.md](security.md#secrets-in-configuration).
 | `http` | str, dict or list | absent: no HTTP listener | `bclib/listener/listener_factory.py` | One HTTP/HTTPS (and WebSocket) listener per entry. See [`http` entries](#http-entries). |
 | `tcp` | str, dict or list | absent: no TCP listener | `bclib/listener/listener_factory.py` | One binary-framed TCP listener per entry, used by the BasisCore web server. See [`tcp` entries](#tcp-entries). |
 | `rabbitmq` | dict or list | absent: no consumer | `bclib/listener/listener_factory.py` | One RabbitMQ consumer per entry. See [`rabbitmq` entries](#rabbitmq-entries). |
-| `log_request` | bool | `true` | `bclib/context/context_factory.py` | Log one `INFO` line per incoming request: name, context type, request id, URL. |
+| `log_request` | bool | `true` | `bclib/context/context_factory.py` | Log one `INFO` line per incoming request: name, context type, request id, method, URL. |
 | `error_log` | bool | `false` | `bclib/context/cms_base_context.py` | Append the Python traceback to every error response. Development only; see [security.md](security.md#what-error-responses-expose). |
 | `cache` | dict | absent: no-op cache | `bclib/dispatcher/dispatcher.py`, `bclib/cache/factory.py` | Result cache for `@app.cache`. See [`cache`](#cache). |
 | `logger` | dict | absent: defaults below | `bclib/logger/console_logger.py`, `bclib/log_service/log_service.py` | Console logger settings, and the schema log service. See [`logger`](#logger). |
@@ -134,7 +134,7 @@ Read once when the dispatcher is created (`bclib/cache/factory.py`,
 | `type` | str | absent: caching disabled | Only `"memory"` is supported. Any other value aborts `from_options`. |
 | `clean_interval` | int (seconds) | `43200` | Period for removing expired entries. `0` disables it; negative aborts. |
 | `reset_interval` | int (seconds) | `86400` | Period for clearing the whole cache. `0` disables it; negative aborts. |
-| `signaler` | dict | none | Remote cache clearing. `{"type": "rabbit", "url": ..., "queue": ...}` consumes `{"type": "clear-cache", "keys": [...]}` messages from that queue. It connects during `from_options`; an unreachable broker aborts start-up. |
+| `signaler` | dict | none | Remote cache clearing. `{"type": "rabbit", "url": ..., "queue": ...}` consumes `{"type": "clear-cache", "keys": [...]}` messages from that queue and calls `reset(keys)`. It connects when the app starts (`initialize_task_async()`, run by `listening()`), not in `from_options`; an unreachable broker makes start-up fail. The consumer runs on one thread of the loop's default executor. |
 
 ## `logger`
 
@@ -152,8 +152,8 @@ Two components read this section.
 | `queue_size` | int | `-1` (unbounded) | Queue capacity when `async_logging` is on. |
 
 **Schema log service** (`ILogService`, `bclib/log_service/log_service.py`). This service is
-built only when something injects `ILogService`. If you do, `logger` must contain `type`, or
-resolution fails:
+built only when something injects `ILogService`. It sends events only when `logger` contains
+`type`; an unsupported `type` makes the injection fail:
 
 | Key | Type | Meaning |
 |-----|------|---------|
@@ -162,7 +162,8 @@ resolution fails:
 | `url` / `post_url` | str | `schema.restful` only: where log records are POSTed. |
 | `connection` | dict | `schema.rabbit` only: `url` plus `queue` or `exchange`, and optional `durable`, `passive`, `exclusive`, `auto_delete`. |
 
-Without a `logger` section, `ILogService` resolves to a no-op service.
+Without a `logger` section, or with one that has no `type` (console settings only),
+`ILogService` resolves to a no-op service.
 
 ## `settings` (legacy `DbManager`)
 
@@ -208,9 +209,9 @@ them.
 
 **`IRabbitConnection["<key>"]`**: the same keys as [`rabbitmq` entries](#rabbitmq-entries).
 
-## Keys that 4.0 does not read
+## Keys that 4.x does not read
 
-These keys still appear in older samples and are silently ignored by 4.0:
+These keys still appear in older samples and are silently ignored by 4.x:
 
 | Key | What to do instead |
 |-----|--------------------|
@@ -218,8 +219,8 @@ These keys still appear in older samples and are silently ignored by 4.0:
 | top-level `ssl` | Put `ssl` inside the `http` entry it belongs to. |
 | `configuration` | Use `config` inside an `http` entry. |
 | `server`, `endpoint` (top-level) | Use `http` or `tcp`. |
-| `named_pipe`, `sender`, `receiver`, `defaultRouter` | No equivalent in 4.0. |
-| `log_error` | Read, but has no effect. Unhandled exceptions are always logged at `ERROR` with a traceback (`bclib/dispatcher/dispatcher.py`). For tracebacks in responses, use `error_log`. |
+| `named_pipe`, `sender`, `receiver`, `defaultRouter` | No equivalent in 4.x. |
+| `log_error` | Read, but has no effect. Exceptions that reach the dispatcher are always logged at `ERROR` with a traceback, except unmatched requests, which are logged at `WARNING` without one (`bclib/dispatcher/dispatcher.py`). For tracebacks in responses, use `error_log`. |
 
 ## Complete `host.json`
 
@@ -318,12 +319,17 @@ at `listening()` or on first use.
 
 ## Reading configuration errors
 
-When a framework class rejects a value in its constructor (an unknown cache `type`, a missing
-`url` in a `rabbitmq` entry), the error that reaches you can be a `TypeError` of the form
-`X.__init__() missing N required positional arguments`. The dependency-injection container
-retries the constructor without arguments and reports that second failure, not the first.
-Treat this message as "the configuration for X is invalid" and check that section against the
-tables above.
+When a framework class rejects a value in its constructor, its own exception reaches you. For
+example, an unknown cache `type` makes `from_options` raise
+`ValueError: Unknown type for cache ('$redis')`, and a negative `clean_interval` raises
+`ValueError: Invalid input for clean_interval!`.
+
+Listeners are built differently: when `listening()` loads them, a constructor error (such as a
+`rabbitmq` entry without `url`) is logged at `ERROR` with its traceback, as
+`ServiceProvider.create_instance: Failed to create instance of RabbitListener: ...`, and the
+listener is then retried without arguments. The exception that reaches you is that second
+failure, `TypeError: RabbitListener.__init__() missing 3 required positional arguments`; the
+cause is in the log line before it.
 
 See also: [architecture.md](architecture.md), [deployment.md](deployment.md),
 [limitations.md](limitations.md).

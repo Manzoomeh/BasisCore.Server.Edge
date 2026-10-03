@@ -1,6 +1,6 @@
 # Architecture: how a request flows
 
-This page follows one request through BasisEdge 4.0: from the listener that accepts it, through
+This page follows one request through BasisEdge 4.1: from the listener that accepts it, through
 context selection and handler dispatch, to the response written back. It complements the short
 lifecycle list in [README §7](../README.md#7-request-lifecycle); handler and predicate syntax is
 covered in [README §8](../README.md#8-handlers) and [§10](../README.md#10-routing--predicates).
@@ -74,36 +74,49 @@ Things worth knowing about each transport:
 
 ## Choosing the context: the router
 
-There is no router to configure in 4.0. The `ContextFactory` builds its routing table from the
+There is no router to configure in 4.x. The `ContextFactory` builds its routing table from the
 handlers you register, and rebuilds it whenever handlers are added or removed
 (`register_handler`, `unregister_handler`) and once more when the app starts.
 
 **How the table is built.** For every handler registered for `RESTfulContext`, `HttpContext`,
 `WebSocketContext`, `ClientSourceContext` or `ServerSourceContext`, the factory collects the
-URL patterns of its `Url` predicates (including ones nested in `app.all(...)` / `app.any(...)`).
-A pattern such as `api/users/:id` becomes the regular expression `api/users/(?P<id>[^/]+)`.
-A handler with no URL predicate contributes the wildcard `*`. The table maps each pattern to one
+`Url` predicates of the handler (including ones nested in `app.all(...)` / `app.any(...)`). A
+handler with no URL predicate contributes the wildcard `*`. The table maps each pattern to one
 context class.
 
 **How a message is matched.** For messages that carry a CMS object, the factory reads
-`cms.request["full-url"]` and:
+`cms.request["full-url"]`, strips the host, port and query string to get the request path
+(`www.example.com:8080/api/users/7?x=1` becomes `api/users/7`), and:
 
-1. tries every concrete pattern with `re.search` against the full URL; the first hit decides the
-   context class;
+1. tests the path against every concrete pattern with the same rules the `Url` predicate uses
+   during dispatch; the first match decides the context class;
 2. if nothing matched and a wildcard exists, uses the wildcard's context class;
 3. otherwise falls back by message class: `HttpMessage` and `TcpMessage` become `HttpContext`,
    `WebSocketMessage` becomes `WebSocketContext`, `RabbitMessage` becomes `RabbitContext`.
 
+A pattern matches the whole path, segment by segment:
+
+| Pattern segment | Matches |
+|-----------------|---------|
+| `users` (static) | exactly that segment, case-insensitive |
+| `:id` | any one segment |
+| `:*rest` (last segment only) | all remaining segments, including none |
+
+So `api/users/:id` matches `api/users/7` and `API/Users/7`, but not `api/users/7/orders` or
+`admin/api/users/7`; `api/:*rest` matches `api`, `api/a` and `api/a/b/c`.
+
 Consequences:
 
 - The routing decision only picks the context *class*. The handler's own predicates, including
-  the same `Url` predicate (which matches `cms.request.url` segment by segment), still decide
-  whether the handler runs.
-- Only one context class can own a given pattern, and only one can own the wildcard. If two
-  context types both have handlers without a route, the one registered last wins `*` and the
-  other is never reached for unmatched URLs. Give each context type its own routes.
-- `re.search` is not anchored, so keep patterns distinct enough that one cannot be found inside
-  another URL.
+  the same `Url` predicate (which matches `cms.request.url`), still decide whether the handler
+  runs.
+- Concrete patterns are tried grouped by context class, in the order the context classes were
+  first registered, not by specificity. When patterns of two context types overlap (for example
+  `api/:*rest` for REST and `api/users` for web), the context type registered first wins.
+- Only one context class can own a given pattern, and only one can own the wildcard. For an
+  identical pattern, or for two context types that both have handlers without a route, the
+  context type registered last wins and the other is never reached through routing. Give each
+  context type its own routes.
 - The legacy `router` option is not read by the context factory. Under `http.config`, `router`
   is passed to aiohttp and has nothing to do with context selection.
 
@@ -209,6 +222,22 @@ CMS contexts (`HttpContext`, `RESTfulContext`, `ClientSourceContext`) build the 
 results are returned as-is and are not sent back by their transports. The full CMS contract is in
 [basiscore-integration.md](basiscore-integration.md#the-response).
 
+**Streaming.** On the HTTP listener, an `HttpContext` or `RESTfulContext` handler can stream the
+body instead: call `await context.start_stream_response_async(status=200, headers={...})`, then
+write chunks with `write_async` / `write_and_drain_async`. The listener then sends that stream
+and ignores the CMS reply. Return a value other than `None` after streaming; `None` still means
+"not handled", so later handlers are tried and a `HandlerNotFoundErr` warning is logged.
+Streaming needs the aiohttp request, so it is not available over TCP.
+
+```python
+@app.restful_handler("export", method="GET")
+async def export(context: RESTfulContext):
+    await context.start_stream_response_async(status=200, headers={"Content-Type": "text/plain"})
+    for chunk in (b"one,", b"two,", b"three"):
+        await context.write_and_drain_async(chunk)
+    return True
+```
+
 ## Errors
 
 There are two error paths.
@@ -227,13 +256,19 @@ There are two error paths.
 
 See [README §16](../README.md#16-errors--status-codes) for raising errors from handlers.
 
-**Before a context exists.** Since 4.0.1, a message that fails in `create_context` (malformed CMS
-object, missing `request` or `full-url`, a source request without a `command`) still gets an
+**Before a context exists.** A message that fails in `create_context` (malformed CMS object,
+missing `request` or `full-url`, a server source request without a `command`) still gets an
 answer when its transport can reply. The dispatcher sends a CMS object with `index` `"5"`,
-`headercode` `"500 Internal Server Error"`, `mime` `text/html` and an HTML-escaped `content` of
-`Edge could not process the request: <ExceptionType>: <message>`. Earlier versions closed the
-connection, which callers such as the BasisCore web server reported as an unrelated error. Messages
-that cannot reply (RabbitMQ, WebSocket) re-raise the exception to their listener.
+`mime` `text/html` and an HTML-escaped `content` of
+`Edge could not process the request: <ExceptionType>: <message>`. The `headercode` is the
+exception's own status when it is a `ShortCircuitErr`, otherwise `"500 Internal Server Error"`.
+For example, a server source request that arrives over HTTP (it has no `command`) gets
+`400 Bad Request` with a message saying that a dbsource sent over HTTP must be handled as a
+client source. Messages that cannot reply (RabbitMQ, WebSocket) re-raise the exception to their
+listener.
+
+Unmatched requests (`HandlerNotFoundErr`) are logged at `WARNING` without a traceback; every
+other exception that reaches the dispatcher is logged at `ERROR` with its traceback.
 
 ## Dependency injection scopes
 
@@ -245,7 +280,8 @@ Each request then gets its own scope:
   for the context by type. `context.services` is the scope.
 - Singletons are shared with the root; scoped services are created once per request scope.
 - Source member contexts (`ClientSourceMemberContext`, `ServerSourceMemberContext`) do not open a
-  new scope; they reuse the scope of their source context.
+  new scope; they reuse the scope of their source context. Each member context registers itself
+  in that scope before its handlers run, so a member handler always receives its own member.
 
 Lifetimes are listed in [README §11.2](../README.md#112-lifetimes).
 
@@ -255,18 +291,20 @@ Lifetimes are listed in [README §11.2](../README.md#112-lifetimes).
 listener factory, dispatcher and connection services, and returns the dispatcher. Nothing listens
 yet. `app.listening()` then:
 
-1. runs `initialize_task_async()`: creates the `ContextFactory`, builds the routing table, starts
-   hosted services, loads listeners and starts each one as a task;
-2. installs `SIGINT`/`SIGTERM` handlers and runs the loop until a shutdown signal;
-3. on shutdown, stops hosted services, closes listeners (3 s timeout), cancels remaining tasks
-   (5 s timeout) and closes the loop.
+1. installs its own `SIGINT`/`SIGTERM` handlers (listeners do not install any);
+2. runs `initialize_task_async()`: creates the `ContextFactory`, builds the routing table, starts
+   the cache signaler if one is configured, starts hosted services, loads listeners and starts
+   each one as a task;
+3. runs the loop until a shutdown signal;
+4. on shutdown, stops hosted services, closes listeners (3 s timeout), cancels remaining tasks
+   (5 s timeout) and closes the loop. See [deployment.md](deployment.md#graceful-shutdown).
 
 **Event loop.** Pass `loop=` to use your own. Without it, Edge uses a new `ProactorEventLoop` on
-Windows and installs it as the current loop. On other platforms it uses the current loop and,
-since 4.0.1, creates and installs a new one when there is none instead of failing. Listeners,
-async handlers and hosted services all run on this one loop, so an `async def` handler must not
-block. Plain `def` handlers are run in the loop's default thread-pool executor, which keeps the
-loop free but means they execute on worker threads; shared state they touch must be thread-safe.
+Windows and installs it as the current loop. On other platforms it uses the current loop, or
+creates and installs a new one when there is none. Listeners, async handlers and hosted services
+all run on this one loop, so an `async def` handler must not block. Plain `def` handlers are run
+in the loop's default thread-pool executor, which keeps the loop free but means they execute on
+worker threads; shared state they touch must be thread-safe.
 
 **Hosted services.** Register a singleton with `is_hosted=True` (optionally `priority=`) and
 implement `IHostedService`:
@@ -304,5 +342,5 @@ process with its own loop, DI container and cache; they share nothing. See
 
 - [basiscore-integration.md](basiscore-integration.md): the TCP frame, the CMS object and dbsource.
 - [extending.md](extending.md): custom predicates, listeners and services.
-- [limitations.md](limitations.md): known gaps in 4.0.1, including HTTP streaming.
+- [limitations.md](limitations.md): known gaps in 4.1.0.
 - [security.md](security.md): what Edge trusts in the incoming CMS object.
