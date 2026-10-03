@@ -222,10 +222,11 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
             services.add_scoped(IDatabase, instance=db_instance)
             ```
         """
-        # If instance provided, store it in current scope's cache
+        # If instance provided, store it in current scope's cache.
+        # A later explicit instance replaces an earlier one: contexts that share a
+        # scope (e.g. dbsource member contexts) register themselves one after another.
         if instance is not None:
-            if service_type not in self._scoped_instances:
-                self._scoped_instances[service_type] = instance
+            self._scoped_instances[service_type] = instance
             # Don't store instance in descriptor (would be shared across scopes)
 
         descriptor = ServiceDescriptor(

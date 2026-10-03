@@ -57,7 +57,7 @@ if TYPE_CHECKING:
 
 from bclib.di import (IHostedService, InjectionPlan, IServiceContainer,
                       IServiceProvider)
-from bclib.exception import HandlerNotFoundErr
+from bclib.exception import HandlerNotFoundErr, ShortCircuitErr
 from bclib.listener import (ICmsBaseMessage, IListener, IResponseBaseMessage,
                             Message)
 from bclib.logger.ilogger import ILogger
@@ -921,7 +921,8 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
             response_cms[HttpBaseDataType.CMS] = {
                 HttpBaseDataName.WEB_SERVER: {
                     HttpBaseDataName.INDEX: ResponseTypes.RENDERED,
-                    HttpBaseDataName.HEADER_CODE: HttpStatusCodes.INTERNAL_SERVER_ERROR,
+                    HttpBaseDataName.HEADER_CODE: exception.status_code
+                    if isinstance(exception, ShortCircuitErr) else HttpStatusCodes.INTERNAL_SERVER_ERROR,
                     HttpBaseDataName.MIME: HttpMimeTypes.HTML,
                 },
                 HttpBaseDataName.CONTENT: html.escape(

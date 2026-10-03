@@ -1,11 +1,12 @@
 """Context Factory - Creates appropriate context instances from messages"""
-import re
 from typing import TYPE_CHECKING, Optional, Type
 
 from bclib.logger.ilogger import ILogger
 from bclib.options.app_options import AppOptions
 
 if TYPE_CHECKING:
+    from bclib.predicate.url import Url
+
     from .context import Context
 
 from bclib.dispatcher.callback_info import CallbackInfo
@@ -59,8 +60,8 @@ class ContextFactory:
         self.__log_name = f"{name}: " if name else ''
 
         # Routing configuration
-        # pattern -> context_type
-        self.__route_lookup: dict[str, Type['Context']] = {}
+        # pattern -> (Url predicate or None for '*', context_type)
+        self.__route_lookup: dict[str, tuple[Optional['Url'], Type['Context']]] = {}
 
     def create_context(self, message: Message) -> 'Context':
         """
@@ -103,17 +104,20 @@ class ContextFactory:
                 raise KeyError("full-url key not found in request")
 
             request_id = dict.get(req, 'request-id', 'none')
-            method = dict.get(req, 'method', 'none')
+            method = req.get('methode', req.get('method', 'none'))
 
         # Determine context type based on URL patterns or message type
-        # 1. Try to match URL patterns in lookup (prefer concrete patterns over '*')
+        # 1. Try to match URL patterns in lookup (prefer concrete patterns over '*').
+        #    Patterns are matched against the whole request path, segment by segment,
+        #    exactly as the Url predicate matches it during dispatch.
         if url is not None and self.__route_lookup:
+            path = ContextFactory._path_of(url)
             wildcard_type = None
-            for pattern, ctx_type in self.__route_lookup.items():
-                if pattern == "*":
+            for pattern, (url_predicate, ctx_type) in self.__route_lookup.items():
+                if url_predicate is None:
                     wildcard_type = ctx_type
                     continue
-                if re.search(pattern, url):
+                if url_predicate.is_match(path):
                     context_type = ctx_type
                     break
             if context_type is None and wildcard_type is not None:
@@ -149,6 +153,15 @@ class ContextFactory:
 
         return ret_val
 
+    @staticmethod
+    def _path_of(full_url: str) -> str:
+        """Return the request path of a CMS full-url ('host[:port]/path?query' -> 'path')"""
+        path = full_url.split('?', 1)[0].split('#', 1)[0]
+        if '://' in path:
+            path = path.split('://', 1)[1]
+        # The first segment is the host (with optional port)
+        return path.split('/', 1)[1] if '/' in path else ''
+
     def rebuild_router(self):
         """Auto-generate router from registered handlers in lookup"""
         # Import context types at runtime to avoid circular dependency
@@ -165,8 +178,8 @@ class ContextFactory:
             ServerSourceContext
         }
 
-        # Collect all URL patterns per context type
-        context_patterns: dict[Type['Context'], list[str]] = {}
+        # Collect all URL predicates per context type (None = any path)
+        context_patterns: dict[Type['Context'], list[Optional['Url']]] = {}
 
         for ctx_type, handlers in self.__look_up.items():
             if ctx_type not in supported_contexts or len(handlers) == 0:
@@ -174,13 +187,15 @@ class ContextFactory:
 
             context_patterns[ctx_type] = []
 
-            # Extract URL patterns from each callback info
+            # Extract URL predicates from each callback info
             for callback_info in handlers:
-                patterns = callback_info.get_url_patterns()
-                context_patterns[ctx_type].extend(patterns)
+                url_predicates = callback_info.get_url_predicates()
+                # No URL restriction -> this context type handles any path
+                context_patterns[ctx_type].extend(url_predicates or [None])
 
         # Build lookup dictionary from all patterns
         self.__route_lookup = {}
-        for context_type, patterns in context_patterns.items():
-            for pattern in patterns:
-                self.__route_lookup[pattern] = context_type
+        for context_type, url_predicates in context_patterns.items():
+            for url_predicate in url_predicates:
+                pattern = "*" if url_predicate is None else url_predicate.expression
+                self.__route_lookup[pattern] = (url_predicate, context_type)
