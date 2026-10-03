@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from ..cache_item.base_cache_item import BaseCacheItem
+from ..cache_item.function_cache_item import FunctionCacheItem
 
 class BaseValueItem(ABC):
     def __init__(self, cache_item:"BaseCacheItem") -> None:
@@ -29,5 +30,21 @@ class BaseValueItem(ABC):
         return ret_val
     
     def reset(self):
-        self._item = None
+        # Function cache items stay registered (the decorated function keeps
+        # using them), so only their entries are cleared; other items are dropped.
+        items = self._item if isinstance(self._item, list) else [self._item]
+        kept = [item for item in items if isinstance(item, FunctionCacheItem)]
+        for item in kept:
+            item.reset()
+        if not kept:
+            self._item = None
+        elif isinstance(self._item, list):
+            self._item = kept
+        else:
+            self._item = kept[0]
+
+    def is_registered_function(self) -> bool:
+        """True if this value holds a decorated function's cache (never cleaned away)"""
+        items = self._item if isinstance(self._item, list) else [self._item]
+        return any(isinstance(item, FunctionCacheItem) for item in items)
 

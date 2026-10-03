@@ -215,3 +215,71 @@ def test_constructor_error_is_not_hidden_by_parameterless_retry():
     services.add_singleton(Broken)
     with pytest.raises(ValueError, match="boom from constructor"):
         services.get_service(Broken)
+
+
+# --- reset(keys) clears what @app.cache serves -------------------------------
+
+def test_reset_by_key_clears_decorated_function_entries():
+    calls = []
+    manager = _memory_cache()
+
+    @manager.cache_decorator(key="squares")
+    def square(x):
+        calls.append(x)
+        return x * x
+
+    @manager.cache_decorator(key="other")
+    def other():
+        calls.append("other")
+        return "other"
+
+    assert square(2) == 4 and square(3) == 9 and other() == "other"
+    manager.reset(["squares"])
+    assert manager.get_cache("squares") is None
+    assert square(2) == 4 and square(3) == 9 and other() == "other"
+    assert calls == [2, 3, "other", 2, 3]
+    # still registered after a reset and after a clean: the key keeps working
+    manager.clean()
+    manager.reset(["squares"])
+    assert square(2) == 4
+    assert calls == [2, 3, "other", 2, 3, 2]
+
+
+def test_reset_by_key_clears_async_decorated_function_entries():
+    calls = []
+    manager = _memory_cache()
+
+    @manager.cache_decorator(key="fetch")
+    async def fetch(x):
+        calls.append(x)
+        return x + 1
+
+    async def run():
+        first = [await fetch(1), await fetch(1)]
+        manager.reset(["fetch"])
+        return first + [await fetch(1)]
+
+    assert asyncio.run(run()) == [2, 2, 2]
+    assert calls == [1, 1]
+
+
+def test_full_reset_clears_keyed_and_keyless_decorated_functions():
+    calls = []
+    manager = _memory_cache()
+
+    @manager.cache_decorator(key="keyed")
+    def keyed(x):
+        calls.append(("keyed", x))
+        return x
+
+    @manager.cache_decorator()
+    def keyless(x):
+        calls.append(("keyless", x))
+        return x
+
+    keyed(1), keyless(1)
+    manager.add_or_update("scalar", 42)
+    manager.reset()
+    assert manager.get_cache("scalar") is None
+    keyed(1), keyless(1)
+    assert calls == [("keyed", 1), ("keyless", 1), ("keyed", 1), ("keyless", 1)]

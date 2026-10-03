@@ -52,6 +52,11 @@ class FunctionCacheItem(BaseCacheItem):
             self.store(key, data)
         return data
 
+    def reset(self) -> None:
+        """Drop all cached entries; the next call recomputes"""
+        self.__entries.clear()
+        self.__last_key = None
+
     def data(self) -> "any":
         """Drop expired entries and return the most recently stored live value"""
         for key in [k for k, entry in self.__entries.items() if entry.data() is None]:

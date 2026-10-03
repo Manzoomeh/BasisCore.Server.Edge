@@ -17,6 +17,7 @@ class InMemoryCacheManager(SignalBaseCacheManager):
     def __init__(self, options: DictEx) -> None:
         super().__init__(options)
         self.__cache_dict:"dict[str, BaseValueItem]" = dict()
+        self.__keyless_function_items:"list[FunctionCacheItem]" = list()
 
     def __add_or_update(self, key:"str", cache_item:"BaseCacheItem", value_item:"BaseValueItem") -> "CacheStatus":
         if key not in self.__cache_dict:
@@ -49,6 +50,8 @@ class InMemoryCacheManager(SignalBaseCacheManager):
             function.cache = cache_item
             if key is not None:
                 self.__add_or_update(key, cache_item, ArrayValueItem)
+            else:
+                self.__keyless_function_items.append(cache_item)
 
             if inspect.iscoroutinefunction(function):
                 @wraps(function)
@@ -79,6 +82,8 @@ class InMemoryCacheManager(SignalBaseCacheManager):
         """
         if keys is None or len(keys) == 0:
             keys = list(self.__cache_dict.keys())
+            for function_item in self.__keyless_function_items:
+                function_item.reset()
         for key in keys:
             self.__cache_dict[key].reset()
         return CacheStatus.RESET
@@ -89,7 +94,7 @@ class InMemoryCacheManager(SignalBaseCacheManager):
         """
         cleaned_cache_dict = dict()
         for key, value in self.__cache_dict.items():
-            if value.get_item() is not None:
+            if value.get_item() is not None or value.is_registered_function():
                 cleaned_cache_dict[key] = value
         self.__cache_dict = cleaned_cache_dict
         return CacheStatus.CLEANED
