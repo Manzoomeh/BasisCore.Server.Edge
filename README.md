@@ -125,6 +125,10 @@ pip install -e ".[dev]"
 
 **Runtime dependencies (summary):** `aiohttp`, `aio-pika`, `pika`, `pymongo`, `pyodbc`, `cryptography`, `certifi`.
 
+`requirements.txt` pins the exact tested versions, including transitive dependencies, for reproducible
+installs; `setup.py` declares compatible ranges for the package. See the header of `requirements.txt`
+to update them.
+
 **Dev / tests:**
 
 ```bash

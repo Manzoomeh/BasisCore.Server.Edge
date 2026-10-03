@@ -1,1 +1,2 @@
-pytest>=8.0
+# Test dependencies (pinned). Install together with requirements.txt.
+pytest==9.1.1
