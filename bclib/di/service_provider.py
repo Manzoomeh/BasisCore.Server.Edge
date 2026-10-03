@@ -192,8 +192,10 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
         Explicit registrations are kept in registration order (the first one wins
         for single resolution). A default registration (is_default=True) is only
         used while no explicit registration exists: it is skipped when one already
-        exists, and it is removed - together with any instance it cached - when
-        the first explicit registration arrives.
+        exists, and it is removed - together with any singleton instance it
+        cached - when the first explicit registration arrives. Scoped instances
+        are left alone: add_scoped(instance=...) stores its instance before
+        registering the descriptor.
         """
         service_type = descriptor.service_type
         descriptors = self._descriptors.setdefault(service_type, [])
@@ -205,7 +207,6 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
             for key in [k for k in self._generic_singleton_instances
                         if k[0] is service_type]:
                 del self._generic_singleton_instances[key]
-            self._scoped_instances.pop(service_type, None)
         descriptors.append(descriptor)
 
     def add_scoped(

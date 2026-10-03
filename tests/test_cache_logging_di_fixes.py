@@ -283,3 +283,19 @@ def test_full_reset_clears_keyed_and_keyless_decorated_functions():
     assert manager.get_cache("scalar") is None
     keyed(1), keyless(1)
     assert calls == [("keyed", 1), ("keyless", 1), ("keyed", 1), ("keyless", 1)]
+
+
+def test_scoped_instance_replacing_a_default_is_kept_and_registered_once():
+    class IClock: ...
+    class DefaultClock(IClock): ...
+    class RequestClock(IClock): ...
+
+    services = ServiceProvider()
+    services.add_singleton(IClock, DefaultClock, is_default=True)
+    for _ in range(3):
+        scope = services.create_scope()
+        clock = RequestClock()
+        scope.add_scoped(IClock, instance=clock)
+        assert scope.get_service(IClock) is clock
+        scope.clear_scope()
+    assert len(services._descriptors[IClock]) == 1
