@@ -41,6 +41,7 @@ Example:
     ```
 """
 import asyncio
+import html
 import inspect
 import signal
 from functools import wraps
@@ -57,10 +58,16 @@ if TYPE_CHECKING:
 from bclib.di import (IHostedService, InjectionPlan, IServiceContainer,
                       IServiceProvider)
 from bclib.exception import HandlerNotFoundErr
-from bclib.listener import IListener, IResponseBaseMessage, Message
+from bclib.listener import (ICmsBaseMessage, IListener, IResponseBaseMessage,
+                            Message)
 from bclib.logger.ilogger import ILogger
 from bclib.predicate import Predicate
 from bclib.utility.static_file_handler import StaticFileHandler
+from bclib.utility.http_base_data_name import HttpBaseDataName
+from bclib.utility.http_base_data_type import HttpBaseDataType
+from bclib.utility.http_mime_types import HttpMimeTypes
+from bclib.utility.http_status_codes import HttpStatusCodes
+from bclib.utility.response_types import ResponseTypes
 
 from .callback_info import CallbackInfo
 from .idispatcher import IDispatcher
@@ -893,7 +900,39 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
         except Exception as ex:
             self.__logger.error(
                 f"Error in process received message {ex}", exc_info=True)
-            raise ex
+            # A caller that waits for a reply (such as the BasisCore web server over TCP)
+            # must get one; closing the connection silently surfaces on its side as an
+            # unrelated error. Reply with an error page when possible, otherwise re-raise.
+            if not await self.__try_send_error_response_async(message, ex):
+                raise ex
+
+    async def __try_send_error_response_async(self, message: Message, exception: Exception) -> bool:
+        """Send a CMS error response for a message that failed before a context could reply
+
+        Returns:
+            bool: True if an error response was sent
+        """
+        if not isinstance(message, IResponseBaseMessage):
+            return False
+        try:
+            cms_object = message.cms_object if isinstance(message, ICmsBaseMessage) else None
+            request_cms = cms_object.get(HttpBaseDataType.CMS) if isinstance(cms_object, dict) else None
+            response_cms = dict(request_cms) if isinstance(request_cms, dict) else {}
+            response_cms[HttpBaseDataType.CMS] = {
+                HttpBaseDataName.WEB_SERVER: {
+                    HttpBaseDataName.INDEX: ResponseTypes.RENDERED,
+                    HttpBaseDataName.HEADER_CODE: HttpStatusCodes.INTERNAL_SERVER_ERROR,
+                    HttpBaseDataName.MIME: HttpMimeTypes.HTML,
+                },
+                HttpBaseDataName.CONTENT: html.escape(
+                    f"Edge could not process the request: {type(exception).__name__}: {exception}"),
+            }
+            await message.set_response_async(response_cms)
+            return True
+        except Exception as send_ex:
+            self.__logger.error(
+                f"Error in sending error response {send_ex}", exc_info=True)
+            return False
 
     def run_in_background(self, callback: 'Callable|Coroutine', *args: Any) -> asyncio.Future:
         """Execute function or coroutine in background
