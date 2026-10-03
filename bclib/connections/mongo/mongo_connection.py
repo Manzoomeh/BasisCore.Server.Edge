@@ -37,7 +37,8 @@ Configuration Example:
     ```
 """
 
-from typing import Any, Dict, Optional, TypeVar
+import asyncio
+from typing import Any, Dict, Optional, Set, TypeVar
 
 from pymongo import AsyncMongoClient, MongoClient
 from pymongo.collection import Collection
@@ -118,6 +119,7 @@ class MongoConnection(IMongoConnection[T]):
         self._database: Optional[Database] = None
         self._async_client: Optional[AsyncMongoClient] = None
         self._async_database: Optional[Database] = None
+        self._pending_close_tasks: Set[asyncio.Task] = set()
 
         # Validate required configuration
         self._validate_options()
@@ -321,18 +323,48 @@ class MongoConnection(IMongoConnection[T]):
         """
         Close the MongoDB client connections (sync and async).
 
+        The async client's close() is a coroutine. When called from inside a
+        running event loop it is scheduled on that loop; otherwise it is run to
+        completion. Prefer ``await close_async()`` from async code.
+
         Note:
             Connection will be automatically closed when used as context manager.
         """
+        self._close_sync_client()
+
+        async_client = self._detach_async_client()
+        if async_client is not None:
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                asyncio.run(async_client.close())
+            else:
+                task = loop.create_task(async_client.close())
+                self._pending_close_tasks.add(task)
+                task.add_done_callback(self._pending_close_tasks.discard)
+
+    async def close_async(self) -> None:
+        """
+        Close the MongoDB client connections (sync and async), awaiting the
+        async client's close.
+        """
+        self._close_sync_client()
+
+        async_client = self._detach_async_client()
+        if async_client is not None:
+            await async_client.close()
+
+    def _close_sync_client(self) -> None:
         if self._client is not None:
             self._client.close()
             self._client = None
             self._database = None
 
-        if self._async_client is not None:
-            self._async_client.close()
-            self._async_client = None
-            self._async_database = None
+    def _detach_async_client(self) -> Optional[AsyncMongoClient]:
+        async_client = self._async_client
+        self._async_client = None
+        self._async_database = None
+        return async_client
 
     def __enter__(self):
         """Context manager entry."""

@@ -87,3 +87,7 @@ class IMongoConnection(Generic[T], ABC):
     def close(self) -> None:
         """Close the database connection."""
         pass
+
+    async def close_async(self) -> None:
+        """Close the database connection, awaiting any async client close."""
+        self.close()

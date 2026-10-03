@@ -173,10 +173,13 @@ def from_options(options: dict, loop: asyncio.AbstractEventLoop = None) -> IDisp
         # Full configuration
         options = {
             "name": "MyAPI",
-            "http": "0.0.0.0:443",
-            "ssl": {
-                "cert": "/path/to/cert.pem",
-                "key": "/path/to/key.pem"
+            "http": {
+                "endpoint": "0.0.0.0:443",
+                "ssl": {
+                    "certfile": "/path/to/cert.pem",
+                    "keyfile": "/path/to/key.pem"
+                    # or: "pfxfile": "/path/to/cert.pfx", "password": "..."
+                }
             },
             "router": {
                 "restful": ["api/*"],
