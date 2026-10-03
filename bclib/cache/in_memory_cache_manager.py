@@ -10,6 +10,7 @@ from ..cache.value_item.base_value_item import BaseValueItem
 from ..cache.value_item.array_value_item import ArrayValueItem
 from ..cache.value_item.scalar_value_item import ScalarValueItem
 from functools import wraps
+import inspect
 
 class InMemoryCacheManager(SignalBaseCacheManager):
     
@@ -48,6 +49,13 @@ class InMemoryCacheManager(SignalBaseCacheManager):
             function.cache = cache_item
             if key is not None:
                 self.__add_or_update(key, cache_item, ArrayValueItem)
+
+            if inspect.iscoroutinefunction(function):
+                @wraps(function)
+                async def async_wrapper(*args, **kwargs):
+                    function_cache:"FunctionCacheItem" = function.cache
+                    return await function_cache.get_data_async(*args, **kwargs)
+                return async_wrapper
 
             @wraps(function)
             def wrapper(*args, **kwargs):

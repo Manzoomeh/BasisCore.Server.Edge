@@ -37,7 +37,8 @@ class IServiceContainer(ABC):
         factory: Optional[Callable[['IServiceProvider'], T]] = None,
         instance: Optional[T] = None,
         is_hosted: bool = False,
-        priority: int = 0
+        priority: int = 0,
+        is_default: bool = False
     ) -> 'IServiceContainer':
         """
         Register a singleton service (one instance for entire application)
@@ -49,6 +50,9 @@ class IServiceContainer(ABC):
             instance: Pre-created instance
             is_hosted: If True, service is instantiated at startup and start_async is called
             priority: Initialization priority for hosted services (higher = initialized first, default=0)
+            is_default: Register as a replaceable framework default. It is used only while no
+                explicit registration exists for service_type; an explicit registration
+                (made before or after) replaces it.
 
         Returns:
             Self for chaining

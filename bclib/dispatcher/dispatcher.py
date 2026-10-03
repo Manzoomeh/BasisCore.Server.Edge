@@ -981,6 +981,9 @@ class Dispatcher(IDispatcher, IMessageHandler, IHostedService):
         # Ensure router is ready before server starts
         self.__context_factory.rebuild_router()
 
+        # Start cache signalers (they need the running event loop)
+        self.__cache_manager.start()
+
         # Initialize all hosted services (async)
         await self.__service_container.initialize_hosted_services_async()
 
