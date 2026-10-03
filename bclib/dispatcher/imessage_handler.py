@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from listener.message import Message
+    from bclib.listener.message import Message
 
 
 class IMessageHandler(ABC):
