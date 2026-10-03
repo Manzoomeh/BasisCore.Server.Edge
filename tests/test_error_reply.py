@@ -41,8 +41,18 @@ def tcp_app():
     loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
 
 
+async def _connect_async(port: int):
+    """Connect once the listener is bound; it starts in a background task."""
+    for _ in range(50):
+        try:
+            return await asyncio.open_connection("127.0.0.1", port)
+        except ConnectionRefusedError:
+            await asyncio.sleep(0.1)
+    return await asyncio.open_connection("127.0.0.1", port)
+
+
 async def _request_async(port: int, cms: dict) -> dict:
-    reader, writer = await asyncio.open_connection("127.0.0.1", port)
+    reader, writer = await _connect_async(port)
     try:
         await TcpMessage._write_to_stream_async(
             writer, "test-session", MessageType.AD_HOC, json.dumps(cms).encode("utf-8"))
