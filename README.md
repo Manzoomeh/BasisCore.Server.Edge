@@ -13,6 +13,29 @@ BasisEdge sits at the **edge of your network**: you build REST APIs, dbsource ha
 
 ---
 
+## Ship your Edge services on BasisPanel
+
+BasisEdge is built and maintained by **Manzoomeh Negaran**, and it is already in production with a
+growing community of independent developers who deliver their own services on it — and who help
+us shape and improve the platform with every release.
+
+**Now you can take your services live without running your own servers.** If you have a **Banian**
+account on [basispanel.ai](https://basispanel.ai), you can upload the services you build with
+BasisEdge directly to your panel and run them on Manzoomeh's managed infrastructure.
+
+- **Build your backend your way.** Write any logic you need in Python — REST APIs, dbsource
+  handlers, WebSocket and TCP services, RabbitMQ consumers — with no restrictions imposed by the
+  hosting side.
+- **Deploy straight from your panel.** Upload your service to BasisPanel and it runs on
+  Manzoomeh's infrastructure: no servers to provision and no separate hosting to manage.
+- **Launch the whole product in one place.** Pair your backend with BasisPanel's AI-powered
+  front-end tools and take your project from first endpoint to full launch on a single platform.
+
+Have a question? The Manzoomeh team is here to help — reach us through
+[manzoomeh.com](https://manzoomeh.com) or [basispanel.ai](https://basispanel.ai).
+
+---
+
 ## Table of Contents
 
 1. [Why BasisEdge](#1-why-basisedge)
