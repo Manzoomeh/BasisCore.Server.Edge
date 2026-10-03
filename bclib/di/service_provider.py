@@ -227,7 +227,14 @@ class ServiceProvider(IServiceContainer, IServiceProvider):
         # scope (e.g. dbsource member contexts) register themselves one after another.
         if instance is not None:
             self._scoped_instances[service_type] = instance
-            # Don't store instance in descriptor (would be shared across scopes)
+            # Don't store instance in descriptor (would be shared across scopes).
+            # Descriptors are shared by all scopes, so register the instance-only
+            # descriptor once instead of once per scope (per request).
+            if implementation is None and factory is None and any(
+                    d.lifetime == ServiceLifetime.SCOPED and d.implementation is None
+                    and d.factory is None
+                    for d in self._descriptors.get(service_type, [])):
+                return self
 
         descriptor = ServiceDescriptor(
             service_type=service_type,

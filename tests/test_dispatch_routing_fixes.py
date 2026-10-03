@@ -172,3 +172,44 @@ def test_server_source_over_http_returns_bad_request(app):
     assert response["cms"]["webserver"]["headercode"].startswith("400")
     assert "command" in response["cms"]["content"]
     assert "KeyError" not in response["cms"]["content"]
+
+
+# Scoped context descriptors must not accumulate per request (memory leak)
+
+def _descriptor_count(app, service_type) -> int:
+    return len(app.service_provider._descriptors.get(service_type, []))
+
+
+def test_context_descriptors_do_not_grow_per_request(app):
+    @app.restful_handler("hello")
+    def hello(context: RESTfulContext):
+        return {"ok": True}
+
+    @app.client_source_handler()
+    def source(context: ClientSourceContext):
+        return {"rows": 1}
+
+    @app.client_source_member_handler()
+    def member(context: ClientSourceMemberContext):
+        return {"member": context.member.name}
+
+    for _ in range(50):
+        cms = make_cms(url="hello")
+        run_dispatch(app, RESTfulContext(cms, app, HttpMessage(cms)))
+    for _ in range(5):
+        cms = make_cms(form={"command": TWO_MEMBERS, "dmnid": "1"})
+        run_dispatch(app, ClientSourceContext(cms, app, HttpMessage(cms)))
+
+    assert _descriptor_count(app, RESTfulContext) == 1
+    assert _descriptor_count(app, ClientSourceContext) == 1
+    assert _descriptor_count(app, ClientSourceMemberContext) == 1
+
+
+def test_back_to_back_scopes_resolve_their_own_context(app):
+    cms_a, cms_b = make_cms(url="a"), make_cms(url="b")
+    context_a = RESTfulContext(cms_a, app, HttpMessage(cms_a))
+    context_b = RESTfulContext(cms_b, app, HttpMessage(cms_b))
+
+    assert context_a.services.get_service(RESTfulContext) is context_a
+    assert context_b.services.get_service(RESTfulContext) is context_b
+    assert _descriptor_count(app, RESTfulContext) == 1
