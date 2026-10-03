@@ -756,7 +756,7 @@ for config in configs:
 
 ## See Also
 
-- [ServiceProvider Documentation](./service-provider.md)
-- [Dependency Injection Guide](./dependency-injection.md)
+- [ServiceProvider Documentation](../README.md#11-dependency-injection)
+- [Dependency Injection Guide](../README.md#11-dependency-injection)
 - [DI examples](../examples/di/)
 - [Unit tests](../tests/test_di.py)

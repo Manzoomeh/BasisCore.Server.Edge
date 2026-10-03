@@ -38,6 +38,11 @@ Have a question? The Manzoomeh team is here to help — reach us through
 
 ## Table of Contents
 
+For in-depth topics (architecture, BasisCore integration, the full configuration reference,
+security, deployment, extending, testing and known limitations), see the
+**[developer guide](docs/README.md)**.
+
+
 1. [Why BasisEdge](#1-why-basisedge)
 2. [Core Concepts](#2-core-concepts)
 3. [Install](#3-install)
@@ -151,9 +156,8 @@ from bclib.context import RESTfulContext
 app = edge.from_options({
     "name": "hello-api",
     "http": "localhost:8080",
-    "router": "restful",
     "log_request": True,
-    "log_error": True,
+    "error_log": True,  # tracebacks in error responses; development only
 })
 
 @app.restful_handler("api/hello", method="GET")
@@ -197,9 +201,8 @@ from bclib import edge
 app = edge.from_options({
     "name": "my-app",
     "http": "0.0.0.0:8080",
-    "router": "restful",
     "log_request": True,
-    "log_error": True,
+    "error_log": True,  # tracebacks in error responses; development only
 })
 ```
 
@@ -258,27 +261,19 @@ Common top-level keys:
 | `http` | str \| dict \| list | HTTP endpoint(s), optional SSL |
 | `tcp` | str \| dict \| list | TCP endpoint(s) |
 | `rabbitmq` | dict \| list | RabbitMQ consumer config(s) |
-| `router` | str \| dict | Default router mode or path map |
 | `log_request` | bool | Log incoming requests |
-| `log_error` | bool | Log handler errors |
+| `error_log` | bool | Add tracebacks to error responses (development only) |
 | `cache` | dict | e.g. `{"type": "memory", "clean_interval": 60}` |
 | `logger` | dict | Logger options for `ILogger` |
 | `database` | dict | Nested Mongo (or other) connection sections |
-| `ssl` | dict | Can also nest under `http` object |
+| `ssl` | dict | Only inside an `http` entry; a top-level `ssl` is ignored |
 
-### Router styles
+### Routing
 
-```python
-# Simple: everything is restful
-{"router": "restful"}
-
-# Map URL patterns to context kinds
-{"router": {
-    "restful": ["api/*"],
-    "web": ["*"],
-    "rabbit": [{"url": "amqp://...", "queue": "tasks"}]
-}}
-```
+There is no `router` option in 4.0; it is ignored if present. The context type for each request
+(REST, web, WebSocket, client/server source) is chosen from the URL routes of the handlers you
+register. See [docs/architecture.md](docs/architecture.md#choosing-the-context-the-router) and the
+full key list in [docs/configuration-reference.md](docs/configuration-reference.md).
 
 ### Full sample `host.json`
 
@@ -286,9 +281,8 @@ Common top-level keys:
 {
   "name": "my-app",
   "http": "0.0.0.0:8080",
-  "router": "restful",
   "log_request": true,
-  "log_error": true,
+  "error_log": false,
   "database": {
     "users": {
       "connection_string": "mongodb://localhost:27017",
@@ -296,7 +290,7 @@ Common top-level keys:
       "timeout": 5000
     }
   },
-  "rabbitmq": {
+  "queues": {
     "tasks": {
       "url": "amqp://guest:guest@localhost:5672/",
       "queue": "task_queue",
@@ -326,7 +320,7 @@ Common top-level keys:
 
 1. **Listener** accepts HTTP / TCP / Rabbit delivery  
 2. Builds a **Message** (`HttpMessage`, `RabbitMessage`, …)  
-3. **ContextFactory** chooses context type from message + router  
+3. **ContextFactory** chooses context type from message + registered handler routes  
 4. Dispatcher creates a **scoped DI** container on the context  
 5. Looks up handlers for `type(context)`  
 6. Runs **predicates** in order; first match wins  
@@ -586,7 +580,7 @@ class Greeter(IGreeter):
     def greet(self, name: str) -> str:
         return f"Hello, {name}"
 
-app = edge.from_options({"http": "localhost:8080", "router": "restful"})
+app = edge.from_options({"http": "localhost:8080"})
 app.service_provider.add_singleton(IGreeter, Greeter)
 
 @app.restful_handler("api/greet/:name", method="GET")
@@ -678,7 +672,7 @@ root = app.service_provider.get_service(AppOptions)
 users_db = app.service_provider.get_service(IOptions["database.users"])
 # → {"connection_string": "...", "database_name": "..."}
 
-tasks = app.service_provider.get_service(IOptions["rabbitmq.tasks"])
+tasks = app.service_provider.get_service(IOptions["queues.tasks"])
 ```
 
 Dots navigate nested dictionaries (`database` → `users`). This is the same key you use on connection generics: `IMongoConnection["database.users"]`.
@@ -729,10 +723,13 @@ Also supports async client APIs on the same connection object (`get_async_collec
 
 ### 13.2 RabbitMQ (`aio-pika`)
 
+Connection sections can live under any key except `rabbitmq`, which is reserved for consumers
+(§18.5); these samples use `queues`.
+
 **Config (queue mode)**
 
 ```json
-"rabbitmq": {
+"queues": {
   "tasks": {
     "url": "amqp://guest:guest@localhost:5672/",
     "queue": "task_queue",
@@ -744,7 +741,7 @@ Also supports async client APIs on the same connection object (`get_async_collec
 **Config (exchange mode)**
 
 ```json
-"rabbitmq": {
+"queues": {
   "events": {
     "url": "amqp://guest:guest@localhost:5672/",
     "exchange": "domain.events",
@@ -761,7 +758,7 @@ Also supports async client APIs on the same connection object (`get_async_collec
 from bclib.connections.rabbit import IRabbitConnection
 
 class TaskPublisher:
-    def __init__(self, bus: IRabbitConnection["rabbitmq.tasks"]):
+    def __init__(self, bus: IRabbitConnection["queues.tasks"]):
         self.bus = bus
 
     async def enqueue(self, payload: dict):
@@ -832,7 +829,6 @@ Custom loggers: see `examples/logger/custom_logger.py`.
 ```python
 app = edge.from_options({
     "http": "localhost:8080",
-    "router": "restful",
     "cache": {
         "type": "memory",
         "clean_interval": 60,
@@ -892,7 +888,7 @@ def secure(context: RESTfulContext):
 
 Base type: `ShortCircuitErr(status_code, error_code=-1, message=None, data=None)`.
 
-Uncaught exceptions are logged (if `log_error`) and converted via `context.generate_error_response`.
+Uncaught exceptions are always logged and converted via `context.generate_error_response`; `error_log` adds the traceback to the response.
 
 Samples: `examples/exceptions/`.
 
@@ -948,8 +944,7 @@ Listeners are **not** started in `from_options`. They are created in `listening(
       "certfile": "cert.pem",
       "keyfile": "key.pem"
     }
-  },
-  "router": "web"
+  }
 }
 ```
 
@@ -963,8 +958,7 @@ Listeners are **not** started in `from_options`. They are created in `listening(
       "pfxfile": "server.pfx",
       "password": "secret"
     }
-  },
-  "router": "web"
+  }
 }
 ```
 
@@ -1045,7 +1039,7 @@ def list_member(context: ClientSourceMemberContext):
     return context.data
 ```
 
-Samples: `examples/client_source/`, `examples/server_source/`, `examples/share_source/`.
+Samples: `examples/client_source/`, `examples/server_source/`. Contracts in detail: [docs/basiscore-integration.md](docs/basiscore-integration.md).
 
 ---
 
@@ -1066,7 +1060,7 @@ def get_user(id: int, users: IUserService):
 
 ```python
 @app.restful_handler("api/orders", method="POST")
-async def create_order(context: RESTfulContext, bus: IRabbitConnection["rabbitmq.events"]):
+async def create_order(context: RESTfulContext, bus: IRabbitConnection["queues.events"]):
     order = context.body
     await bus.publish({"type": "order.created", "order": order})
     return {"status": "queued"}
