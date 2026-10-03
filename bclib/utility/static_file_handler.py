@@ -150,7 +150,7 @@ class StaticFileHandler:
         Sets appropriate response in context (file, error, etc.)
         """
         # Only allow GET and HEAD methods
-        method = context.cms.get('method', 'GET').upper()
+        method = str(context.cms.get('request', {}).get('methode') or 'GET').upper()
         if method not in ['GET', 'HEAD']:
             return None
 

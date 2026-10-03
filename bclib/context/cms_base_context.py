@@ -38,6 +38,7 @@ Note:
     This is an intermediate base class. Use protocol-specific contexts like
     HttpContext, RESTfulContext, WebSocketContext, or TcpContext in your handlers.
 """
+import html
 import json
 import traceback
 from typing import TYPE_CHECKING, Any, Tuple
@@ -185,9 +186,13 @@ class CmsBaseContext(Context):
             content = exception.data if isinstance(
                 exception.data, str) else json.dumps(exception.data, indent=1).replace("\n", "</br>")
         else:
-            content = f"{error_object['errorMessage']} (Error Code: {error_object['errorCode']})"
+            # The message and traceback can contain request input; escape them so the
+            # error page cannot inject markup.
+            message = html.escape(str(error_object['errorMessage']))
+            code = html.escape(str(error_object['errorCode']))
+            content = f"{message} (Error Code: {code})"
             if 'error' in error_object:
-                error = error_object["error"].replace("\n", "</br>")
+                error = html.escape(error_object["error"]).replace("\n", "</br>")
                 content += f"<hr/>{error}"
         return self.generate_response(content)
 
