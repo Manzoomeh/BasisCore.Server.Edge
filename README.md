@@ -1137,7 +1137,7 @@ pytest -v tests/test_handlers.py
 | `bclib.exception.*` | HTTP short-circuit errors |
 | `bclib.utility.StaticFileHandler` | Static files |
 
-Version: `import bclib; bclib.__version__` (current **4.0.0**).
+Version: `import bclib; bclib.__version__` (current **4.0.1**).
 
 ---
 
