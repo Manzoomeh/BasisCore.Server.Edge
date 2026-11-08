@@ -12,11 +12,6 @@ import uuid
 from typing import TYPE_CHECKING, Awaitable, Callable, Optional
 from urllib.parse import parse_qs, unquote
 
-from cryptography.hazmat.primitives.serialization import (Encoding,
-                                                          NoEncryption,
-                                                          PrivateFormat,
-                                                          pkcs12)
-
 from bclib.listener.message_type import MessageType
 from bclib.utility import DictEx, ResponseTypes
 
@@ -180,6 +175,9 @@ class HttpListener:
         - key.pem (private key)
         Returns: (fullchain_path, key_path)
         """
+        # Imported here so 'cryptography' is only required when a pfx file is used.
+        from cryptography.hazmat.primitives.serialization import (
+            Encoding, NoEncryption, PrivateFormat, pkcs12)
         with open(pfxfile, "rb") as f:
             private_key, certificate, additional_certificates = pkcs12.load_key_and_certificates(
                 f.read(), password.encode()
