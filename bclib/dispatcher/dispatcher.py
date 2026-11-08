@@ -8,6 +8,7 @@ import traceback
 from typing import Callable, Any, Coroutine, Optional
 from functools import wraps
 from bclib.logger import ILogger, LoggerFactory, LogObject
+from bclib.logger.background import BackgroundLog, schedule_coroutine
 from bclib.cache import CacheFactory
 from bclib.listener import RabbitBusListener
 from bclib.predicate import Predicate
@@ -417,8 +418,12 @@ class Dispatcher(ABC):
             log_object = self.new_object_log(schema_name, **kwargs)
         await self.__logger.log_async(log_object)
 
-    def log_in_background(self, log_object: LogObject = None, **kwargs) -> Coroutine:
-        """log params in background precess"""
-        return self.event_loop.create_task(
-            self.log_async(log_object, **kwargs)
-        )
+    def log_in_background(self, log_object: LogObject = None, **kwargs) -> BackgroundLog:
+        """log params in background precess
+
+        Safe to call from async handlers and from sync handlers, which run in
+        executor worker threads: the log is always scheduled on self.event_loop.
+        Returns an asyncio.Task on the loop thread, otherwise a
+        concurrent.futures.Future.
+        """
+        return schedule_coroutine(self.log_async(log_object, **kwargs), self.event_loop)
