@@ -1,3 +1,6 @@
+import asyncio
+from typing import Optional
+
 from bclib.log_service.schema_base_logger import SchemaBaseLogger
 
 
@@ -27,7 +30,7 @@ class RESTfulSchemaBaseLogger(SchemaBaseLogger):
         ```
     """
 
-    def __init__(self, options: dict) -> None:
+    def __init__(self, options: dict, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
         """
         Initialize RESTful schema logger
 
@@ -35,11 +38,12 @@ class RESTfulSchemaBaseLogger(SchemaBaseLogger):
             options: Logger configuration dictionary containing:
                 - url or post_url: POST endpoint for log submission
                 - get_url or url: Schema API endpoint (for parent class)
+            loop: Application event loop used by log_in_background
 
         Raises:
             Exception: If neither 'url' nor 'post_url' is configured
         """
-        super().__init__(options)
+        super().__init__(options, loop)
         if "url" in options:
             self.__post_url = options["url"]
         elif "post_url" in options:

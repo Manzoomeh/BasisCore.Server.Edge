@@ -1,7 +1,8 @@
 """Log Service Implementation"""
 import asyncio
-from typing import Coroutine, Optional
+from typing import Optional
 
+from bclib.log_service.background import BackgroundLog, schedule_coroutine
 from bclib.log_service.ilog_service import ILogService
 from bclib.log_service.log_object import LogObject
 from bclib.log_service.rabbit_schema_base_logger import RabbitSchemaBaseLogger
@@ -45,18 +46,19 @@ class LogService(ILogService):
             loop: The asyncio event loop for async operations
         """
         # Create logger based on configuration (integrated factory logic)
-        self.__logger: ILogService = self.__create_logger(options)
+        self.__logger: ILogService = self.__create_logger(options, loop)
         self.__log_error: bool = options.get('log_error', False)
         self.__log_request: bool = options.get('log_request', True)
         self.__event_loop = loop
 
     @staticmethod
-    def __create_logger(options: AppOptions) -> ILogService:
+    def __create_logger(options: AppOptions, loop: Optional[asyncio.AbstractEventLoop] = None) -> ILogService:
         """
         Create a logger instance based on configuration (factory method)
 
         Args:
             options: Application configuration (AppOptions type alias for dict)
+            loop: Application event loop used for background logging
 
         Returns:
             ILogService: Configured logger instance
@@ -73,9 +75,9 @@ class LogService(ILogService):
         else:
             logger_type = logger_option.get('type').lower()
             if logger_type == 'schema.restful':
-                logger = RESTfulSchemaBaseLogger(logger_option)
+                logger = RESTfulSchemaBaseLogger(logger_option, loop=loop)
             elif logger_type == "schema.rabbit":
-                logger = RabbitSchemaBaseLogger(logger_option)
+                logger = RabbitSchemaBaseLogger(logger_option, loop=loop)
             else:
                 raise Exception(
                     f"Type '{logger_type}' not support for logger")
@@ -128,20 +130,19 @@ class LogService(ILogService):
             log_object = self.new_object_log(schema_name, **kwargs)
         await self.__logger.log_async(log_object)
 
-    def log_in_background(self, log_object: LogObject = None, **kwargs) -> Coroutine:
+    def log_in_background(self, log_object: LogObject = None, **kwargs) -> BackgroundLog:
         """
         Log in background process
+
+        Safe to call from async handlers and from sync handlers, which Edge runs in
+        executor worker threads: the log is always scheduled on the application loop.
 
         Args:
             log_object: Pre-created log object. If None, creates from kwargs
             **kwargs: Log parameters
 
         Returns:
-            Coroutine: Task for background logging
+            asyncio.Task when called on the loop thread, otherwise a
+            concurrent.futures.Future for the background logging
         """
-        if self.__logger is None:
-            import asyncio
-            return self.__event_loop.create_task(asyncio.sleep(0))
-        return self.__event_loop.create_task(
-            self.log_async(log_object, **kwargs)
-        )
+        return schedule_coroutine(self.log_async(log_object, **kwargs), self.__event_loop)

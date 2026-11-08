@@ -1,7 +1,9 @@
+import asyncio
 from abc import abstractmethod
-from typing import Coroutine, Optional
+from typing import Optional
 from urllib.parse import urljoin
 
+from bclib.log_service.background import BackgroundLog, schedule_coroutine
 from bclib.log_service.ilog_service import ILogService
 from bclib.log_service.log_object import LogObject
 from bclib.log_service.log_schema import LogSchema
@@ -37,7 +39,7 @@ class SchemaBaseLogger(ILogService):
         ```
     """
 
-    def __init__(self, options: dict) -> None:
+    def __init__(self, options: dict, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
         """
         Initialize schema-based logger
 
@@ -45,6 +47,8 @@ class SchemaBaseLogger(ILogService):
             options: Logger configuration dictionary containing:
                 - url or get_url: Schema API URL
                 - Additional implementation-specific options
+            loop: Application event loop used by log_in_background. When omitted,
+                the loop running in the calling thread is used.
 
         Raises:
             Exception: If neither 'url' nor 'get_url' is configured
@@ -59,6 +63,7 @@ class SchemaBaseLogger(ILogService):
             raise Exception(
                 "url part of schema logger not set. set 'url' or 'get_url'")
         self.__schemas: 'dict[str,dict]' = dict()
+        self._loop = loop
 
     async def __load_schema_async(self, schema_name: str) -> LogSchema:
         """
@@ -174,19 +179,20 @@ class SchemaBaseLogger(ILogService):
             print(
                 f"Error in log with schema logger: {repr(ex)}")
 
-    def log_in_background(self, log_object: LogObject = None, **kwargs) -> Coroutine:
+    def log_in_background(self, log_object: LogObject = None, **kwargs) -> BackgroundLog:
         """
         Log in background process
+
+        Safe to call from sync handlers running in executor worker threads: the log
+        is scheduled on the application loop given to the constructor (or the loop
+        running in this thread). With no loop at all it is sent synchronously.
 
         Args:
             log_object: Pre-created log object. If None, creates from kwargs
             **kwargs: Log parameters
 
         Returns:
-            Coroutine: Task for background logging
+            asyncio.Task when called on the loop thread, otherwise a
+            concurrent.futures.Future for the background logging
         """
-        # May be called outside a coroutine; asyncio.get_event_loop() raises
-        # on Python 3.14 when no loop is set
-        from bclib.di import _current_or_new_event_loop
-        loop = _current_or_new_event_loop()
-        return loop.create_task(self.log_async(log_object, **kwargs))
+        return schedule_coroutine(self.log_async(log_object, **kwargs), self._loop)
